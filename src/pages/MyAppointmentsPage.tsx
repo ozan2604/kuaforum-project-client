@@ -1,0 +1,130 @@
+import React, { useEffect, useState } from 'react';
+import { appointmentService } from '../api/appointment.service';
+import type { AppointmentDto } from '../types/appointment'; // Need to ensure DTO exists or reuse Appointment type
+import { format } from 'date-fns';
+import { tr } from 'date-fns/locale';
+import { Calendar, Clock, MapPin, User } from 'lucide-react';
+import { Button } from '../components/Button';
+import { useNavigate } from 'react-router-dom';
+
+// Reuse Appointment type if Dto is not distinct enough, or define here
+// Based on backend MapToDto:
+interface Appointment extends AppointmentDto { }
+
+export const MyAppointmentsPage: React.FC = () => {
+    const [appointments, setAppointments] = useState<Appointment[]>([]);
+    const [loading, setLoading] = useState(true);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        loadAppointments();
+    }, []);
+
+    const loadAppointments = async () => {
+        try {
+            const data = await appointmentService.getMyAppointments();
+            setAppointments(data);
+        } catch (error) {
+            console.error('Failed to load appointments', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const getStatusColor = (status: number) => {
+        switch (status) {
+            case 0: return 'bg-yellow-100 text-yellow-800'; // Pending
+            case 1: return 'bg-green-100 text-green-800';   // Confirmed
+            case 2: return 'bg-red-100 text-red-800';     // Declined
+            case 3: return 'bg-gray-100 text-gray-800';    // Cancelled
+            case 4: return 'bg-blue-100 text-blue-800';    // Completed
+            default: return 'bg-gray-100 text-gray-800';
+        }
+    };
+
+    const getStatusText = (status: number) => {
+        switch (status) {
+            case 0: return 'Onay Bekliyor';
+            case 1: return 'Onaylandı';
+            case 2: return 'Reddedildi';
+            case 3: return 'İptal Edildi';
+            case 4: return 'Tamamlandı';
+            default: return 'Bilinmiyor';
+        }
+    };
+
+    if (loading) {
+        return (
+            <div className="flex justify-center items-center min-h-screen">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <h1 className="text-2xl font-bold text-gray-900 mb-8">Randevularım</h1>
+
+            {appointments.length === 0 ? (
+                <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-gray-100">
+                    <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                    <h3 className="text-lg font-medium text-gray-900">Henüz randevunuz yok</h3>
+                    <p className="text-gray-500 mt-2 mb-6">Kuaför veya berber randevusu almak için hemen göz atın.</p>
+                    <Button onClick={() => navigate('/')}>Randevu Al</Button>
+                </div>
+            ) : (
+                <div className="grid gap-6">
+                    {appointments.map((appointment) => (
+                        <div key={appointment.id} className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                            <div className="space-y-4 mb-4 sm:mb-0">
+                                <div>
+                                    <h3 className="text-lg font-bold text-gray-900">{appointment.shopName}</h3>
+                                    <div className="flex items-center text-gray-500 text-sm mt-1">
+                                        <MapPin className="h-4 w-4 mr-1" />
+                                        {/* Assuming shop address/city might not be in DTO, if not, remove or fetch */}
+                                        <span>Salon Adresi</span>
+                                    </div>
+                                </div>
+
+                                <div className="flex flex-wrap gap-4 text-sm">
+                                    <div className="flex items-center text-gray-700">
+                                        <Calendar className="h-4 w-4 mr-2 text-primary-500" />
+                                        {format(new Date(appointment.startTime), 'd MMMM yyyy', { locale: tr })}
+                                    </div>
+                                    <div className="flex items-center text-gray-700">
+                                        <Clock className="h-4 w-4 mr-2 text-primary-500" />
+                                        {format(new Date(appointment.startTime), 'HH:mm')} - {format(new Date(appointment.endTime), 'HH:mm')}
+                                    </div>
+                                    <div className="flex items-center text-gray-700">
+                                        <User className="h-4 w-4 mr-2 text-primary-500" />
+                                        {appointment.employeeName}
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center gap-2">
+                                    <span className="font-medium text-gray-900">{appointment.serviceName}</span>
+                                    <span className="text-gray-400">•</span>
+                                    <span className="text-gray-600">{appointment.duration} dk</span>
+                                    <span className="text-gray-400">•</span>
+                                    <span className="font-bold text-gray-900">₺{appointment.price}</span>
+                                </div>
+                            </div>
+
+                            <div className="flex flex-col items-end gap-3">
+                                <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(appointment.status)}`}>
+                                    {getStatusText(appointment.status)}
+                                </span>
+                                {/* Add Cancel/Reschedule buttons if needed */}
+                                {appointment.status === 0 && (
+                                    <button className="text-sm text-red-600 hover:text-red-700 font-medium">
+                                        İptal Et
+                                    </button>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            )}
+        </div>
+    );
+};
