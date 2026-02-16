@@ -1,9 +1,9 @@
 import api from './axios';
-import type { AuthResponse, LoginRequest, RegisterRequest, UpdateProfileRequest, ChangePasswordRequest } from '../types/auth';
+import type { AuthResponse, RegisterRequest, UpdateProfileRequest, ChangePasswordRequest } from '../types/auth';
 import type { Address, CreateAddressRequest } from '../types/address';
 
 export const authService = {
-    login: async (data: LoginRequest): Promise<AuthResponse> => {
+    login: async (data: { identifier: string; password: string }): Promise<AuthResponse> => {
         const response = await api.post<AuthResponse>('/auth/login', data);
         return response.data;
     },

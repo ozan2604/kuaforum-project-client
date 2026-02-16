@@ -6,6 +6,7 @@ import { type Appointment, AppointmentStatus } from '../../types/appointment'; /
 import { toast } from 'react-hot-toast';
 import { Calendar, Clock, User, CheckCircle, XCircle, AlertCircle, Scissors } from 'lucide-react';
 import { format } from 'date-fns';
+import { tr } from 'date-fns/locale';
 
 export const SalonAppointmentsPage: React.FC = () => {
     const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -131,7 +132,7 @@ export const SalonAppointmentsPage: React.FC = () => {
                                             </div>
                                             <div className="flex items-center">
                                                 <Clock className="h-4 w-4 mr-2 text-primary-500" />
-                                                {format(new Date(appointment.startTime), 'MMM d, yyyy h:mm a')}
+                                                {format(new Date(appointment.startTime), 'd MMM yyyy HH:mm', { locale: tr })}
                                             </div>
                                         </div>
                                         {appointment.note && (

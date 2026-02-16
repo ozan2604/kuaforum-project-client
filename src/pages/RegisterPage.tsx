@@ -12,6 +12,7 @@ export const RegisterPage: React.FC = () => {
         firstName: '',
         lastName: '',
         email: '',
+        phoneNumber: '', // Added phoneNumber initialization
         userName: '',
         password: '',
         confirmPassword: ''
@@ -33,6 +34,13 @@ export const RegisterPage: React.FC = () => {
             return;
         }
 
+        // Phone number validation
+        const phoneRegex = /^05\d{9}$/;
+        if (!phoneRegex.test(formData.phoneNumber)) {
+            setError('Telefon numarası 05 ile başlamalı ve toplam 11 haneli olmalıdır. (Örn: 05321234567)');
+            return;
+        }
+
         setLoading(true);
 
         try {
@@ -40,6 +48,7 @@ export const RegisterPage: React.FC = () => {
                 firstName: formData.firstName,
                 lastName: formData.lastName,
                 email: formData.email,
+                phoneNumber: formData.phoneNumber, // Added phoneNumber
                 userName: formData.userName,
                 password: formData.password
             });
@@ -95,6 +104,21 @@ export const RegisterPage: React.FC = () => {
                     onChange={handleChange}
                     required
                 />
+                <Input
+                    label="Telefon Numarası"
+                    type="tel"
+                    name="phoneNumber"
+                    value={formData.phoneNumber || ''}
+                    onChange={(e) => {
+                        // Only allow numbers
+                        const val = e.target.value.replace(/\D/g, '');
+                        setFormData({ ...formData, phoneNumber: val });
+                    }}
+                    required
+                    placeholder="05XXXXXXXXX"
+                    maxLength={11}
+                />
+                <p className="text-xs text-gray-500 mt-1">Başında 0 olacak şekilde giriniz (Örn: 0532...)</p>
                 <Input
                     label="Şifre"
                     type="password"

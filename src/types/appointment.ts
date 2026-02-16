@@ -24,6 +24,7 @@ export interface AppointmentDto {
     endTime: string;
     status: AppointmentStatus;
     note?: string;
+    hasReview: boolean;
 }
 
 // Alias for backward compatibility if needed, or just use AppointmentDto
@@ -39,4 +40,18 @@ export interface CreateAppointmentDto {
 
 export interface UpdateAppointmentStatusDto {
     status: AppointmentStatus;
+}
+
+export interface TimeSlotDto {
+    startTime: string;
+    endTime: string;
+}
+
+export interface EmployeeAvailabilityDto {
+    isWorking: boolean;
+    workStartTime?: string; // HH:mm:ss
+    workEndTime?: string;
+    breakStartTime?: string;
+    breakEndTime?: string;
+    bookedSlots: TimeSlotDto[];
 }

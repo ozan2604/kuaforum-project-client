@@ -6,6 +6,7 @@ export interface Service {
     price: number;
     isActive: boolean;
     categoryId?: string; // Optional if flattened
+    employees?: ServiceEmployeeDto[];
 }
 
 export interface ServiceCategoryDto {
@@ -27,10 +28,21 @@ export interface CreateCategoryDto {
     description: string;
 }
 
+export interface ServiceEmployeeDto {
+    id: string;
+    firstName: string;
+    lastName: string;
+    title: string;
+    imageUrl?: string;
+    averageRating: number;
+    reviewCount: number;
+}
+
 export interface ShopServiceDto {
     id: string;
     name: string;
     price: number;
     duration: number;
     isActive: boolean;
+    employees?: ServiceEmployeeDto[];
 }

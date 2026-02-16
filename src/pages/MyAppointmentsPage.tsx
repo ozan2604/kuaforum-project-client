@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { appointmentService } from '../api/appointment.service';
+import { reviewService } from '../api/review.service';
+import { ReviewModal } from '../components/ReviewModal';
 import type { AppointmentDto } from '../types/appointment'; // Need to ensure DTO exists or reuse Appointment type
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -14,6 +16,8 @@ interface Appointment extends AppointmentDto { }
 export const MyAppointmentsPage: React.FC = () => {
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+    const [selectedAppointmentForReview, setSelectedAppointmentForReview] = useState<Appointment | null>(null);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -31,13 +35,35 @@ export const MyAppointmentsPage: React.FC = () => {
         }
     };
 
+    const handleOpenReviewModal = (appointment: Appointment) => {
+        setSelectedAppointmentForReview(appointment);
+        setIsReviewModalOpen(true);
+    };
+
+    const handleReviewSubmit = async (rating: number, comment: string, images: File[]) => {
+        if (!selectedAppointmentForReview) return;
+
+        try {
+            await reviewService.addReview({
+                appointmentId: selectedAppointmentForReview.id,
+                rating,
+                comment,
+                images
+            });
+            // Refresh appointments to update "hasReview" status (or update local state)
+            await loadAppointments();
+        } catch (error) {
+            console.error('Failed to submit review', error);
+        }
+    };
+
     const getStatusColor = (status: number) => {
         switch (status) {
             case 0: return 'bg-yellow-100 text-yellow-800'; // Pending
             case 1: return 'bg-green-100 text-green-800';   // Confirmed
-            case 2: return 'bg-red-100 text-red-800';     // Declined
+            case 2: return 'bg-blue-100 text-blue-800';     // Completed
             case 3: return 'bg-gray-100 text-gray-800';    // Cancelled
-            case 4: return 'bg-blue-100 text-blue-800';    // Completed
+            case 4: return 'bg-red-100 text-red-800';      // Rejected
             default: return 'bg-gray-100 text-gray-800';
         }
     };
@@ -46,11 +72,18 @@ export const MyAppointmentsPage: React.FC = () => {
         switch (status) {
             case 0: return 'Onay Bekliyor';
             case 1: return 'Onaylandı';
-            case 2: return 'Reddedildi';
+            case 2: return 'Tamamlandı';
             case 3: return 'İptal Edildi';
-            case 4: return 'Tamamlandı';
+            case 4: return 'Reddedildi';
             default: return 'Bilinmiyor';
         }
+    };
+
+    // Only allow reviewing Completed (2) appointments
+    const canReview = (appointment: Appointment) => {
+        if (appointment.hasReview) return false;
+
+        return appointment.status === 2; // Completed
     };
 
     if (loading) {
@@ -114,17 +147,39 @@ export const MyAppointmentsPage: React.FC = () => {
                                 <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(appointment.status)}`}>
                                     {getStatusText(appointment.status)}
                                 </span>
-                                {/* Add Cancel/Reschedule buttons if needed */}
+
                                 {appointment.status === 0 && (
                                     <button className="text-sm text-red-600 hover:text-red-700 font-medium">
                                         İptal Et
                                     </button>
+                                )}
+
+                                {canReview(appointment) && (
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => handleOpenReviewModal(appointment)}
+                                    >
+                                        Değerlendir
+                                    </Button>
                                 )}
                             </div>
                         </div>
                     ))}
                 </div>
             )}
-        </div>
+
+            {
+                selectedAppointmentForReview && (
+                    <ReviewModal
+                        isOpen={isReviewModalOpen}
+                        onClose={() => setIsReviewModalOpen(false)}
+                        onSubmit={handleReviewSubmit}
+                        shopName={selectedAppointmentForReview.shopName}
+                        employeeName={selectedAppointmentForReview.employeeName}
+                    />
+                )
+            }
+        </div >
     );
 };

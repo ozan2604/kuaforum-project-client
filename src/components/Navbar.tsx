@@ -1,6 +1,6 @@
 
 import React, { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './Button';
 import { Scissors, Menu, Search, Heart, User } from 'lucide-react';
@@ -8,6 +8,7 @@ import { Scissors, Menu, Search, Heart, User } from 'lucide-react';
 export const Navbar: React.FC = () => {
     const { user, isAuthenticated } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
     const [searchParams, setSearchParams] = useSearchParams();
     const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
 
@@ -66,8 +67,8 @@ export const Navbar: React.FC = () => {
 
                         {isAuthenticated ? (
                             <>
-                                <Link to="/favorites" className="px-4 py-2 bg-gray-100 rounded-full flex items-center gap-2 text-gray-700 hover:bg-gray-200 transition-colors border border-gray-200" title="Favorilerim">
-                                    <Heart className="h-5 w-5 text-red-500" />
+                                <Link to="/favorites" className={`px-4 py-2 rounded-full flex items-center gap-2 transition-colors border ${location.pathname === '/favorites' ? 'bg-red-50 text-red-600 border-red-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-gray-200'}`} title="Favorilerim">
+                                    <Heart className={`h-5 w-5 text-red-500 ${location.pathname === '/favorites' ? 'fill-current' : ''}`} />
                                     <span className="text-sm font-medium hidden md:block">Favorilerim</span>
                                 </Link>
 

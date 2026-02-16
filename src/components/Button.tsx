@@ -18,9 +18,9 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         const baseStyles = 'inline-flex items-center justify-center rounded-lg font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500/20 disabled:opacity-50 disabled:pointer-events-none';
 
         const variants = {
-            primary: 'bg-primary-600 text-white hover:bg-primary-700 active:bg-primary-800 shadow-sm hover:shadow',
-            secondary: 'bg-white text-gray-900 border border-gray-200 hover:bg-gray-50 hover:text-gray-900',
-            outline: 'bg-transparent border border-primary-600 text-primary-600 hover:bg-primary-50',
+            primary: 'bg-primary-900 text-white hover:bg-primary-800 active:bg-primary-950 shadow-sm hover:shadow-md',
+            secondary: 'bg-secondary-600 text-white hover:bg-secondary-700 active:bg-secondary-800 shadow-sm hover:shadow-md',
+            outline: 'bg-transparent border border-primary-900 text-primary-900 hover:bg-primary-50',
             ghost: 'bg-transparent text-gray-600 hover:bg-gray-100 hover:text-gray-900',
             danger: 'bg-red-600 text-white hover:bg-red-700 active:bg-red-800 shadow-sm hover:shadow', // Added
         };

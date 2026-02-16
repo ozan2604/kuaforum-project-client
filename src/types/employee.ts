@@ -6,6 +6,8 @@ export interface Employee {
     email: string;
     title: string;
     isActive: boolean;
+    averageRating: number;
+    reviewCount: number;
 }
 
 export interface CreateEmployeeDto {

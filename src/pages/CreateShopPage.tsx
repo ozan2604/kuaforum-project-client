@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { shopService } from '../api/shop.service';
+import { ShopCategory } from '../types/shop';
 
 export const CreateShopPage: React.FC = () => {
     const navigate = useNavigate();
@@ -17,7 +18,8 @@ export const CreateShopPage: React.FC = () => {
         district: '',
         phoneNumber: '',
         latitude: undefined as number | undefined,
-        longitude: undefined as number | undefined
+        longitude: undefined as number | undefined,
+        category: 2 as ShopCategory // Default Kuafor
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -115,6 +117,25 @@ export const CreateShopPage: React.FC = () => {
                     required
                     placeholder="0555 555 55 55"
                 />
+
+                <div className="space-y-1.5">
+                    <label className="block text-sm font-medium text-gray-700">
+                        Kategori
+                    </label>
+                    <select
+                        name="category"
+                        value={formData.category}
+                        onChange={(e) => setFormData({ ...formData, category: parseInt(e.target.value) as any })}
+                        className="flex w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all duration-200"
+                    >
+                        <option value={1}>Berber</option>
+                        <option value={2}>Kuaför</option>
+                        <option value={3}>Güzellik Merkezi</option>
+                        <option value={4}>Spa Merkezi</option>
+                        <option value={5}>Dövme Stüdyosu</option>
+                        <option value={99}>Diğer</option>
+                    </select>
+                </div>
 
                 <div className="border-t pt-4">
                     <div className="flex justify-between items-center mb-4">

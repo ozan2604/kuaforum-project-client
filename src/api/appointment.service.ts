@@ -23,5 +23,18 @@ export const appointmentService = {
     updateStatus: async (id: string, status: AppointmentStatus): Promise<void> => {
         const payload: UpdateAppointmentStatusDto = { status };
         await api.put(`/Appointment/${id}/status`, payload);
+    },
+
+    // Get Employee Availability
+    getAvailability: async (employeeId: string, date: string): Promise<import('../types/appointment').EmployeeAvailabilityDto> => {
+        const response = await api.get<import('../types/appointment').EmployeeAvailabilityDto>(`/Appointment/availability`, {
+            params: { employeeId, date }
+        });
+        return response.data;
+    },
+    getReviewableAppointment: async (shopId: string): Promise<Appointment | null> => {
+        const response = await api.get<Appointment>(`/Appointment/reviewable?shopId=${shopId}`);
+        if (!response.data) return null;
+        return response.data;
     }
 };

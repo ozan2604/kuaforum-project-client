@@ -7,7 +7,7 @@ import { Link, useNavigate } from 'react-router-dom';
 export const LoginPage: React.FC = () => {
     const { login } = useAuth();
     const navigate = useNavigate();
-    const [email, setEmail] = useState('');
+    const [identifier, setIdentifier] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -18,7 +18,7 @@ export const LoginPage: React.FC = () => {
         setLoading(true);
 
         try {
-            await login({ email, password });
+            await login({ identifier, password });
             navigate('/');
         } catch (err: any) {
             if (err.response && err.response.data && err.response.data.message) {
@@ -41,10 +41,10 @@ export const LoginPage: React.FC = () => {
             )}
             <form onSubmit={handleSubmit} className="space-y-4">
                 <Input
-                    label="E-posta Adresi"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    label="E-posta veya Telefon Numarası"
+                    type="text"
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
                     required
                 />
                 <Input

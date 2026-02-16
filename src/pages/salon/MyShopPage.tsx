@@ -6,6 +6,8 @@ import { shopService } from '../../api/shop.service';
 import { toast } from 'react-hot-toast';
 import { MapPin, Phone, Building2, Trash2 } from 'lucide-react';
 
+import { ShopCategory } from '../../types/shop';
+
 interface ShopFormData {
     name: string;
     description: string;
@@ -16,19 +18,17 @@ interface ShopFormData {
     latitude?: number;
     longitude?: number;
     coverImagePath?: string;
-    imageUrls?: string[];
+    images?: { id: string; url: string }[];
+    category: ShopCategory;
 }
 
 export const MyShopPage: React.FC = () => {
 
-    const { register, handleSubmit, formState: { errors }, reset, setValue, watch, getValues } = useForm<ShopFormData>();
+    const { register, handleSubmit, formState: { errors }, reset, setValue, getValues } = useForm<ShopFormData>();
     const [loading, setLoading] = useState(false);
     const [initialLoading, setInitialLoading] = useState(true);
     const [shopId, setShopId] = useState<string | null>(null);
     const [refreshImages, setRefreshImages] = useState(0);
-
-    // Watch address fields for geocoding
-    const addressFields = watch(['address', 'city', 'district']);
 
     useEffect(() => {
         const fetchShop = async () => {
@@ -45,7 +45,8 @@ export const MyShopPage: React.FC = () => {
                     latitude: shop.latitude,
                     longitude: shop.longitude,
                     coverImagePath: shop.coverImagePath,
-                    imageUrls: shop.imageUrls || []
+                    images: shop.images || [],
+                    category: shop.category
                 });
             } catch (error) {
                 console.error('Error fetching shop:', error);
@@ -111,9 +112,20 @@ export const MyShopPage: React.FC = () => {
         }
     };
 
-    const handleDeleteGalleryImage = async (imageUrl: string) => {
-        // Need valid ID implementation later
-        toast.error('Deletion not implemented yet (Backend DTO update needed)');
+    const handleDeleteGalleryImage = async (imageId: string) => {
+        if (!shopId) return;
+        if (!confirm('Are you sure you want to delete this image?')) return;
+
+        try {
+            const toastId = toast.loading('Deleting image...');
+            await shopService.deleteGalleryImage(imageId);
+            toast.dismiss(toastId);
+            toast.success('Image deleted');
+            setRefreshImages(prev => prev + 1);
+        } catch (error) {
+            console.error('Delete failed', error);
+            toast.error('Failed to delete image');
+        }
     };
 
     // Helper to render images with full URL
@@ -212,16 +224,16 @@ export const MyShopPage: React.FC = () => {
                             </div>
 
                             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                {(getValues('imageUrls') || []).map((url, index) => (
-                                    <div key={index} className="relative group aspect-square bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
+                                {(getValues('images') || []).map((image, index) => (
+                                    <div key={image.id || index} className="relative group aspect-square bg-gray-100 rounded-lg overflow-hidden border border-gray-200">
                                         <img
-                                            src={getImageUrl(url)}
+                                            src={getImageUrl(image.url)}
                                             alt={`Gallery ${index}`}
                                             className="w-full h-full object-cover"
                                         />
                                         <button
                                             type="button"
-                                            onClick={() => handleDeleteGalleryImage(url)}
+                                            onClick={() => handleDeleteGalleryImage(image.id)}
                                             className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
                                             title="Sil"
                                         >
@@ -229,7 +241,7 @@ export const MyShopPage: React.FC = () => {
                                         </button>
                                     </div>
                                 ))}
-                                {(getValues('imageUrls') || []).length === 0 && (
+                                {(getValues('images') || []).length === 0 && (
                                     <div className="col-span-2 md:col-span-4 p-8 bg-gray-50 rounded border border-dashed text-center text-gray-400 text-sm">
                                         Henüz fotoğraf yüklenmemiş.
                                     </div>
@@ -246,6 +258,26 @@ export const MyShopPage: React.FC = () => {
                             placeholder="e.g. Elite Hair Studio"
                         />
 
+                        <div className="space-y-1.5">
+                            <label className="block text-sm font-medium text-gray-700">
+                                Category
+                            </label>
+                            <select
+                                {...register('category', {
+                                    required: 'Category is required',
+                                    valueAsNumber: true
+                                })}
+                                className="flex w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all duration-200"
+                            >
+                                <option value={1}>Berber</option>
+                                <option value={2}>Kuaför</option>
+                                <option value={3}>Güzellik Merkezi</option>
+                                <option value={4}>Spa Merkezi</option>
+                                <option value={5}>Dövme Stüdyosu</option>
+                                <option value={99}>Diğer</option>
+                            </select>
+                            {errors.category && <p className="text-xs text-red-500 mt-1">{errors.category.message}</p>}
+                        </div>
 
                         <Input
                             label="Phone Number"

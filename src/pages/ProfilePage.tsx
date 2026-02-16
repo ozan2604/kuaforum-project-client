@@ -6,19 +6,24 @@ import { salonApplicationService } from '../api/salon-application.service';
 import type { AppointmentDto } from '../types/appointment';
 import type { Address, CreateAddressRequest } from '../types/address';
 import { Button } from '../components/Button';
-import { Calendar, User, LogOut, CheckCircle, Clock, XCircle, AlertCircle, Trash2, MapPin, Lock, Plus, Store } from 'lucide-react';
+import { Calendar, User, LogOut, CheckCircle, Clock, XCircle, AlertCircle, Trash2, MapPin, Lock, Plus, Store, Heart } from 'lucide-react';
+import { favoriteService } from '../services/favorite.service';
+import { ShopCard } from '../components/ShopCard';
+import type { Shop } from '../types/shop';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { toast } from 'react-hot-toast';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { reviewService } from '../api/review.service';
+import { ReviewModal } from '../components/ReviewModal';
 
 export const ProfilePage: React.FC = () => {
     const { user, logout, updateAuthorization } = useAuth();
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
-    const activeTab = (searchParams.get('tab') as 'appointments' | 'account' | 'security' | 'addresses' | 'salon-owner') || 'appointments';
+    const activeTab = (searchParams.get('tab') as 'appointments' | 'account' | 'security' | 'addresses' | 'salon-owner' | 'favorites') || 'appointments';
 
-    const setActiveTab = (tab: 'appointments' | 'account' | 'security' | 'addresses' | 'salon-owner') => {
+    const setActiveTab = (tab: 'appointments' | 'account' | 'security' | 'addresses' | 'salon-owner' | 'favorites') => {
         setSearchParams({ tab });
     };
 
@@ -56,6 +61,14 @@ export const ProfilePage: React.FC = () => {
         taxNumber: ''
     });
 
+    // Favorites State
+    const [favorites, setFavorites] = useState<Shop[]>([]);
+    const [favLoading, setFavLoading] = useState(false);
+
+    // Review Modal State
+    const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
+    const [selectedAppointmentForReview, setSelectedAppointmentForReview] = useState<AppointmentDto | null>(null);
+
     useEffect(() => {
         if (activeTab === 'appointments') {
             loadAppointments();
@@ -63,6 +76,8 @@ export const ProfilePage: React.FC = () => {
             loadAddresses();
         } else if (activeTab === 'salon-owner') {
             loadSalonApplication();
+        } else if (activeTab === 'favorites') {
+            loadFavorites();
         }
     }, [activeTab]);
 
@@ -107,6 +122,19 @@ export const ProfilePage: React.FC = () => {
         } catch (error) {
             console.error('Failed to load addresses', error);
             toast.error('Adresler yüklenemedi.');
+        }
+    };
+
+    const loadFavorites = async () => {
+        setFavLoading(true);
+        try {
+            const data = await favoriteService.getUserFavorites();
+            setFavorites(data);
+        } catch (error) {
+            console.error('Failed to load favorites', error);
+            toast.error('Favoriler yüklenemedi.');
+        } finally {
+            setFavLoading(false);
         }
     };
 
@@ -203,13 +231,42 @@ export const ProfilePage: React.FC = () => {
         }
     };
 
+    const handleOpenReviewModal = (appointment: AppointmentDto) => {
+        setSelectedAppointmentForReview(appointment);
+        setIsReviewModalOpen(true);
+    };
+
+    const handleReviewSubmit = async (rating: number, comment: string, newImages: File[], _deletedImageUrls: string[]) => {
+        if (!selectedAppointmentForReview) return;
+
+        try {
+            await reviewService.addReview({
+                appointmentId: selectedAppointmentForReview.id,
+                rating,
+                comment,
+                images: newImages
+            });
+            // Update local state to reflect the review
+            await loadAppointments();
+        } catch (error) {
+            console.error('Failed to submit review', error);
+            toast.error('Değerlendirme gönderilemedi.');
+        }
+    };
+
+    const canReview = (appointment: AppointmentDto) => {
+        if (appointment.hasReview) return false;
+
+        return appointment.status === 2; // Completed
+    };
+
     const getStatusBadge = (status: number) => {
         switch (status) {
             case 0: return <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1"><Clock className="h-3 w-3" /> Onay Bekliyor</span>;
             case 1: return <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1"><CheckCircle className="h-3 w-3" /> Onaylandı</span>;
-            case 2: return <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1"><XCircle className="h-3 w-3" /> Reddedildi</span>;
+            case 2: return <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1"><CheckCircle className="h-3 w-3" /> Tamamlandı</span>;
             case 3: return <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1"><AlertCircle className="h-3 w-3" /> İptal Edildi</span>;
-            case 4: return <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1"><CheckCircle className="h-3 w-3" /> Tamamlandı</span>;
+            case 4: return <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1"><XCircle className="h-3 w-3" /> Reddedildi</span>;
             default: return null;
         }
     };
@@ -231,6 +288,7 @@ export const ProfilePage: React.FC = () => {
                             </div>
                             <h2 className="text-xl font-bold text-gray-900">{user?.firstName} {user?.lastName}</h2>
                             <p className="text-sm text-gray-500">{user?.email}</p>
+                            <p className="text-sm text-gray-500">{user?.phoneNumber}</p>
                         </div>
 
                         <nav className="space-y-2">
@@ -239,6 +297,9 @@ export const ProfilePage: React.FC = () => {
                             </button>
                             <button onClick={() => setActiveTab('account')} className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'account' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
                                 <User className="h-5 w-5" /> Hesap Bilgileri
+                            </button>
+                            <button onClick={() => setActiveTab('favorites')} className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'favorites' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
+                                <Heart className="h-5 w-5" /> Favorilerim
                             </button>
                             <button onClick={() => setActiveTab('addresses')} className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'addresses' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
                                 <MapPin className="h-5 w-5" /> Adreslerim
@@ -261,7 +322,6 @@ export const ProfilePage: React.FC = () => {
                     {activeTab === 'appointments' && (
                         <div className="space-y-6">
                             <h2 className="text-2xl font-bold text-gray-900">Randevularım</h2>
-                            {/* Appointments UI (Same as before) */}
                             {pendingApps.length > 0 && (
                                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                                     <h3 className="text-lg font-semibold text-yellow-800 mb-4 flex items-center gap-2"><Clock className="h-5 w-5" /> Onay Bekleyenler</h3>
@@ -271,13 +331,27 @@ export const ProfilePage: React.FC = () => {
                             {upcomingApps.length > 0 && (
                                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                                     <h3 className="text-lg font-semibold text-green-800 mb-4 flex items-center gap-2"><CheckCircle className="h-5 w-5" /> Gelecek Randevular</h3>
-                                    <div className="space-y-4">{upcomingApps.map(app => <AppointmentCard key={app.id} appointment={app} badge={getStatusBadge(app.status)} />)}</div>
+                                    <div className="space-y-4">{upcomingApps.map(app => (
+                                        <AppointmentCard
+                                            key={app.id}
+                                            appointment={app}
+                                            badge={getStatusBadge(app.status)}
+                                            onReview={canReview(app) ? () => handleOpenReviewModal(app) : undefined}
+                                        />
+                                    ))}</div>
                                 </div>
                             )}
                             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
                                 <h3 className="text-lg font-semibold text-gray-700 mb-4">Geçmiş Randevular</h3>
                                 {pastApps.length > 0 ? (
-                                    <div className="space-y-4">{pastApps.map(app => <AppointmentCard key={app.id} appointment={app} badge={getStatusBadge(app.status)} />)}</div>
+                                    <div className="space-y-4">{pastApps.map(app => (
+                                        <AppointmentCard
+                                            key={app.id}
+                                            appointment={app}
+                                            badge={getStatusBadge(app.status)}
+                                            onReview={canReview(app) ? () => handleOpenReviewModal(app) : undefined}
+                                        />
+                                    ))}</div>
                                 ) : (<p className="text-gray-500 text-sm">Geçmiş randevu bulunmuyor.</p>)}
                             </div>
                         </div>
@@ -307,13 +381,46 @@ export const ProfilePage: React.FC = () => {
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Telefon</label>
-                                    <input type="tel" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" placeholder="+90 5XX XXX XX XX" />
+                                    <input type="tel" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" />
                                 </div>
                                 <div className="pt-4 flex items-center justify-between">
                                     <Button type="submit" disabled={updatingProfile}>{updatingProfile ? 'Güncelleniyor...' : 'Kayıt Et'}</Button>
                                     <button type="button" onClick={handleDeleteAccount} className="text-sm text-red-600 hover:text-red-700 flex items-center gap-1"><Trash2 className="h-4 w-4" /> Hesabımı Sil</button>
                                 </div>
                             </form>
+                        </div>
+                    )}
+
+                    {activeTab === 'favorites' && (
+                        <div className="space-y-6">
+                            <h2 className="text-2xl font-bold text-gray-900">Favori Salonlarım</h2>
+                            {favLoading ? (
+                                <div className="text-center py-12">
+                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
+                                </div>
+                            ) : favorites.length > 0 ? (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    {favorites.map(shop => (
+                                        <ShopCard
+                                            key={shop.id}
+                                            shop={shop}
+                                            initialIsFavorite={true}
+                                            onToggleFavorite={(status) => {
+                                                if (!status) {
+                                                    setFavorites(favorites.filter(f => f.id !== shop.id));
+                                                }
+                                            }}
+                                        />
+                                    ))}
+                                </div>
+                            ) : (
+                                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
+                                    <Heart className="h-12 w-12 text-gray-300 mx-auto mb-4" />
+                                    <h3 className="text-lg font-medium text-gray-900 mb-2">Henüz favoriniz yok</h3>
+                                    <p className="text-gray-500 mb-6">Beğendiğiniz salonları favorilere ekleyerek burada görebilirsiniz.</p>
+                                    <Button onClick={() => navigate('/')}>Salonları Keşfet</Button>
+                                </div>
+                            )}
                         </div>
                     )}
 
@@ -396,30 +503,6 @@ export const ProfilePage: React.FC = () => {
                                     </div>
                                 </div>
                             )}
-                        </div>
-                    )}
-
-                    {activeTab === 'security' && (
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                            <h2 className="text-2xl font-bold text-gray-900 mb-6">Güvenlik</h2>
-                            <form onSubmit={handleChangePassword} className="space-y-6 max-w-lg">
-                                {/* ... existing form content ... */}
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Mevcut Şifre</label>
-                                    <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" required />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Yeni Şifre</label>
-                                    <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" required minLength={6} />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Yeni Şifre (Tekrar)</label>
-                                    <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" required minLength={6} />
-                                </div>
-                                <div className="pt-4">
-                                    <Button type="submit">Şifreyi Değiştir</Button>
-                                </div>
-                            </form>
                         </div>
                     )}
 
@@ -530,16 +613,55 @@ export const ProfilePage: React.FC = () => {
                             )}
                         </div>
                     )}
+
+                    {activeTab === 'security' && (
+                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                            <h2 className="text-2xl font-bold text-gray-900 mb-6">Güvenlik</h2>
+                            <form onSubmit={handleChangePassword} className="space-y-6 max-w-lg">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Mevcut Şifre</label>
+                                    <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" required />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Yeni Şifre</label>
+                                    <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" required minLength={6} />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Yeni Şifre (Tekrar)</label>
+                                    <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" required minLength={6} />
+                                </div>
+                                <div className="pt-4">
+                                    <Button type="submit">Şifreyi Değiştir</Button>
+                                </div>
+                            </form>
+                        </div>
+                    )}
                 </div>
             </div>
+
+            {selectedAppointmentForReview && (
+                <ReviewModal
+                    isOpen={isReviewModalOpen}
+                    onClose={() => setIsReviewModalOpen(false)}
+                    onSubmit={handleReviewSubmit}
+                    shopName={selectedAppointmentForReview.shopName}
+                    employeeName={selectedAppointmentForReview.employeeName}
+                />
+            )}
         </div>
     );
 };
 
-const AppointmentCard: React.FC<{ appointment: AppointmentDto, badge: React.ReactNode }> = ({ appointment, badge }) => {
+interface AppointmentCardProps {
+    appointment: AppointmentDto;
+    badge: React.ReactNode;
+    onReview?: () => void;
+}
+
+const AppointmentCard: React.FC<AppointmentCardProps> = ({ appointment, badge, onReview }) => {
     return (
         <div className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
-            <div className="flex justify-between items-start">
+            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
                 <div>
                     <h4 className="font-bold text-gray-900">{appointment.shopName}</h4>
                     <p className="text-sm text-gray-600">{appointment.serviceName}</p>
@@ -549,9 +671,17 @@ const AppointmentCard: React.FC<{ appointment: AppointmentDto, badge: React.Reac
                         <span>{appointment.employeeName}</span>
                     </div>
                 </div>
-                <div className="flex flex-col items-end gap-2">
-                    {badge}
+                <div className="flex flex-col items-end gap-2 w-full sm:w-auto">
+                    <div className="flex justify-between w-full sm:w-auto sm:block">
+                        {badge}
+                    </div>
                     <span className="font-bold text-gray-900">₺{appointment.price}</span>
+
+                    {onReview && (
+                        <Button size="sm" variant="outline" onClick={onReview} className="mt-2 w-full sm:w-auto">
+                            Değerlendir
+                        </Button>
+                    )}
                 </div>
             </div>
         </div>

@@ -70,7 +70,7 @@ function App() {
 
         {/* Placeholders for future implementation */}
         <Route element={<MainLayout />}>
-          <Route path="/favorites" element={<div className="p-8 text-center">Favoriler (Yakında)</div>} />
+          <Route path="/favorites" element={<HomePage showFavoritesOnly={true} />} />
           <Route path="/profile" element={<ProfilePage />} />
           {/* Legacy support or redirect */}
           <Route path="/my-appointments" element={<ProfilePage />} />

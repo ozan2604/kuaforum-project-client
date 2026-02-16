@@ -54,7 +54,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 email: response.email,
                 firstName: response.firstName,
                 lastName: response.lastName,
-                role: role
+                role: role,
+                phoneNumber: response.phoneNumber
             };
             setUser(userData);
             setUserState(userData);
@@ -86,7 +87,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 email: response.email,
                 firstName: response.firstName,
                 lastName: response.lastName,
-                role: role
+                role: role,
+                phoneNumber: response.phoneNumber
             };
             setUser(userData);
             setUserState(userData);

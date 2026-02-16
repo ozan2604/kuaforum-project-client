@@ -9,7 +9,7 @@ export interface AuthResponse {
 }
 
 export interface LoginRequest {
-    email: string;
+    identifier: string; // Changed from email
     password: string;
 }
 
@@ -17,6 +17,7 @@ export interface RegisterRequest {
     firstName: string;
     lastName: string;
     email: string;
+    phoneNumber: string; // Added phoneNumber
     userName: string;
     password: string;
 }

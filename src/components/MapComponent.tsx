@@ -47,56 +47,62 @@ export const MapComponent: React.FC<MapComponentProps> = ({ shops, userLocation,
         }
     }, [userLocation]);
 
-    // Custom Shop Marker Icon
-    const createShopIcon = () => {
+    // Custom Shop Marker Icon - Premium Rose Pin
+    const createShopIcon = (avgRating: number) => {
         return L.divIcon({
             className: 'bg-transparent',
             html: `
                 <div class="relative group">
-                    <div class="absolute -inset-1 bg-primary-500/30 rounded-full blur-sm group-hover:bg-primary-500/50 transition-all"></div>
-                    <div class="relative flex items-center justify-center w-10 h-10 bg-white rounded-full border-2 border-primary-600 shadow-lg transform transition-transform group-hover:scale-110">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#dc2626" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-primary-600"><circle cx="6" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><line x1="20" y1="4" x2="8.12" y2="15.88"/><line x1="14.47" y1="14.48" x2="20" y2="20"/><line x1="8.12" y1="8.12" x2="12" y2="12"/></svg>
+                    <div class="absolute -inset-2 bg-secondary-500/20 rounded-full blur-md group-hover:bg-secondary-500/40 transition-all duration-500"></div>
+                    <div class="relative flex flex-col items-center transition-transform duration-300 group-hover:-translate-y-2">
+                        <div class="flex items-center justify-center w-10 h-10 bg-secondary-500 rounded-full shadow-lg border-2 border-white ring-2 ring-secondary-500/20">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="white" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white"><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/></svg>
+                        </div>
+                        <div class="mt-1 px-2 py-0.5 bg-white rounded-full shadow-md border border-gray-100 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300 absolute -bottom-6 whitespace-nowrap">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="#facc15" stroke="#facc15" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
+                            <span class="text-[10px] font-bold text-gray-800">${avgRating.toFixed(1)}</span>
+                        </div>
                     </div>
-                    <div class="absolute -bottom-1 left-1/2 transform -translate-x-1/2 translate-y-full w-0 h-0 border-l-4 border-r-4 border-t-6 border-l-transparent border-r-transparent border-t-primary-600"></div>
                 </div>
             `,
-            iconSize: [40, 48],
-            iconAnchor: [20, 48],
-            popupAnchor: [0, -48]
+            iconSize: [40, 50],
+            iconAnchor: [20, 45],
+            popupAnchor: [0, -45]
         });
     };
 
-    // Pulsing User Location Icon
+    // Pulsing User Location Icon - Slate & Blue
     const userIcon = L.divIcon({
         className: 'bg-transparent',
         html: `
-            <div class="relative flex items-center justify-center w-6 h-6">
-                <span class="absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75 animate-ping"></span>
-                <span class="relative inline-flex rounded-full h-4 w-4 bg-red-600 border-2 border-white shadow-sm"></span>
+            <div class="relative flex items-center justify-center w-8 h-8">
+                <span class="absolute inline-flex h-full w-full rounded-full bg-primary-400 opacity-30 animate-ping"></span>
+                <div class="relative flex items-center justify-center w-4 h-4 bg-primary-600 rounded-full border-2 border-white shadow-lg ring-2 ring-primary-600/20"></div>
             </div>
         `,
-        iconSize: [24, 24],
-        iconAnchor: [12, 12]
+        iconSize: [32, 32],
+        iconAnchor: [16, 16]
     });
 
     return (
         <MapContainer
             center={center}
             zoom={zoom}
-            style={{ height: height, width: '100%', borderRadius: '1rem', zIndex: 0 }}
-            className="shadow-xl border-4 border-white"
+            style={{ height: height, width: '100%', borderRadius: '1.5rem', zIndex: 0 }}
+            className="shadow-inner bg-gray-100" // Removed thick border
+            zoomControl={false} // Clean look, add control manually if needed or let user scroll
         >
             <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+                url="https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png"
             />
             <MapUpdater center={center} zoom={zoom} />
 
             {/* User Location Marker */}
             {userLocation && (
                 <Marker position={[userLocation.lat, userLocation.lng]} icon={userIcon}>
-                    <Popup className="custom-popup">
-                        <div className="font-semibold text-gray-800">Sizin Konumunuz</div>
+                    <Popup className="custom-popup" closeButton={false}>
+                        <div className="px-3 py-1 font-bold text-primary-800 text-sm">📍 Buradasınız</div>
                     </Popup>
                 </Marker>
             )}
@@ -104,19 +110,35 @@ export const MapComponent: React.FC<MapComponentProps> = ({ shops, userLocation,
             {/* Shop Markers */}
             {shops.map(shop => (
                 shop.latitude && shop.longitude ? (
-                    <Marker key={shop.id} position={[shop.latitude, shop.longitude]} icon={createShopIcon()}>
-                        <Popup>
-                            <div className="p-2 min-w-[200px]">
-                                <h3 className="font-bold text-gray-900 text-base mb-1">{shop.name}</h3>
-                                <div className="flex items-center text-gray-500 text-xs mb-2">
-                                    <span className="bg-primary-50 text-primary-700 px-2 py-0.5 rounded-full font-medium">
-                                        {shop.district}
-                                    </span>
+                    <Marker key={shop.id} position={[shop.latitude, shop.longitude]} icon={createShopIcon(shop.averageRating || 5.0)}>
+                        <Popup className="premium-popup" closeButton={false} maxWidth={280} minWidth={260}>
+                            <div className="overflow-hidden rounded-xl bg-white shadow-sm border-0">
+                                {/* Cover Image in Popup */}
+                                <div className="h-24 w-full relative bg-gray-100">
+                                    <img
+                                        src={shop.coverImagePath ? (shop.coverImagePath.startsWith('http') ? shop.coverImagePath : `http://localhost:5000${shop.coverImagePath}`) : `https://source.unsplash.com/random/400x200/?salon,${shop.id}`}
+                                        alt={shop.name}
+                                        className="w-full h-full object-cover"
+                                        onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1560066984-12186d30b435?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'; }}
+                                    />
+                                    <div className="absolute top-2 right-2 bg-white/90 backdrop-blur px-1.5 py-0.5 rounded-md flex items-center shadow-sm">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="#facc15" stroke="none" className="mr-1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
+                                        <span className="text-[10px] font-bold text-gray-800">{shop.averageRating?.toFixed(1) || '5.0'}</span>
+                                    </div>
                                 </div>
-                                <p className="text-gray-600 text-xs mb-3 line-clamp-2">{shop.description || 'Hizmetlerimiz için detayları inceleyin.'}</p>
-                                <a href={`/shop/${shop.id}`} className="block w-full text-center bg-primary-600 text-white text-xs font-bold py-2 rounded-lg hover:bg-primary-700 transition-colors shadow-sm">
-                                    Randevu Al
-                                </a>
+                                <div className="p-3">
+                                    <h3 className="font-bold text-primary-900 text-sm mb-1 truncate">{shop.name}</h3>
+                                    <div className="flex items-center text-gray-500 text-[10px] mb-2">
+                                        <span className="bg-primary-50 text-primary-700 px-1.5 py-0.5 rounded-md font-medium border border-primary-100">
+                                            {shop.district}
+                                        </span>
+                                        <span className="mx-1">•</span>
+                                        <span className="truncate">{shop.city}</span>
+                                    </div>
+                                    <a href={`/shop/${shop.id}`} className="block w-full text-center bg-secondary-500 text-white text-xs font-bold py-2 rounded-lg hover:bg-secondary-600 transition-colors shadow-md shadow-secondary-200">
+                                        İncele & Randevu Al
+                                    </a>
+                                </div>
                             </div>
                         </Popup>
                     </Marker>
