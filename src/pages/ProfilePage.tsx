@@ -2,11 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { appointmentService } from '../api/appointment.service';
 import { authService } from '../api/auth.service';
-import { salonApplicationService } from '../api/salon-application.service';
 import type { AppointmentDto } from '../types/appointment';
 import type { Address, CreateAddressRequest } from '../types/address';
 import { Button } from '../components/Button';
-import { Calendar, User, LogOut, CheckCircle, Clock, XCircle, AlertCircle, Trash2, MapPin, Lock, Plus, Store, Heart } from 'lucide-react';
+import { Calendar, User, LogOut, CheckCircle, Clock, XCircle, AlertCircle, Trash2, MapPin, Lock, Plus, Heart, Briefcase } from 'lucide-react';
 import { favoriteService } from '../services/favorite.service';
 import { ShopCard } from '../components/ShopCard';
 import type { Shop } from '../types/shop';
@@ -48,18 +47,7 @@ export const ProfilePage: React.FC = () => {
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
 
-    // Salon Application State
-    const [application, setApplication] = useState<any>(null);
-    const [applicationLoading, setApplicationLoading] = useState(false);
-    const [createApplication, setCreateApplication] = useState({
-        shopName: '',
-        description: '',
-        address: '',
-        city: '',
-        district: '',
-        phoneNumber: '',
-        taxNumber: ''
-    });
+
 
     // Favorites State
     const [favorites, setFavorites] = useState<Shop[]>([]);
@@ -74,26 +62,12 @@ export const ProfilePage: React.FC = () => {
             loadAppointments();
         } else if (activeTab === 'addresses') {
             loadAddresses();
-        } else if (activeTab === 'salon-owner') {
-            loadSalonApplication();
         } else if (activeTab === 'favorites') {
             loadFavorites();
         }
     }, [activeTab]);
 
-    const loadSalonApplication = async () => {
-        setApplicationLoading(true);
-        try {
-            const data = await salonApplicationService.getMyApplication();
-            setApplication(data);
-        } catch (error) {
-            console.error('Failed to load application', error);
-            // Ignore 404 if not found
-            setApplication(null);
-        } finally {
-            setApplicationLoading(false);
-        }
-    };
+
 
     useEffect(() => {
         if (user) {
@@ -219,17 +193,7 @@ export const ProfilePage: React.FC = () => {
         }
     };
 
-    const handleCreateApplication = async (e: React.FormEvent) => {
-        e.preventDefault();
-        try {
-            await salonApplicationService.apply(createApplication);
-            toast.success('Başvurunuz alındı. Onay bekleniyor.');
-            loadSalonApplication();
-        } catch (error) {
-            console.error('Application failed', error);
-            toast.error('Başvuru yapılamadı.');
-        }
-    };
+
 
     const handleOpenReviewModal = (appointment: AppointmentDto) => {
         setSelectedAppointmentForReview(appointment);
@@ -307,9 +271,12 @@ export const ProfilePage: React.FC = () => {
                             <button onClick={() => setActiveTab('security')} className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'security' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
                                 <Lock className="h-5 w-5" /> Güvenlik
                             </button>
-                            <button onClick={() => setActiveTab('salon-owner')} className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'salon-owner' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-                                <Store className="h-5 w-5" /> Salon Sahibi Ol
-                            </button>
+
+                            {user?.role === 'Employee' && (
+                                <button onClick={() => navigate('/employee-panel/appointments')} className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
+                                    <Briefcase className="h-5 w-5" /> Personel Paneli
+                                </button>
+                            )}
                             <button onClick={() => { logout(); navigate('/login'); }} className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors">
                                 <LogOut className="h-5 w-5" /> Çıkış Yap
                             </button>
@@ -506,113 +473,7 @@ export const ProfilePage: React.FC = () => {
                         </div>
                     )}
 
-                    {activeTab === 'salon-owner' && (
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                            <h2 className="text-2xl font-bold text-gray-900 mb-6">Salon Sahibi Başvurusu</h2>
 
-                            {applicationLoading ? (
-                                <div>Yükleniyor...</div>
-                            ) : application ? (
-                                <div className="space-y-4">
-                                    <div className={`p-4 rounded-lg border ${application.status === 0 ? 'bg-yellow-50 border-yellow-200 text-yellow-800' :
-                                        application.status === 1 ? 'bg-green-50 border-green-200 text-green-800' :
-                                            'bg-red-50 border-red-200 text-red-800'
-                                        }`}>
-                                        <h3 className="font-bold text-lg flex items-center gap-2">
-                                            {application.status === 0 && <Clock className="h-5 w-5" />}
-                                            {application.status === 1 && <CheckCircle className="h-5 w-5" />}
-                                            {application.status === 2 && <XCircle className="h-5 w-5" />}
-
-                                            {application.status === 0 && 'Başvurunuz Onay Bekliyor'}
-                                            {application.status === 1 && 'Başvurunuz Onaylandı!'}
-                                            {application.status === 2 && 'Başvurunuz Reddedildi'}
-                                        </h3>
-                                        <p className="mt-2 text-sm opacity-90">
-                                            {application.status === 0 && 'Başvurunuz yöneticilerimiz tarafından incelenmektedir. Sonuçlandığında bilgilendirileceksiniz.'}
-                                            {application.status === 1 && 'Tebrikler! Artık bir salon sahibisiniz. Salonunuzu yönetmek için panele gidebilirsiniz.'}
-                                            {application.status === 2 && 'Maalesef başvurunuz kriterlerimize uygun bulunmadı.'}
-                                        </p>
-                                    </div>
-
-                                    {application.status === 1 && (
-                                        <Button
-                                            onClick={() => {
-                                                if (user?.role !== 'SalonOwner') {
-                                                    toast.success('Rol değişikliğinin etkinleşmesi için yeniden giriş yapmalısınız.');
-                                                    logout();
-                                                    navigate('/login');
-                                                } else {
-                                                    navigate('/salon-panel');
-                                                }
-                                            }}
-                                            className="w-full sm:w-auto"
-                                        >
-                                            {user?.role !== 'SalonOwner' ? 'Erişimi Aktifleştir (Yeniden Giriş)' : 'Salon Paneline Git'}
-                                        </Button>
-                                    )}
-
-                                    <div className="mt-6 border-t pt-6">
-                                        <h4 className="font-semibold mb-4">Başvuru Detayları</h4>
-                                        <dl className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
-                                            <div>
-                                                <dt className="text-gray-500">Salon Adı</dt>
-                                                <dd className="font-medium">{application.shopName}</dd>
-                                            </div>
-                                            <div>
-                                                <dt className="text-gray-500">Telefon</dt>
-                                                <dd className="font-medium">{application.phoneNumber}</dd>
-                                            </div>
-                                            <div className="sm:col-span-2">
-                                                <dt className="text-gray-500">Adres</dt>
-                                                <dd className="font-medium">{application.address}, {application.district}/{application.city}</dd>
-                                            </div>
-                                        </dl>
-                                    </div>
-                                </div>
-                            ) : (
-                                <form onSubmit={handleCreateApplication} className="space-y-4 max-w-2xl">
-                                    <div className="bg-blue-50 text-blue-800 p-4 rounded-lg mb-6 text-sm">
-                                        Salon sahibi olmak için aşağıdaki formu doldurun. Başvurunuz onaylandıktan sonra salonunuzu yönetmeye başlayabilirsiniz.
-                                    </div>
-
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Salon Adı</label>
-                                            <input type="text" value={createApplication.shopName} onChange={e => setCreateApplication({ ...createApplication, shopName: e.target.value })} className="w-full rounded-md border-gray-300" required />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Vergi Numarası</label>
-                                            <input type="text" value={createApplication.taxNumber} onChange={e => setCreateApplication({ ...createApplication, taxNumber: e.target.value })} className="w-full rounded-md border-gray-300" required />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Telefon</label>
-                                            <input type="tel" value={createApplication.phoneNumber} onChange={e => setCreateApplication({ ...createApplication, phoneNumber: e.target.value })} className="w-full rounded-md border-gray-300" required placeholder="+90..." />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">İl</label>
-                                            <input type="text" value={createApplication.city} onChange={e => setCreateApplication({ ...createApplication, city: e.target.value })} className="w-full rounded-md border-gray-300" required />
-                                        </div>
-                                        <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">İlçe</label>
-                                            <input type="text" value={createApplication.district} onChange={e => setCreateApplication({ ...createApplication, district: e.target.value })} className="w-full rounded-md border-gray-300" required />
-                                        </div>
-                                        <div className="md:col-span-2">
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Açık Adres</label>
-                                            <textarea value={createApplication.address} onChange={e => setCreateApplication({ ...createApplication, address: e.target.value })} className="w-full rounded-md border-gray-300" required rows={3} />
-                                        </div>
-                                        <div className="md:col-span-2">
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Açıklama / Hakkında</label>
-                                            <textarea value={createApplication.description} onChange={e => setCreateApplication({ ...createApplication, description: e.target.value })} className="w-full rounded-md border-gray-300" rows={3} placeholder="Salonunuz hakkında kısa bir açıklama..." />
-                                        </div>
-                                    </div>
-
-                                    <div className="pt-4">
-                                        <Button type="submit" className="w-full sm:w-auto">Başvuruyu Gönder</Button>
-                                    </div>
-                                </form>
-                            )}
-                        </div>
-                    )}
 
                     {activeTab === 'security' && (
                         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">

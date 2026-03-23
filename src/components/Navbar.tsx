@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './Button';
-import { Scissors, Menu, Search, Heart, User } from 'lucide-react';
+import { Scissors, Search, Heart, User } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
     const { user, isAuthenticated } = useAuth();
@@ -26,14 +26,11 @@ export const Navbar: React.FC = () => {
 
     return (
         <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex justify-between items-center h-16 gap-4">
+            <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="flex justify-between items-center h-20 gap-2 sm:gap-4">
 
-                    {/* Left: Hamburger + Logo */}
-                    <div className="flex items-center gap-4">
-                        <button className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-md">
-                            <Menu className="h-6 w-6" />
-                        </button>
+                    {/* Left: Logo */}
+                    <div className="flex items-center shrink-0 gap-2 sm:gap-4">
                         <Link to="/" className="flex-shrink-0 flex items-center gap-2">
                             <div className="bg-primary-600 p-1.5 rounded-lg">
                                 <Scissors className="h-6 w-6 text-white" />
@@ -43,11 +40,11 @@ export const Navbar: React.FC = () => {
                     </div>
 
                     {/* Center: Search Bar */}
-                    <div className="flex-1 max-w-2xl mx-auto">
-                        <form onSubmit={handleSearch} className="relative">
+                    <div className="flex-1 min-w-0 max-w-2xl px-2">
+                        <form onSubmit={handleSearch} className="relative w-full">
                             <input
                                 type="text"
-                                className="w-full pl-4 pr-10 py-2 bg-gray-100 border-none rounded-full text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-colors"
+                                className="w-full pl-4 pr-10 py-2 bg-gray-100 border-none rounded-full text-sm sm:text-base text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:bg-white transition-colors"
                                 placeholder="Salon adı, şehir veya ilçe ara..."
                                 value={searchTerm}
                                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -62,7 +59,7 @@ export const Navbar: React.FC = () => {
                     </div>
 
                     {/* Right: Actions */}
-                    <div className="flex items-center gap-2 sm:gap-4">
+                    <div className="flex items-center shrink-0 gap-2 sm:gap-4">
 
 
                         {isAuthenticated ? (

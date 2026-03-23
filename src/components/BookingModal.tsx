@@ -135,6 +135,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
         while (current < end) {
             const timeString = format(current, 'HH:mm');
+            const slotEnd = addMinutes(current, 15);
+            const label = `${timeString} - ${format(slotEnd, 'HH:mm')}`;
 
             // Check if Booked
             const isBooked = availability.bookedSlots.some(slot => {
@@ -160,6 +162,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
             slots.push({
                 time: timeString,
+                label,
                 isBooked,
                 isBreak
             });
@@ -311,29 +314,37 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                             ) : (
                                 <div className="space-y-6">
                                     {categories.map((cat) => (
-                                        <div key={cat.id}>
-                                            <h4 className="text-md font-semibold text-gray-800 mb-3 px-1">{cat.name}</h4>
+                                        <div key={cat.id} className="mb-6">
+                                            <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3 px-1">{cat.name}</h4>
                                             <div className="grid grid-cols-1 gap-3">
                                                 {cat.services.map((service) => (
                                                     <div
                                                         key={service.id}
                                                         onClick={() => handleSelectService(service)}
-                                                        className={`p-4 rounded-xl border cursor-pointer flex justify-between items-center transition-all duration-200
+                                                        className={`group relative p-4 rounded-xl border-2 cursor-pointer flex justify-between items-center transition-all duration-300 ease-in-out
                                                             ${selectedService?.id === service.id
-                                                                ? 'border-primary-500 bg-primary-50 ring-1 ring-primary-500'
-                                                                : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'}`}
+                                                                ? 'border-primary-600 bg-primary-50 shadow-md'
+                                                                : 'border-gray-100 bg-white hover:border-primary-200 hover:shadow-sm'}`}
                                                     >
-                                                        <div>
-                                                            <p className="font-bold text-gray-900">{service.name}</p>
-                                                            <p className="text-sm text-gray-500">{service.duration} dakika</p>
+                                                        <div className="flex flex-col">
+                                                            <span className={`font-bold text-lg transition-colors duration-200 ${selectedService?.id === service.id ? 'text-primary-900' : 'text-gray-900'}`}>
+                                                                {service.name}
+                                                            </span>
+                                                            <div className="flex items-center gap-2 mt-1">
+                                                                <span className="text-sm text-gray-500 font-medium bg-gray-100 px-2 py-0.5 rounded-md">
+                                                                    {service.duration} dk
+                                                                </span>
+                                                            </div>
                                                         </div>
-                                                        <div className="flex items-center gap-4">
-                                                            <span className="font-bold text-primary-700">₺{service.price}</span>
-                                                            {selectedService?.id === service.id && (
-                                                                <div className="h-6 w-6 bg-primary-600 rounded-full flex items-center justify-center">
-                                                                    <Check className="h-4 w-4 text-white" />
-                                                                </div>
-                                                            )}
+
+                                                        <div className="flex items-center gap-5">
+                                                            <span className="font-bold text-xl text-gray-900">₺{service.price}</span>
+                                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300
+                                                                ${selectedService?.id === service.id
+                                                                    ? 'bg-primary-600 text-white scale-110 shadow-lg'
+                                                                    : 'bg-gray-100 text-gray-300 group-hover:bg-primary-100 group-hover:text-primary-400'}`}>
+                                                                <Check className={`w-5 h-5 transition-transform duration-300 ${selectedService?.id === service.id ? 'scale-100' : 'scale-75'}`} />
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 ))}
@@ -352,109 +363,132 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                 Personel Seçin
                             </h3>
                             {loading ? (
-                                <div className="text-center py-8">Loading...</div>
+                                <div className="text-center py-8">Yükleniyor...</div>
                             ) : (
-                                <div className="space-y-3">
-                                    {/* Option for "Any Personnel" - Logic to implement later, for now just UI 
-                                    <div className="p-4 rounded-xl border border-gray-200 hover:border-primary-300 cursor-pointer flex items-center gap-4 transition-all">
-                                        <div className="h-12 w-12 rounded-full bg-gray-100 flex items-center justify-center">
-                                            <Checks className="h-6 w-6 text-gray-500" />
-                                        </div>
-                                        <div>
-                                            <p className="font-bold text-gray-900">Fark Etmez</p>
-                                            <p className="text-sm text-gray-500">Müsait olan herhangi bir personel</p>
-                                        </div>
-                                    </div>
-                                    */}
+                                <div className="space-y-4">
+                                    {employees
+                                        .filter(emp => !selectedService || (emp.serviceIds && emp.serviceIds.includes(selectedService.id)))
+                                        .length === 0 ? (
+                                        <div className="text-center py-8 text-gray-500">Bu hizmeti veren uygun personel bulunamadı.</div>
+                                    ) : (
+                                        employees
+                                            .filter(emp => !selectedService || (emp.serviceIds && emp.serviceIds.includes(selectedService.id)))
+                                            .map((emp) => (
+                                                <div
+                                                    key={emp.id}
+                                                    onClick={() => setSelectedEmployeeId(emp.id)}
+                                                    className={`group relative p-4 rounded-xl border-2 cursor-pointer flex justify-between items-center transition-all duration-300 ease-in-out
+                                                        ${selectedEmployeeId === emp.id
+                                                            ? 'border-primary-600 bg-primary-50 shadow-md'
+                                                            : 'border-gray-100 bg-white hover:border-primary-200 hover:shadow-sm'}`}
+                                                >
+                                                    <div className="flex items-center gap-4 flex-1">
+                                                        <div className={`h-11 w-11 rounded-full overflow-hidden border-2 transition-colors duration-300 flex items-center justify-center shrink-0
+                                                            ${selectedEmployeeId === emp.id ? 'border-primary-200 bg-white' : 'border-gray-100 bg-gray-50'}`}>
+                                                            {/* Placeholder or actual image if available */}
+                                                            <User className={`h-6 w-6 ${selectedEmployeeId === emp.id ? 'text-primary-600' : 'text-gray-400'}`} />
+                                                        </div>
+                                                        <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-4 flex-1">
+                                                            <p className={`font-bold text-lg transition-colors duration-200 ${selectedEmployeeId === emp.id ? 'text-primary-900' : 'text-gray-900'}`}>
+                                                                {emp.firstName} {emp.lastName}
+                                                            </p>
+                                                            <div className="flex items-center gap-3">
+                                                                <span className="text-sm text-gray-500 font-medium">{emp.title}</span>
 
-                                    {employees.map((emp) => (
-                                        <div
-                                            key={emp.id}
-                                            onClick={() => setSelectedEmployeeId(emp.id)}
-                                            className={`p-4 rounded-xl border cursor-pointer flex items-center justify-between transition-all duration-200
-                                                ${selectedEmployeeId === emp.id
-                                                    ? 'border-primary-500 bg-primary-50 ring-1 ring-primary-500'
-                                                    : 'border-gray-200 hover:border-gray-300 hover:scale-[1.01]'}`}
-                                        >
-                                            <div className="flex items-center gap-4">
-                                                <div className="h-12 w-12 rounded-full bg-gray-200 overflow-hidden">
-                                                    {/* Placeholder or actual image if available */}
-                                                    <div className="w-full h-full flex items-center justify-center bg-gray-300 text-gray-600">
-                                                        <User className="h-6 w-6" />
+                                                                {emp.averageRating > 0 && (
+                                                                    <div className="flex items-center bg-yellow-50 px-2 py-0.5 rounded-md border border-yellow-100">
+                                                                        <span className="text-yellow-500 mr-1 text-xs">★</span>
+                                                                        <span className="font-bold text-sm text-yellow-700">{emp.averageRating.toFixed(1)}</span>
+                                                                        <span className="text-xs text-gray-400 ml-1">({emp.reviewCount})</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+
+                                                    <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300 ml-4
+                                                        ${selectedEmployeeId === emp.id
+                                                            ? 'bg-primary-600 text-white scale-110 shadow-lg'
+                                                            : 'bg-gray-100 text-gray-300 group-hover:bg-primary-100 group-hover:text-primary-400'}`}>
+                                                        <Check className={`w-5 h-5 transition-transform duration-300 ${selectedEmployeeId === emp.id ? 'scale-100' : 'scale-75'}`} />
                                                     </div>
                                                 </div>
-                                                <div>
-                                                    <p className="font-bold text-gray-900">{emp.firstName} {emp.lastName}</p>
-                                                    <p className="text-sm text-gray-500">{emp.title}</p>
-                                                    {/* Rating could go here */}
-                                                    {emp.averageRating > 0 && (
-                                                        <div className="flex items-center text-xs text-yellow-600 mt-1">
-                                                            <span className="font-bold mr-1">{emp.averageRating.toFixed(1)}</span>
-                                                            <span>({emp.reviewCount} yorum)</span>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            {selectedEmployeeId === emp.id && (
-                                                <div className="h-6 w-6 bg-primary-600 rounded-full flex items-center justify-center">
-                                                    <Check className="h-4 w-4 text-white" />
-                                                </div>
-                                            )}
-                                        </div>
-                                    ))}
+                                            ))
+                                    )}
                                 </div>
                             )}
                         </div>
                     )}
 
                     {currentStep === 'datetime' && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                                    <CalendarIcon className="h-4 w-4" /> Tarih Seçin
-                                </label>
-                                <input
-                                    type="date"
-                                    className="block w-full p-3 border border-gray-300 rounded-xl focus:ring-primary-500 focus:border-primary-500"
-                                    value={selectedDate}
-                                    min={new Date().toISOString().split('T')[0]}
-                                    onChange={(e) => setSelectedDate(e.target.value)}
-                                />
-                                <div className="mt-4 p-4 bg-gray-50 rounded-xl text-sm text-gray-600">
-                                    <p className="font-medium text-gray-900 mb-1">Seçili Tarih:</p>
-                                    <p>{format(new Date(selectedDate), 'd MMMM yyyy, EEEE', { locale: tr })}</p>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                            <div className="space-y-4">
+                                <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                                    <CalendarIcon className="h-5 w-5 text-primary-600" />
+                                    Tarih Seçin
+                                </h3>
+
+                                <div className="p-4 rounded-xl border border-gray-200 bg-gray-50 hover:border-primary-300 transition-colors">
+                                    <input
+                                        type="date"
+                                        className="w-full bg-transparent border-none p-2 text-lg font-medium text-gray-900 focus:ring-0 cursor-pointer"
+                                        value={selectedDate}
+                                        min={new Date().toISOString().split('T')[0]}
+                                        onChange={(e) => setSelectedDate(e.target.value)}
+                                    />
+                                </div>
+
+                                <div className="p-4 bg-primary-50 rounded-xl border border-primary-100">
+                                    <p className="font-semibold text-primary-900 mb-1">Seçili Tarih:</p>
+                                    <p className="text-primary-700">{format(new Date(selectedDate), 'd MMMM yyyy, EEEE', { locale: tr })}</p>
                                 </div>
                             </div>
 
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                                    <Clock className="h-4 w-4" /> Saat Seçin
-                                </label>
-                                <div className="grid grid-cols-4 gap-2 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                            <div className="space-y-4">
+                                <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                                    <Clock className="h-5 w-5 text-primary-600" />
+                                    Saat Seçin
+                                </h3>
+
+                                <div className="grid grid-cols-3 gap-3 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
                                     {generateTimeSlots().length === 0 ? (
-                                        <div className="col-span-4 text-center text-gray-500 py-4">Bu tarihte uygun saat bulunamadı veya çalışan izinli.</div>
+                                        <div className="col-span-3 text-center text-gray-500 py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                                            Bu tarihte uygun saat bulunamadı veya çalışan izinli.
+                                        </div>
                                     ) : (
-                                        generateTimeSlots().map(({ time, isBooked, isBreak }) => (
+                                        generateTimeSlots().map(({ time, label, isBooked, isBreak }) => (
                                             <button
                                                 key={time}
                                                 disabled={isBooked || isBreak}
                                                 onClick={() => setSelectedTime(time)}
-                                                className={`py-2 px-1 text-xs font-medium rounded-lg border transition-all duration-150
-                                                    ${isBooked ? 'bg-blue-100 text-blue-800 border-blue-200 cursor-not-allowed' : ''}
-                                                    ${isBreak ? 'bg-red-100 text-red-800 border-red-200 cursor-not-allowed' : ''}
-                                                    ${!isBooked && !isBreak && selectedTime === time
-                                                        ? 'bg-primary-600 text-white border-primary-600 shadow-sm'
-                                                        : (!isBooked && !isBreak) ? 'bg-white text-gray-700 border-gray-200 hover:border-gray-300 hover:bg-gray-50' : ''}`}
+                                                className={`py-3 px-2 text-xs font-semibold rounded-lg border transition-all duration-200 flex items-center justify-center
+                                                    ${isBooked
+                                                        ? 'bg-blue-50 text-blue-400 border-blue-100 cursor-not-allowed opacity-60'
+                                                        : isBreak
+                                                            ? 'bg-red-50 text-red-400 border-red-100 cursor-not-allowed opacity-60'
+                                                            : selectedTime === time
+                                                                ? 'bg-primary-600 text-white border-primary-600 shadow-md transform scale-105'
+                                                                : 'bg-white text-gray-700 border-gray-200 hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700 hover:shadow-sm'
+                                                    }`}
                                             >
-                                                {time}
+                                                {label}
                                             </button>
                                         ))
                                     )}
                                 </div>
-                                <div className="mt-2 flex gap-4 text-xs text-gray-500 justify-center">
-                                    <div className="flex items-center gap-1"><div className="w-3 h-3 bg-white border border-gray-300 rounded"></div> Müsait</div>
-                                    <div className="flex items-center gap-1"><div className="w-3 h-3 bg-blue-100 border border-blue-200 rounded"></div> Dolu</div>
-                                    <div className="flex items-center gap-1"><div className="w-3 h-3 bg-red-100 border border-red-200 rounded"></div> Mola</div>
+                                <div className="flex gap-6 text-xs text-gray-500 justify-center pt-2">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 bg-white border border-gray-300 rounded"></div>
+                                        <span>Müsait</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 bg-blue-50 border border-blue-100 rounded opacity-60"></div>
+                                        <span>Dolu</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 bg-red-50 border border-red-100 rounded opacity-60"></div>
+                                        <span>Mola</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -481,7 +515,15 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                 </div>
                                 <div className="flex justify-between border-b border-gray-200 pb-3">
                                     <span className="text-gray-500">Saat</span>
-                                    <span className="font-bold text-gray-900">{selectedTime}</span>
+                                    <span className="font-bold text-gray-900">
+                                        {(() => {
+                                            if (!selectedTime) return '';
+                                            const [h, m] = selectedTime.split(':').map(Number);
+                                            const start = setHours(setMinutes(new Date(), m), h);
+                                            const end = addMinutes(start, 15);
+                                            return `${selectedTime} - ${format(end, 'HH:mm')}`;
+                                        })()}
+                                    </span>
                                 </div>
                                 <div className="flex justify-between items-center pt-2">
                                     <span className="text-gray-600 font-medium">Toplam Tutar</span>

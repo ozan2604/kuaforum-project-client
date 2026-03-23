@@ -1,4 +1,4 @@
-import { Routes, Route } from 'react-router-dom';
+import { Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { MainLayout } from './layouts/MainLayout';
 import { AuthLayout } from './layouts/AuthLayout';
@@ -21,6 +21,9 @@ import { SalonAppointmentsPage } from './pages/salon/SalonAppointmentsPage';
 import { ShopDetailsPage } from './pages/ShopDetailsPage';
 import { MyAppointmentsPage } from './pages/MyAppointmentsPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { EmployeeLayout } from './layouts/EmployeeLayout';
+import { EmployeeAppointmentsPage } from './pages/employee/EmployeeAppointmentsPage';
+import { EmployeeProfilePage } from './pages/employee/EmployeeProfilePage';
 
 function App() {
   return (
@@ -41,6 +44,7 @@ function App() {
         <Route element={<ProtectedRoute />}>
           <Route element={<MainLayout />}>
             <Route path="/apply-salon" element={<SalonApplicationPage />} />
+            <Route path="/salon-basvurusu" element={<SalonApplicationPage />} />
           </Route>
         </Route>
 
@@ -65,6 +69,14 @@ function App() {
             <Route path="/salon-panel/employees" element={<EmployeesPage />} />
             <Route path="/salon-panel/appointments" element={<SalonAppointmentsPage />} />
             <Route path="/salon-panel/settings" element={<div className="p-8">Ayarlar Sayfası (Yakında)</div>} />
+          </Route>
+        </Route>
+
+        <Route element={<ProtectedRoute roles={['Employee']} />}>
+          <Route element={<EmployeeLayout />}>
+            <Route path="/employee-panel" element={<Navigate to="/employee-panel/appointments" replace />} />
+            <Route path="/employee-panel/appointments" element={<EmployeeAppointmentsPage />} />
+            <Route path="/employee-panel/profile" element={<EmployeeProfilePage />} />
           </Route>
         </Route>
 

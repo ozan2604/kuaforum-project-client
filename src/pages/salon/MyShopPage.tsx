@@ -6,7 +6,7 @@ import { shopService } from '../../api/shop.service';
 import { toast } from 'react-hot-toast';
 import { MapPin, Phone, Building2, Trash2 } from 'lucide-react';
 
-import { ShopCategory } from '../../types/shop';
+import { ShopCategory, TargetGender, TargetGenderLabels } from '../../types/shop';
 
 interface ShopFormData {
     name: string;
@@ -20,11 +20,12 @@ interface ShopFormData {
     coverImagePath?: string;
     images?: { id: string; url: string }[];
     category: ShopCategory;
+    genderPreference: TargetGender;
 }
 
 export const MyShopPage: React.FC = () => {
 
-    const { register, handleSubmit, formState: { errors }, reset, setValue, getValues } = useForm<ShopFormData>();
+    const { register, handleSubmit, formState: { errors }, reset, setValue, getValues, watch } = useForm<ShopFormData>();
     const [loading, setLoading] = useState(false);
     const [initialLoading, setInitialLoading] = useState(true);
     const [shopId, setShopId] = useState<string | null>(null);
@@ -46,7 +47,8 @@ export const MyShopPage: React.FC = () => {
                     longitude: shop.longitude,
                     coverImagePath: shop.coverImagePath,
                     images: shop.images || [],
-                    category: shop.category
+                    category: shop.category,
+                    genderPreference: shop.genderPreference
                 });
             } catch (error) {
                 console.error('Error fetching shop:', error);
@@ -277,6 +279,26 @@ export const MyShopPage: React.FC = () => {
                                 <option value={99}>Diğer</option>
                             </select>
                             {errors.category && <p className="text-xs text-red-500 mt-1">{errors.category.message}</p>}
+                        </div>
+
+                        <div className="space-y-1.5 md:col-span-2">
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Hizmet Verilen Cinsiyet
+                            </label>
+                            <div className="flex flex-wrap gap-4">
+                                {[TargetGender.Kadin, TargetGender.Erkek, TargetGender.Unisex].map((gender) => (
+                                    <label key={gender} className={`cursor-pointer flex items-center gap-2 px-4 py-3 rounded-lg border-2 transition-all ${watch('genderPreference') === gender ? 'border-primary-600 bg-primary-50 text-primary-900' : 'border-gray-200 hover:border-primary-300'}`}>
+                                        <input
+                                            type="radio"
+                                            value={gender}
+                                            {...register('genderPreference', { required: 'Please select gender preference', valueAsNumber: true })}
+                                            className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300"
+                                        />
+                                        <span className="font-medium text-sm">{TargetGenderLabels[gender]}</span>
+                                    </label>
+                                ))}
+                            </div>
+                            {errors.genderPreference && <p className="text-xs text-red-500 mt-1">{errors.genderPreference.message}</p>}
                         </div>
 
                         <Input

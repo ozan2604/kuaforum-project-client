@@ -50,5 +50,11 @@ export const shopService = {
 
     deleteGalleryImage: async (imageId: string): Promise<void> => {
         await api.delete(`/shop/gallery-images/${imageId}`);
+    },
+
+    updateAutoProcess: async (id: string, isEnabled: boolean): Promise<void> => {
+        await api.patch(`/shop/${id}/auto-process`, isEnabled, {
+            headers: { 'Content-Type': 'application/json' }
+        });
     }
 };

@@ -3,18 +3,16 @@ import { Outlet, Navigate, NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import {
     LayoutDashboard,
-    Store,
-    Scissors,
-    Users,
     Calendar,
-    Settings,
+    User,
     LogOut,
     Menu,
     X,
-    Bell
+    Bell,
+    Store
 } from 'lucide-react';
 
-export const SalonOwnerLayout: React.FC = () => {
+export const EmployeeLayout: React.FC = () => {
     const { user, logout, isLoading } = useAuth();
     const navigate = useNavigate();
     const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
@@ -23,20 +21,15 @@ export const SalonOwnerLayout: React.FC = () => {
         return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
     }
 
-    if (!user || user.role !== 'SalonOwner') {
+    if (!user || user.role !== 'Employee') {
         return <Navigate to="/" replace />;
     }
 
     const navigation = [
         { name: 'Anasayfa', href: '/', icon: Store },
-        { name: 'Dashboard', href: '/salon-panel', icon: LayoutDashboard },
-        { name: 'Randevular', href: '/salon-panel/appointments', icon: Calendar },
-        { name: 'Salonum', href: '/salon-panel/shop', icon: Store },
-        { name: 'Hizmetler', href: '/salon-panel/services', icon: Scissors },
-        { name: 'Çalışanlar', href: '/salon-panel/employees', icon: Users },
-        // { name: 'Finans', href: '/salon-panel/finance', icon: PieChart },
-        // { name: 'Müşteriler', href: '/salon-panel/customers', icon: UserCheck },
-        { name: 'Ayarlar', href: '/salon-panel/settings', icon: Settings },
+        // { name: 'Dashboard', href: '/employee-panel', icon: LayoutDashboard }, // Maybe later
+        { name: 'Randevularım', href: '/employee-panel/appointments', icon: Calendar },
+        { name: 'Profilim', href: '/employee-panel/profile', icon: User },
     ];
 
     return (
@@ -57,8 +50,8 @@ export const SalonOwnerLayout: React.FC = () => {
                 <div className="h-full flex flex-col">
                     {/* Header */}
                     <div className="h-16 flex items-center px-6 border-b border-gray-200">
-                        <Store className="h-8 w-8 text-primary-600 mr-3" />
-                        <span className="text-xl font-bold text-gray-900">Salon Paneli</span>
+                        <LayoutDashboard className="h-8 w-8 text-primary-600 mr-3" />
+                        <span className="text-xl font-bold text-gray-900">Personel Paneli</span>
                         <button
                             className="ml-auto lg:hidden"
                             onClick={() => setIsSidebarOpen(false)}
@@ -73,7 +66,7 @@ export const SalonOwnerLayout: React.FC = () => {
                             <NavLink
                                 key={item.name}
                                 to={item.href}
-                                end={item.href === '/salon-panel'}
+                                end
                                 onClick={() => setIsSidebarOpen(false)}
                                 className={({ isActive }) => `
                                     flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-colors
@@ -127,7 +120,7 @@ export const SalonOwnerLayout: React.FC = () => {
                     >
                         <Menu className="h-6 w-6" />
                     </button>
-                    <span className="font-bold text-gray-900">Salon Yönetimi</span>
+                    <span className="font-bold text-gray-900">Personel Paneli</span>
                     <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-full relative">
                         <Bell className="h-5 w-5" />
                         <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-red-500 rounded-full"></span>

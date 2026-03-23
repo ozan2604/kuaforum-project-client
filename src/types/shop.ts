@@ -1,9 +1,31 @@
+export const TargetGender = {
+    Kadin: 1,
+    Erkek: 2,
+    Unisex: 3
+} as const;
+
+export type TargetGender = typeof TargetGender[keyof typeof TargetGender];
+
+export const TargetGenderLabels: { [key in TargetGender]: string } = {
+    [TargetGender.Kadin]: "Kadın",
+    [TargetGender.Erkek]: "Erkek",
+    [TargetGender.Unisex]: "Unisex (Her İkisi)"
+};
+
 export const ShopCategory = {
     Berber: 1,
     Kuafor: 2,
     GuzellikMerkezi: 3,
     SpaMerkezi: 4,
     DovmeStudyosu: 5,
+    PiercingStudyosu: 6,
+    NailArt: 7,
+    CiltBakimMerkezi: 8,
+    LazerEpilasyon: 9,
+    MasajSalonu: 10,
+    Solaryum: 11,
+    MakyajStudyosu: 12,
+    KasKirpikStudyosu: 13,
     Diger: 99
 } as const;
 
@@ -11,10 +33,18 @@ export type ShopCategory = typeof ShopCategory[keyof typeof ShopCategory];
 
 export const ShopCategoryLabels: { [key in ShopCategory]: string } = {
     [ShopCategory.Berber]: "Berber",
-    [ShopCategory.Kuafor]: "Kuaför",
+    [ShopCategory.Kuafor]: "Kadın Kuaför",
     [ShopCategory.GuzellikMerkezi]: "Güzellik Merkezi",
     [ShopCategory.SpaMerkezi]: "Spa Merkezi",
     [ShopCategory.DovmeStudyosu]: "Dövme Stüdyosu",
+    [ShopCategory.PiercingStudyosu]: "Piercing Stüdyosu",
+    [ShopCategory.NailArt]: "Nail Art / Tırnak Salonu",
+    [ShopCategory.CiltBakimMerkezi]: "Cilt Bakım Merkezi",
+    [ShopCategory.LazerEpilasyon]: "Lazer Epilasyon Merkezi",
+    [ShopCategory.MasajSalonu]: "Masaj Salonu",
+    [ShopCategory.Solaryum]: "Solaryum",
+    [ShopCategory.MakyajStudyosu]: "Makyaj Stüdyosu",
+    [ShopCategory.KasKirpikStudyosu]: "Kaş & Kirpik Stüdyosu",
     [ShopCategory.Diger]: "Diğer"
 };
 
@@ -42,6 +72,8 @@ export interface Shop {
     saturdayClosingTime?: string;
     weeklySchedule?: ShopSchedule[];
     category: ShopCategory;
+    genderPreference: TargetGender;
+    isAutoProcessEnabled: boolean;
 }
 
 export interface ShopSchedule {

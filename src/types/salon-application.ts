@@ -6,8 +6,13 @@ export interface SalonApplication {
     address: string;
     city: string;
     district: string;
+    neighborhood: string;
+    street: string;
+    buildingNumber: string;
     phoneNumber: string;
-    taxNumber: string;
+    contactEmail: string;
+    categoryId: number;
+    genderPreference: number;
     status: 'Pending' | 'Approved' | 'Rejected';
     createdAt: string;
 }
@@ -18,6 +23,11 @@ export interface CreateSalonApplicationDto {
     address: string;
     city: string;
     district: string;
+    neighborhood: string;
+    street: string;
+    buildingNumber: string;
     phoneNumber: string;
-    taxNumber: string;
+    contactEmail: string;
+    categoryId: number;
+    genderPreference: number;
 }

@@ -1,10 +1,25 @@
 import api from './axios';
 import type { Appointment, CreateAppointmentDto, UpdateAppointmentStatusDto, AppointmentStatus } from '../types/appointment';
 
+export interface PagedResult<T> {
+    items: T[];
+    totalCount: number;
+    pageNumber: number;
+    pageSize: number;
+    totalPages: number;
+}
+
 export const appointmentService = {
     // Get appointments for a specific shop (Salon Owner)
-    getShopAppointments: async (shopId: string): Promise<Appointment[]> => {
-        const response = await api.get<Appointment[]>(`/Appointment/shop/${shopId}`);
+    // Get appointments for a specific shop (Salon Owner)
+    getShopAppointments: async (shopId: string, page: number = 1, pageSize: number = 10, status?: AppointmentStatus): Promise<PagedResult<Appointment>> => {
+        const response = await api.get<PagedResult<Appointment>>(`/Appointment/shop/${shopId}`, {
+            params: {
+                page,
+                pageSize,
+                status
+            }
+        });
         return response.data;
     },
 
@@ -36,5 +51,16 @@ export const appointmentService = {
         const response = await api.get<Appointment>(`/Appointment/reviewable?shopId=${shopId}`);
         if (!response.data) return null;
         return response.data;
+    },
+
+    // Employee - Assigned Appointments
+    getAssignedAppointments: async (): Promise<Appointment[]> => {
+        const response = await api.get<Appointment[]>('/Appointment/employee/my-appointments');
+        return response.data;
+    },
+
+    updateStatusByEmployee: async (id: string, status: AppointmentStatus): Promise<void> => {
+        const payload: UpdateAppointmentStatusDto = { status };
+        await api.put(`/Appointment/employee/${id}/status`, payload);
     }
 };

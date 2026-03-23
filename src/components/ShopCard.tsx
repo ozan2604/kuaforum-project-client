@@ -53,83 +53,84 @@ export const ShopCard: React.FC<ShopCardProps> = ({ shop, initialIsFavorite = fa
     };
 
     const getImageUrl = (path: string | undefined) => {
-        if (!path) return `https://source.unsplash.com/random/800x600/?salon,${shop.id}`;
+        if (!path) return 'https://images.unsplash.com/photo-1560066984-12186d30b435?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80';
         if (path.startsWith('http')) return path;
         return `http://localhost:5000${path}`;
     };
 
     return (
-        <div className="group bg-white rounded-3xl overflow-hidden hover:shadow-2xl hover:-translate-y-1 transition-all duration-300 border border-gray-100 flex flex-col h-full relative">
-            <Link to={`/shop/${shop.id}`} className="block relative h-56 overflow-hidden">
-                <div className="absolute inset-0 bg-primary-900/10 group-hover:bg-transparent transition-colors z-10" />
+        <div className="group bg-white rounded-xl sm:rounded-2xl overflow-hidden hover:shadow-xl hover:shadow-primary-900/8 hover:-translate-y-1 transition-all duration-400 border border-gray-100 flex flex-col h-full relative">
+            {/* Görsel Bölümü */}
+            <Link to={`/shop/${shop.id}`} className="block relative w-full h-[140px] sm:h-[200px] overflow-hidden shrink-0">
+                <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent z-10" />
                 <img
                     src={getImageUrl(shop.coverImagePath)}
                     alt={shop.name}
-                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700 ease-in-out"
+                    className="w-full h-full object-cover absolute inset-0 group-hover:scale-105 transition-transform duration-500 ease-out"
                     onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1560066984-12186d30b435?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'; }}
                 />
 
-                <div className="absolute top-4 right-4 z-20 flex gap-2">
-                    {shop.averageRating > 0 && (
-                        <div className="bg-white/90 backdrop-blur-sm px-2.5 py-1 rounded-full shadow-sm flex items-center border border-white/20">
-                            <Star className="h-3.5 w-3.5 text-yellow-400 fill-current mr-1" />
-                            <span className="text-xs font-bold text-primary-800">{shop.averageRating.toFixed(1)}</span>
-                        </div>
-                    )}
-                    {/* Category Badge */}
-                    <div className="absolute top-4 left-4 z-10">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-white/90 text-primary-800 backdrop-blur-sm shadow-sm border border-gray-100/50">
-                            {ShopCategoryLabels[shop.category] || 'Güzellik Salonu'}
-                        </span>
-                    </div>
+                {/* Favori Butonu */}
+                <button
+                    onClick={handleFavoriteClick}
+                    disabled={isLoading}
+                    className={`absolute top-2 sm:top-3 right-2 sm:right-3 z-20 p-1.5 sm:p-2 rounded-full shadow-md backdrop-blur-sm transition-all duration-300 hover:scale-110 active:scale-95 ${isFavorite
+                        ? 'bg-secondary-500 text-white border border-secondary-400'
+                        : 'bg-white/85 text-gray-400 hover:text-secondary-500 border border-white/40'
+                        }`}
+                >
+                    <Heart className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isFavorite ? 'fill-current' : ''}`} />
+                </button>
 
-                    <button
-                        onClick={handleFavoriteClick}
-                        disabled={isLoading}
-                        className={`p-2 rounded-full shadow-md transition-all ${isFavorite
-                            ? 'bg-secondary-500 text-white hover:bg-secondary-600'
-                            : 'bg-white/90 text-gray-400 hover:text-secondary-500 hover:bg-white'
-                            }`}
-                    >
-                        <Heart className={`h-4 w-4 ${isFavorite ? 'fill-current' : ''}`} />
-                    </button>
+                {/* Kategori Etiketi */}
+                <div className="absolute top-2 sm:top-3 left-2 sm:left-3 z-20">
+                    <span className="inline-flex items-center px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-md sm:rounded-lg text-[8px] sm:text-[10px] font-bold uppercase tracking-wider bg-white/90 text-gray-800 backdrop-blur-sm shadow-sm">
+                        {ShopCategoryLabels[shop.category] || 'Güzellik Salonu'}
+                    </span>
                 </div>
+
+                {/* Puan */}
+                {shop.averageRating > 0 && (
+                    <div className="absolute bottom-2 sm:bottom-3 right-2 sm:right-3 z-20 bg-white/90 backdrop-blur-sm px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md sm:rounded-lg shadow-sm flex items-center gap-0.5 sm:gap-1">
+                        <Star className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-amber-400 fill-current" />
+                        <span className="text-[10px] sm:text-xs font-bold text-gray-900">{shop.averageRating.toFixed(1)}</span>
+                    </div>
+                )}
             </Link>
 
-            <div className="p-6 flex-1 flex flex-col">
-                <div className="mb-4">
-                    <Link to={`/shop/${shop.id}`}>
-                        <h3 className="text-xl font-bold text-primary-900 mb-1 group-hover:text-primary-700 transition-colors">
-                            {shop.name}
-                        </h3>
-                    </Link>
-                    <div className="flex items-center text-gray-500 text-sm">
-                        <MapPin className="h-3.5 w-3.5 mr-1 text-secondary-500" />
-                        {shop.district}, {shop.city}
-                    </div>
+            {/* İçerik Bölümü */}
+            <div className="p-2.5 sm:p-4 flex-1 flex flex-col w-full">
+                <Link to={`/shop/${shop.id}`} className="mb-0.5 sm:mb-1">
+                    <h3 className="text-sm sm:text-base font-bold text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-1">
+                        {shop.name}
+                    </h3>
+                </Link>
+
+                <div className="flex items-center text-gray-500 text-[11px] sm:text-xs mb-1.5 sm:mb-2">
+                    <MapPin className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-0.5 sm:mr-1 text-secondary-400 shrink-0" />
+                    <span className="line-clamp-1">{shop.district}, {shop.city}</span>
                 </div>
 
-                <p className="text-gray-600 text-sm mb-6 line-clamp-2 flex-1 leading-relaxed">
-                    {shop.description || 'Profesyonel güzellik ve bakım hizmetleri. Uzman kadromuzla hizmetinizdeyiz.'}
+                <p className="text-gray-500 text-[11px] sm:text-xs mb-2 sm:mb-3 line-clamp-1 leading-relaxed hidden sm:block">
+                    {shop.description || 'Profesyonel güzellik ve bakım hizmetleri.'}
                 </p>
 
-                <div className="flex items-center justify-between pt-5 border-t border-gray-100 mt-auto">
-                    <span className="text-xs font-semibold px-2.5 py-1 bg-green-50 text-green-700 rounded-lg border border-green-100">
+                <div className="flex items-center justify-between pt-2 sm:pt-3 border-t border-gray-100 mt-auto">
+                    <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 bg-green-50 text-green-700 rounded-md">
+                        <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-green-500 animate-pulse"></span>
                         Açık
                     </span>
                     <Button
-                        size="md"
+                        size="sm"
                         variant="secondary"
-                        className="rounded-xl shadow-md shadow-secondary-200"
+                        className="rounded-lg sm:rounded-xl shadow-md shadow-secondary-500/15 hover:shadow-secondary-500/30 transition-all font-semibold px-2.5 sm:px-4 py-1 sm:py-1.5 text-[10px] sm:text-xs"
                         onClick={(e) => {
                             e.preventDefault();
                             e.stopPropagation();
-                            // Logic to open booking modal directly or just navigate
-                            // For now, let's navigate to shop details as that's where the booking modal is contextually best
                             window.location.href = `/shop/${shop.id}`;
                         }}
                     >
-                        <Calendar className="h-4 w-4 mr-2" />
+                        <Calendar className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />
                         Randevu Al
                     </Button>
                 </div>

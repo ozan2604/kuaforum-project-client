@@ -8,6 +8,7 @@ export interface Employee {
     isActive: boolean;
     averageRating: number;
     reviewCount: number;
+    serviceIds?: string[];
 }
 
 export interface CreateEmployeeDto {
@@ -42,4 +43,24 @@ export interface ScheduleDto {
     endTime: string;
     breakStartTime?: string;
     breakEndTime?: string;
+}
+
+export interface EmployeeProfile {
+    id: string;
+    userId: string;
+    shopId: string;
+    shopName: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    title: string;
+    averageRating: number;
+    reviewCount: number;
+    isActive: boolean;
+}
+
+export interface UpdateEmployeeProfileDto {
+    firstName: string;
+    lastName: string;
+    title: string;
 }
