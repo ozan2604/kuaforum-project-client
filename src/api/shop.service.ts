@@ -15,13 +15,24 @@ export const shopService = {
         await api.put('/shop', data);
     },
 
-    getAllShops: async (): Promise<Shop[]> => {
-        const response = await api.get<Shop[]>('/shop/admin/all');
+    getAllShops: async (page: number = 1, pageSize: number = 10, search: string = ''): Promise<{ totalCount: number, shops: Shop[] }> => {
+        const response = await api.get<{ totalCount: number, shops: Shop[] }>(`/shop/admin/all?page=${page}&pageSize=${pageSize}&search=${encodeURIComponent(search)}`);
         return response.data;
     },
 
-    getPublicShops: async (): Promise<Shop[]> => {
-        const response = await api.get<Shop[]>('/shop/public/all');
+    deleteShopByAdmin: async (id: string): Promise<void> => {
+        await api.delete(`/shop/admin/${id}`);
+    },
+
+    getPublicShops: async (city?: string, district?: string, neighborhood?: string): Promise<Shop[]> => {
+        let url = '/shop/public/all';
+        const params = new URLSearchParams();
+        if (city) params.append('city', city);
+        if (district) params.append('district', district);
+        if (neighborhood) params.append('neighborhood', neighborhood);
+        if (params.toString()) url += `?${params.toString()}`;
+        
+        const response = await api.get<Shop[]>(url);
         return response.data;
     },
 

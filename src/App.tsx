@@ -12,6 +12,7 @@ import { AdminLayout } from './layouts/AdminLayout';
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { SalonApplicationsPage } from './pages/admin/SalonApplicationsPage';
 import { ShopListPage } from './pages/admin/ShopListPage';
+import { UserListPage } from './pages/admin/UserListPage';
 import { SalonOwnerLayout } from './layouts/SalonOwnerLayout';
 import { SalonDashboard } from './pages/salon/SalonDashboard';
 import { MyShopPage } from './pages/salon/MyShopPage';
@@ -24,11 +25,12 @@ import { ProfilePage } from './pages/ProfilePage';
 import { EmployeeLayout } from './layouts/EmployeeLayout';
 import { EmployeeAppointmentsPage } from './pages/employee/EmployeeAppointmentsPage';
 import { EmployeeProfilePage } from './pages/employee/EmployeeProfilePage';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 function App() {
   return (
     <>
-      <Toaster position="top-right" />
+      <Toaster position="top-right" toastOptions={{ duration: 6000 }} />
       <Routes>
         <Route element={<MainLayout />}>
           <Route path="/" element={<HomePage />} />
@@ -58,6 +60,7 @@ function App() {
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="/admin/applications" element={<SalonApplicationsPage />} />
             <Route path="/admin/shops" element={<ShopListPage />} />
+            <Route path="/admin/users" element={<UserListPage />} />
           </Route>
         </Route>
 
@@ -65,7 +68,7 @@ function App() {
           <Route element={<SalonOwnerLayout />}>
             <Route path="/salon-panel" element={<SalonDashboard />} />
             <Route path="/salon-panel/shop" element={<MyShopPage />} />
-            <Route path="/salon-panel/services" element={<ServicesPage />} />
+            <Route path="/salon-panel/services" element={<ErrorBoundary><ServicesPage /></ErrorBoundary>} />
             <Route path="/salon-panel/employees" element={<EmployeesPage />} />
             <Route path="/salon-panel/appointments" element={<SalonAppointmentsPage />} />
             <Route path="/salon-panel/settings" element={<div className="p-8">Ayarlar Sayfası (Yakında)</div>} />

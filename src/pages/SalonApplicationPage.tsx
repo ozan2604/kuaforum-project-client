@@ -2,353 +2,400 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { salonApplicationService } from '../api/salon-application.service';
 import { Button } from '../components/Button';
-import { Clock, CheckCircle, XCircle } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, MapPin, Phone, Mail, Store, ChevronRight, Loader2 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
-import { TargetGender, TargetGenderLabels } from '../types/shop';
+import { TargetGender, TargetGenderLabels, ShopCategory, ShopCategoryLabels } from '../types/shop';
+
+const TURKIYE_API = 'https://turkiyeapi.dev/api/v1';
+
+interface Province { id: number; name: string; districts: { id: number; name: string }[] }
+interface Neighborhood { id: number; name: string }
+
+const steps = ['Genel Bilgiler', 'İletişim', 'Adres'];
 
 export const SalonApplicationPage: React.FC = () => {
     const { user, logout } = useAuth();
     const navigate = useNavigate();
 
-    // Salon Application State
     const [application, setApplication] = useState<any>(null);
-    const [applicationLoading, setApplicationLoading] = useState(false);
+    const [applicationLoading, setApplicationLoading] = useState(true);
+    const [currentStep, setCurrentStep] = useState(0);
 
-    // Form State
-    const [createApplication, setCreateApplication] = useState({
+    // Address API state
+    const [provinces, setProvinces] = useState<Province[]>([]);
+    const [districts, setDistricts] = useState<{ id: number; name: string }[]>([]);
+    const [neighborhoods, setNeighborhoods] = useState<Neighborhood[]>([]);
+    const [loadingProvinces, setLoadingProvinces] = useState(false);
+    const [loadingDistricts, setLoadingDistricts] = useState(false);
+    const [loadingNeighborhoods, setLoadingNeighborhoods] = useState(false);
+
+    const [form, setForm] = useState({
         shopName: '',
         description: '',
-        contactEmail: user?.email || '', // Default to user email
-        phoneNumber: user?.phoneNumber || '', // Default to user phone
-        categoryId: 1, // Default to Berber
-        genderPreference: TargetGender.Unisex as TargetGender, // Default Unisex
+        contactEmail: user?.email || '',
+        phoneNumber: user?.phoneNumber || '',
+        categoryId: 1,
+        genderPreference: TargetGender.Unisex as TargetGender,
         city: '',
         district: '',
         neighborhood: '',
         street: '',
         buildingNumber: '',
-        address: '' // Open address / Directions
+        address: ''
     });
 
-    const categories = [
-        { id: 1, name: 'Berber' },
-        { id: 2, name: 'Kuaför' },
-        { id: 3, name: 'Güzellik Merkezi' },
-        { id: 4, name: 'Spa Merkezi' },
-        { id: 5, name: 'Dövme Stüdyosu' },
-        { id: 99, name: 'Diğer' }
-    ];
+    // Selected IDs for API chain
+    const [selectedProvinceId, setSelectedProvinceId] = useState<number | null>(null);
+    const [selectedDistrictId, setSelectedDistrictId] = useState<number | null>(null);
 
     useEffect(() => {
         loadSalonApplication();
+        loadProvinces();
     }, []);
 
     const loadSalonApplication = async () => {
-        setApplicationLoading(true);
         try {
             const data = await salonApplicationService.getMyApplication();
             setApplication(data);
-        } catch (error) {
-            console.error('Failed to load application', error);
+        } catch {
             setApplication(null);
         } finally {
             setApplicationLoading(false);
         }
     };
 
-    const handleCreateApplication = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const loadProvinces = async () => {
+        setLoadingProvinces(true);
         try {
-            // Validate required fields
-            if (!createApplication.shopName || !createApplication.city || !createApplication.district || !createApplication.neighborhood || !createApplication.street || !createApplication.buildingNumber) {
-                toast.error('Lütfen tüm zorunlu alanları doldurun.');
-                return;
-            }
-
-            await salonApplicationService.apply(createApplication);
-            toast.success('Başvurunuz alındı. Onay bekleniyor.');
-            loadSalonApplication();
-        } catch (error) {
-            console.error('Application failed', error);
-            toast.error('Başvuru yapılamadı. Lütfen bilgilerinizi kontrol edin.');
+            const res = await fetch(`${TURKIYE_API}/provinces`);
+            const json = await res.json();
+            setProvinces(json.data || []);
+        } catch {
+            toast.error('İller yüklenemedi.');
+        } finally {
+            setLoadingProvinces(false);
         }
     };
 
+    const handleProvinceChange = (provinceId: number) => {
+        const prov = provinces.find(p => p.id === provinceId);
+        if (!prov) return;
+        setSelectedProvinceId(provinceId);
+        setSelectedDistrictId(null);
+        setDistricts(prov.districts || []);
+        setNeighborhoods([]);
+        setForm(f => ({ ...f, city: prov.name, district: '', neighborhood: '' }));
+    };
+
+    const handleDistrictChange = async (districtId: number) => {
+        const dist = districts.find(d => d.id === districtId);
+        if (!dist) return;
+        setSelectedDistrictId(districtId);
+        setNeighborhoods([]);
+        setForm(f => ({ ...f, district: dist.name, neighborhood: '' }));
+        setLoadingNeighborhoods(true);
+        try {
+            const res = await fetch(`${TURKIYE_API}/neighborhoods?districtId=${districtId}`);
+            const json = await res.json();
+            setNeighborhoods(json.data || []);
+        } catch {
+            toast.error('Mahalleler yüklenemedi.');
+        } finally {
+            setLoadingNeighborhoods(false);
+        }
+    };
+
+    const handleNeighborhoodChange = (neighborhoodId: number) => {
+        const n = neighborhoods.find(x => x.id === neighborhoodId);
+        if (!n) return;
+        setForm(f => ({ ...f, neighborhood: n.name }));
+    };
+
+    const validateStep = (step: number): boolean => {
+        if (step === 0) {
+            if (!form.shopName.trim()) { toast.error('Salon adı zorunludur.'); return false; }
+            if (!form.description.trim()) { toast.error('Açıklama zorunludur.'); return false; }
+        }
+        if (step === 1) {
+            if (!form.phoneNumber || !/^05\d{9}$/.test(form.phoneNumber)) { toast.error('Geçerli bir telefon numarası giriniz (05XXXXXXXXX).'); return false; }
+            if (!form.contactEmail || !/\S+@\S+\.\S+/.test(form.contactEmail)) { toast.error('Geçerli bir e-posta adresi giriniz.'); return false; }
+        }
+        if (step === 2) {
+            if (!form.city) { toast.error('İl seçimi zorunludur.'); return false; }
+            if (!form.district) { toast.error('İlçe seçimi zorunludur.'); return false; }
+            if (!form.neighborhood) { toast.error('Mahalle seçimi zorunludur.'); return false; }
+            if (!form.street.trim()) { toast.error('Sokak/Cadde zorunludur.'); return false; }
+            if (!form.buildingNumber.trim()) { toast.error('Bina numarası zorunludur.'); return false; }
+            if (!form.address.trim()) { toast.error('Açık adres zorunludur.'); return false; }
+        }
+        return true;
+    };
+
+    const handleNext = () => {
+        if (validateStep(currentStep)) setCurrentStep(s => s + 1);
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!validateStep(2)) return;
+        try {
+            await salonApplicationService.apply(form);
+            toast.success('Başvurunuz alındı! Onay bekleniyor.');
+            loadSalonApplication();
+        } catch (error: any) {
+            toast.error(error?.response?.data?.message || 'Başvuru yapılamadı.');
+        }
+    };
+
+    const inputCls = "w-full px-4 py-3 rounded-xl border-2 border-gray-200 bg-white text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 outline-none transition-all text-sm font-medium disabled:bg-gray-50 disabled:text-gray-500";
+    const labelCls = "block text-sm font-semibold text-gray-700 mb-1.5";
+
+    if (applicationLoading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-50 via-white to-purple-50">
+                <Loader2 className="h-10 w-10 text-indigo-600 animate-spin" />
+            </div>
+        );
+    }
+
     return (
-        <div className="max-w-5xl mx-auto py-12 px-4 sm:px-6 lg:px-8">
-            <div className="bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-100">
-                {/* Header Section */}
-                <div className="bg-primary-900 py-10 px-8 text-center relative overflow-hidden">
-                    <div className="absolute inset-0 opacity-10 bg-[url('https://images.unsplash.com/photo-1560066984-138dadb4c035?ixlib=rb-4.0.3&auto=format&fit=crop&w=1974&q=80')] bg-cover bg-center"></div>
-                    <div className="relative z-10">
-                        <h2 className="text-3xl md:text-4xl font-bold text-white mb-3">Salon Sahibi Ol</h2>
-                        <p className="text-primary-100 max-w-2xl mx-auto text-lg">
-                            İşletmenizi dijital dünyaya taşıyın, randevularınızı yönetin ve binlerce yeni müşteriye ulaşın.
-                        </p>
+        <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-8 px-4">
+            <div className="max-w-2xl mx-auto">
+                {/* Header Banner */}
+                <div className="relative rounded-2xl overflow-hidden mb-8 shadow-xl">
+                    <div className="absolute inset-0 bg-[url('https://images.unsplash.com/photo-1560066984-138dadb4c035?ixlib=rb-4.0.3&auto=format&fit=crop&w=1974&q=80')] bg-cover bg-center" />
+                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-900/90 via-indigo-800/80 to-purple-900/70" />
+                    <div className="relative z-10 py-10 px-6 text-center">
+                        <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-white/20 backdrop-blur-sm shadow-lg mb-4">
+                            <Store className="h-8 w-8 text-white" />
+                        </div>
+                        <h1 className="text-3xl font-bold text-white">Salon Başvurusu</h1>
+                        <p className="text-indigo-200 mt-2 text-sm">İşletmenizi platforma ekleyin, binlerce müşteriye ulaşın.</p>
                     </div>
                 </div>
 
-                <div className="p-8 md:p-12">
-                    {applicationLoading ? (
-                        <div className="flex justify-center items-center py-12">
-                            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary-600"></div>
-                        </div>
-                    ) : application ? (
-                        <div className="space-y-8 animate-fadeIn">
-                            <div className={`p-8 rounded-xl border-2 flex flex-col md:flex-row items-center gap-6 ${application.status === 0 ? 'bg-yellow-50 border-yellow-200 text-yellow-800' :
-                                application.status === 1 ? 'bg-green-50 border-green-200 text-green-800' :
-                                    'bg-red-50 border-red-200 text-red-800'
-                                }`}>
-                                <div className={`p-4 rounded-full ${application.status === 0 ? 'bg-yellow-100' :
-                                    application.status === 1 ? 'bg-green-100' :
-                                        'bg-red-100'
-                                    }`}>
-                                    {application.status === 0 && <Clock className="h-10 w-10 text-yellow-600" />}
-                                    {application.status === 1 && <CheckCircle className="h-10 w-10 text-green-600" />}
-                                    {application.status === 2 && <XCircle className="h-10 w-10 text-red-600" />}
+                {application ? (
+                    /* Application Status Card */
+                    <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+                        <div className={`p-6 ${application.status === 0 ? 'bg-amber-50 border-b-2 border-amber-200' : application.status === 1 ? 'bg-emerald-50 border-b-2 border-emerald-200' : 'bg-red-50 border-b-2 border-red-200'}`}>
+                            <div className="flex items-center gap-4">
+                                <div className={`p-3 rounded-2xl ${application.status === 0 ? 'bg-amber-100' : application.status === 1 ? 'bg-emerald-100' : 'bg-red-100'}`}>
+                                    {application.status === 0 && <Clock className="h-8 w-8 text-amber-600" />}
+                                    {application.status === 1 && <CheckCircle className="h-8 w-8 text-emerald-600" />}
+                                    {application.status === 2 && <XCircle className="h-8 w-8 text-red-600" />}
                                 </div>
-
-                                <div className="text-center md:text-left flex-1">
-                                    <h3 className="font-bold text-2xl mb-2">
+                                <div>
+                                    <h2 className="text-xl font-bold text-gray-900">
                                         {application.status === 0 && 'Başvurunuz İnceleniyor'}
                                         {application.status === 1 && 'Başvurunuz Onaylandı!'}
                                         {application.status === 2 && 'Başvurunuz Reddedildi'}
-                                    </h3>
-                                    <p className="text-lg opacity-90">
-                                        {application.status === 0 && 'Başvurunuz ekibimiz tarafından titizlikle incelenmektedir. Sonuçlandığında size bildirim göndereceğiz.'}
-                                        {application.status === 1 && 'Tebrikler! Mağazanız oluşturuldu. Yönetim paneline erişebilirsiniz.'}
-                                        {application.status === 2 && 'Maalesef başvurunuz kriterlerimize uygun bulunmadı.'}
+                                    </h2>
+                                    <p className="text-sm text-gray-600 mt-0.5">
+                                        {application.status === 0 && 'Ekibimiz başvurunuzu inceliyor. Sonuçlandığında bildirim alacaksınız.'}
+                                        {application.status === 1 && 'Tebrikler! Salon panelinize erişebilirsiniz.'}
+                                        {application.status === 2 && 'Başvurunuz kriterlerimize uygun bulunmadı.'}
                                     </p>
-                                </div>
-
-                                {application.status === 1 && (
-                                    <Button
-                                        onClick={() => {
-                                            if (user?.role !== 'SalonOwner') {
-                                                toast.success('Rol değişikliğinin etkinleşmesi için yeniden giriş yapmalısınız.');
-                                                logout();
-                                                navigate('/login');
-                                            } else {
-                                                navigate('/salon-panel');
-                                            }
-                                        }}
-                                        className="whitespace-nowrap px-8 py-3 text-lg shadow-lg hover:shadow-xl transition-all"
-                                    >
-                                        {user?.role !== 'SalonOwner' ? 'Erişimi Aktifleştir' : 'Yönetim Paneline Git'}
-                                    </Button>
-                                )}
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-6">
-                                <div>
-                                    <label className="text-sm font-semibold text-gray-500 uppercase tracking-wider">İşletme Bilgileri</label>
-                                    <div className="mt-3 bg-gray-50 p-4 rounded-lg border border-gray-100">
-                                        <div className="text-lg font-bold text-gray-900">{application.shopName}</div>
-                                        <div className="text-gray-600">{categories.find(c => c.id === application.category)?.name || 'Kategori Belirtilmemiş'}</div>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="text-sm font-semibold text-gray-500 uppercase tracking-wider">İletişim</label>
-                                    <div className="mt-3 bg-gray-50 p-4 rounded-lg border border-gray-100">
-                                        <div className="flex items-center gap-2 text-gray-700 mb-1">
-                                            <span className="font-medium">Tel:</span> {application.phoneNumber}
-                                        </div>
-                                        <div className="flex items-center gap-2 text-gray-700">
-                                            <span className="font-medium">E-posta:</span> {application.contactEmail}
-                                        </div>
-                                    </div>
-                                </div>
-                                <div className="md:col-span-2">
-                                    <label className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Adres</label>
-                                    <div className="mt-3 bg-gray-50 p-4 rounded-lg border border-gray-100 text-gray-700">
-                                        {application.neighborhood} Mah., {application.street} Sok., No: {application.buildingNumber}
-                                        <br />
-                                        {application.district} / {application.city}
-                                        {application.address && <div className="mt-2 pt-2 border-t border-gray-200 text-sm italic">{application.address}</div>}
-                                    </div>
                                 </div>
                             </div>
                         </div>
-                    ) : (
-                        <form onSubmit={handleCreateApplication} className="space-y-8 animate-fadeIn">
-                            <div className="bg-blue-50 border-l-4 border-blue-500 p-4 rounded-r-lg">
-                                <div className="flex">
-                                    <div className="flex-shrink-0">
-                                        <svg className="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
-                                            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
-                                        </svg>
-                                    </div>
-                                    <div className="ml-3">
-                                        <p className="text-sm text-blue-700">
-                                            Başvuru formunu eksiksiz doldurmanız, onay sürecini hızlandıracaktır.
-                                        </p>
-                                    </div>
-                                </div>
+                        <div className="p-6 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">İşletme</p>
+                                <p className="font-bold text-gray-900">{application.shopName}</p>
+                                <p className="text-sm text-gray-500">{ShopCategoryLabels[application.category as ShopCategory]}</p>
                             </div>
+                            <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">İletişim</p>
+                                <p className="text-sm text-gray-700">{application.phoneNumber}</p>
+                                <p className="text-sm text-gray-700">{application.contactEmail}</p>
+                            </div>
+                            <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 sm:col-span-2">
+                                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Adres</p>
+                                <p className="text-sm text-gray-700">{application.neighborhood} Mah., {application.street}, No: {application.buildingNumber}</p>
+                                <p className="text-sm text-gray-500">{application.district} / {application.city}</p>
+                            </div>
+                        </div>
+                        {application.status === 1 && (
+                            <div className="px-6 pb-6">
+                                <Button onClick={() => user?.role !== 'SalonOwner' ? (toast.success('Yeniden giriş yapmanız gerekiyor.'), logout(), navigate('/login')) : navigate('/salon-panel')} className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold shadow-lg shadow-indigo-100">
+                                    {user?.role !== 'SalonOwner' ? 'Erişimi Aktifleştir' : 'Salon Paneline Git'}
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    /* Application Form */
+                    <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
+                        {/* Step Indicator */}
+                        <div className="px-6 pt-6 pb-4 border-b border-gray-100">
+                            <div className="flex items-center gap-2">
+                                {steps.map((step, i) => (
+                                    <React.Fragment key={i}>
+                                        <div className="flex items-center gap-2">
+                                            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold transition-all ${i < currentStep ? 'bg-indigo-600 text-white' : i === currentStep ? 'bg-indigo-600 text-white ring-4 ring-indigo-100' : 'bg-gray-100 text-gray-400'}`}>
+                                                {i < currentStep ? '✓' : i + 1}
+                                            </div>
+                                            <span className={`hidden sm:block text-sm font-medium ${i === currentStep ? 'text-indigo-600' : i < currentStep ? 'text-gray-600' : 'text-gray-400'}`}>{step}</span>
+                                        </div>
+                                        {i < steps.length - 1 && <div className={`flex-1 h-0.5 rounded transition-all ${i < currentStep ? 'bg-indigo-600' : 'bg-gray-100'}`} />}
+                                    </React.Fragment>
+                                ))}
+                            </div>
+                        </div>
 
-                            <div className="space-y-6">
-                                <h3 className="text-xl font-semibold text-gray-900 border-b pb-2">Genel Bilgiler</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <form onSubmit={handleSubmit} className="p-6 space-y-5">
+                            {/* Step 0: General Info */}
+                            {currentStep === 0 && (
+                                <div className="space-y-5 animate-fadeIn">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Salon Adı *</label>
-                                        <input
-                                            type="text"
-                                            value={createApplication.shopName}
-                                            onChange={e => setCreateApplication({ ...createApplication, shopName: e.target.value })}
-                                            className="w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 transition-colors py-3"
-                                            placeholder="Örn: Stil Kuaför"
-                                            required
-                                        />
+                                        <label className={labelCls}>Salon Adı <span className="text-red-500">*</span></label>
+                                        <input type="text" value={form.shopName} onChange={e => setForm(f => ({ ...f, shopName: e.target.value }))} className={inputCls} placeholder="Örn: Stil Kuaför" required />
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Kategori *</label>
-                                        <select
-                                            value={createApplication.categoryId}
-                                            onChange={e => setCreateApplication({ ...createApplication, categoryId: Number(e.target.value) })}
-                                            className="w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 transition-colors py-3"
-                                        >
-                                            {categories.map(c => (
-                                                <option key={c.id} value={c.id}>{c.name}</option>
+                                        <label className={labelCls}>Kategori <span className="text-red-500">*</span></label>
+                                        <select value={form.categoryId} onChange={e => setForm(f => ({ ...f, categoryId: Number(e.target.value) }))} className={inputCls} required>
+                                            {Object.entries(ShopCategoryLabels).map(([id, name]) => (
+                                                <option key={id} value={id}>{name}</option>
                                             ))}
                                         </select>
                                     </div>
-                                    <div className="md:col-span-2">
-                                        <label className="block text-sm font-medium text-gray-700 mb-2">Hizmet Verilen Cinsiyet *</label>
-                                        <div className="flex flex-wrap gap-4">
-                                            {[TargetGender.Kadin, TargetGender.Erkek, TargetGender.Unisex].map((gender) => (
-                                                <label key={gender} className={`cursor-pointer flex items-center gap-2 px-4 py-3 rounded-lg border-2 transition-all ${createApplication.genderPreference === gender ? 'border-primary-600 bg-primary-50 text-primary-900' : 'border-gray-200 hover:border-primary-300'}`}>
-                                                    <input
-                                                        type="radio"
-                                                        name="genderPreference"
-                                                        value={gender}
-                                                        checked={createApplication.genderPreference === gender}
-                                                        onChange={() => setCreateApplication({ ...createApplication, genderPreference: gender })}
-                                                        className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300"
-                                                    />
-                                                    <span className="font-medium text-sm">{TargetGenderLabels[gender]}</span>
+                                    <div>
+                                        <label className={labelCls}>Hizmet Verilen Cinsiyet <span className="text-red-500">*</span></label>
+                                        <div className="grid grid-cols-3 gap-3">
+                                            {[TargetGender.Kadin, TargetGender.Erkek, TargetGender.Unisex].map(g => (
+                                                <label key={g} className={`cursor-pointer flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 font-semibold text-sm transition-all ${form.genderPreference === g ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 text-gray-500 hover:border-indigo-200 hover:bg-indigo-50/50'}`}>
+                                                    <input type="radio" name="gender" value={g} checked={form.genderPreference === g} onChange={() => setForm(f => ({ ...f, genderPreference: g }))} className="sr-only" />
+                                                    {TargetGenderLabels[g]}
                                                 </label>
                                             ))}
                                         </div>
                                     </div>
-                                    <div className="md:col-span-2">
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Hakkında / Açıklama</label>
-                                        <textarea
-                                            value={createApplication.description}
-                                            onChange={e => setCreateApplication({ ...createApplication, description: e.target.value })}
-                                            className="w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 transition-colors"
-                                            rows={3}
-                                            placeholder="İşletmeniz hakkında kısa bir bilgilendirme yazısı..."
-                                        />
+                                    <div>
+                                        <label className={labelCls}>Hakkında / Açıklama <span className="text-red-500">*</span></label>
+                                        <textarea value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} className={inputCls} rows={4} placeholder="İşletmeniz hakkında kısa bir tanıtım yazısı..." required />
                                     </div>
                                 </div>
-                            </div>
+                            )}
 
-                            <div className="space-y-6">
-                                <h3 className="text-xl font-semibold text-gray-900 border-b pb-2">İletişim Bilgileri</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {/* Step 1: Contact */}
+                            {currentStep === 1 && (
+                                <div className="space-y-5 animate-fadeIn">
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">İletişim Numarası *</label>
-                                        <input
-                                            type="tel"
-                                            value={createApplication.phoneNumber}
-                                            onChange={e => setCreateApplication({ ...createApplication, phoneNumber: e.target.value })}
-                                            className="w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 transition-colors py-3"
-                                            placeholder="05..."
-                                            required
-                                        />
+                                        <label className={labelCls}><Phone className="inline h-4 w-4 mr-1 text-gray-400" />İletişim Numarası <span className="text-red-500">*</span></label>
+                                        <input type="tel" value={form.phoneNumber} onChange={e => setForm(f => ({ ...f, phoneNumber: e.target.value.replace(/\D/g, '').slice(0, 11) }))} className={inputCls} placeholder="05XXXXXXXXX" maxLength={11} required />
+                                        <p className="text-xs text-gray-400 mt-1">Format: 05XXXXXXXXX (11 rakam)</p>
                                     </div>
                                     <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">E-posta Adresi *</label>
-                                        <input
-                                            type="email"
-                                            value={createApplication.contactEmail}
-                                            onChange={e => setCreateApplication({ ...createApplication, contactEmail: e.target.value })}
-                                            className="w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 transition-colors py-3"
-                                            placeholder="ornek@email.com"
-                                            required
-                                        />
+                                        <label className={labelCls}><Mail className="inline h-4 w-4 mr-1 text-gray-400" />E-posta Adresi <span className="text-red-500">*</span></label>
+                                        <input type="email" value={form.contactEmail} onChange={e => setForm(f => ({ ...f, contactEmail: e.target.value }))} className={inputCls} placeholder="ornek@email.com" required />
                                     </div>
                                 </div>
-                            </div>
+                            )}
 
-                            <div className="space-y-6">
-                                <h3 className="text-xl font-semibold text-gray-900 border-b pb-2">Adres Bilgileri</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">İl *</label>
-                                        <input
-                                            type="text"
-                                            value={createApplication.city}
-                                            onChange={e => setCreateApplication({ ...createApplication, city: e.target.value })}
-                                            className="w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 transition-colors py-3"
-                                            required
-                                        />
+                            {/* Step 2: Address */}
+                            {currentStep === 2 && (
+                                <div className="space-y-5 animate-fadeIn">
+                                    <div className="flex items-center gap-2 text-sm text-indigo-600 bg-indigo-50 px-4 py-3 rounded-xl border border-indigo-100">
+                                        <MapPin className="h-4 w-4 flex-shrink-0" />
+                                        <span>İl ve ilçe seçtikten sonra mahalle listesi otomatik yüklenir.</span>
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">İlçe *</label>
-                                        <input
-                                            type="text"
-                                            value={createApplication.district}
-                                            onChange={e => setCreateApplication({ ...createApplication, district: e.target.value })}
-                                            className="w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 transition-colors py-3"
-                                            required
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Mahalle *</label>
-                                        <input
-                                            type="text"
-                                            value={createApplication.neighborhood}
-                                            onChange={e => setCreateApplication({ ...createApplication, neighborhood: e.target.value })}
-                                            className="w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 transition-colors py-3"
-                                            required
-                                        />
-                                    </div>
-                                    <div className="grid grid-cols-3 gap-4">
-                                        <div className="col-span-2">
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">Sokak / Cadde *</label>
-                                            <input
-                                                type="text"
-                                                value={createApplication.street}
-                                                onChange={e => setCreateApplication({ ...createApplication, street: e.target.value })}
-                                                className="w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 transition-colors py-3"
-                                                required
-                                            />
+
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                        <div>
+                                            <label className={labelCls}>İl <span className="text-red-500">*</span></label>
+                                            <div className="relative">
+                                                <select
+                                                    value={selectedProvinceId ?? ''}
+                                                    onChange={e => handleProvinceChange(Number(e.target.value))}
+                                                    className={inputCls}
+                                                    required
+                                                    disabled={loadingProvinces}
+                                                >
+                                                    <option value="">-- İl Seçin --</option>
+                                                    {provinces.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
+                                                </select>
+                                                {loadingProvinces && <Loader2 className="absolute right-3 top-3.5 h-4 w-4 animate-spin text-gray-400" />}
+                                            </div>
                                         </div>
                                         <div>
-                                            <label className="block text-sm font-medium text-gray-700 mb-1">No *</label>
-                                            <input
-                                                type="text"
-                                                value={createApplication.buildingNumber}
-                                                onChange={e => setCreateApplication({ ...createApplication, buildingNumber: e.target.value })}
-                                                className="w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 transition-colors py-3"
-                                                required
-                                            />
+                                            <label className={labelCls}>İlçe <span className="text-red-500">*</span></label>
+                                            <div className="relative">
+                                                <select
+                                                    value={selectedDistrictId ?? ''}
+                                                    onChange={e => handleDistrictChange(Number(e.target.value))}
+                                                    className={inputCls}
+                                                    required
+                                                    disabled={!selectedProvinceId || loadingDistricts}
+                                                >
+                                                    <option value="">-- İlçe Seçin --</option>
+                                                    {districts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+                                                </select>
+                                                {loadingDistricts && <Loader2 className="absolute right-3 top-3.5 h-4 w-4 animate-spin text-gray-400" />}
+                                            </div>
                                         </div>
                                     </div>
-                                    <div className="md:col-span-2">
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Açık Adres / Adres Tarifi</label>
-                                        <textarea
-                                            value={createApplication.address}
-                                            onChange={e => setCreateApplication({ ...createApplication, address: e.target.value })}
-                                            className="w-full rounded-lg border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 transition-colors"
-                                            rows={2}
-                                            placeholder="Adres tarifi veya ek bilgi..."
-                                        />
+
+                                    <div>
+                                        <label className={labelCls}>Mahalle <span className="text-red-500">*</span></label>
+                                        <div className="relative">
+                                            <select
+                                                value={neighborhoods.find(n => n.name === form.neighborhood)?.id ?? ''}
+                                                onChange={e => handleNeighborhoodChange(Number(e.target.value))}
+                                                className={inputCls}
+                                                required
+                                                disabled={!selectedDistrictId || loadingNeighborhoods}
+                                            >
+                                                <option value="">-- Mahalle Seçin --</option>
+                                                {neighborhoods.map(n => <option key={n.id} value={n.id}>{n.name}</option>)}
+                                            </select>
+                                            {loadingNeighborhoods && <Loader2 className="absolute right-3 top-3.5 h-4 w-4 animate-spin text-gray-400" />}
+                                        </div>
+                                        {selectedDistrictId && neighborhoods.length === 0 && !loadingNeighborhoods && (
+                                            <p className="text-xs text-amber-600 mt-1">Bu ilçe için mahalle verisi bulunamadı. Lütfen sokak/cadde alanına tüm adresinizi yazın.</p>
+                                        )}
+                                    </div>
+
+                                    <div className="grid grid-cols-3 gap-4">
+                                        <div className="col-span-2">
+                                            <label className={labelCls}>Sokak / Cadde <span className="text-red-500">*</span></label>
+                                            <input type="text" value={form.street} onChange={e => setForm(f => ({ ...f, street: e.target.value }))} className={inputCls} placeholder="Atatürk Caddesi" required />
+                                        </div>
+                                        <div>
+                                            <label className={labelCls}>Bina No <span className="text-red-500">*</span></label>
+                                            <input type="text" value={form.buildingNumber} onChange={e => setForm(f => ({ ...f, buildingNumber: e.target.value }))} className={inputCls} placeholder="12B" required />
+                                        </div>
+                                    </div>
+
+                                    <div>
+                                        <label className={labelCls}>Açık Adres <span className="text-red-500">*</span></label>
+                                        <textarea value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} className={inputCls} rows={3} placeholder="Örn: Atatürk Cad. No:12B Kat:2, Karşıyaka AVM yanı, İzmir" required />
+                                        <p className="text-xs text-gray-400 mt-1">Kargo veya müşterinin kolayca bulabilmesi için tam adresi girin.</p>
                                     </div>
                                 </div>
-                            </div>
+                            )}
 
-                            <div className="pt-8 flex justify-end gap-4">
-                                <Button type="button" variant="outline" size="lg" onClick={() => window.history.back()}>İptal</Button>
-                                <Button type="submit" size="lg" className="px-10 bg-primary-900 hover:bg-primary-800 text-white shadow-lg transform hover:-translate-y-0.5 transition-all duration-200">
-                                    Başvuruyu Tamamla
-                                </Button>
+                            {/* Navigation Buttons */}
+                            <div className="flex gap-3 pt-2">
+                                {currentStep > 0 && (
+                                    <button type="button" onClick={() => setCurrentStep(s => s - 1)} className="flex-1 px-6 py-3 rounded-xl border-2 border-gray-200 text-gray-700 font-semibold hover:bg-gray-50 hover:border-gray-300 transition-all">
+                                        Geri
+                                    </button>
+                                )}
+                                {currentStep < steps.length - 1 ? (
+                                    <button type="button" onClick={handleNext} className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all active:scale-95">
+                                        Devam Et <ChevronRight className="h-4 w-4" />
+                                    </button>
+                                ) : (
+                                    <button type="submit" className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all active:scale-95 text-base">
+                                        <CheckCircle className="h-5 w-5" />
+                                        Başvuruyu Tamamla
+                                    </button>
+                                )}
                             </div>
                         </form>
-                    )}
-                </div>
+                    </div>
+                )}
             </div>
         </div>
     );

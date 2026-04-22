@@ -17,6 +17,7 @@ export const AdminLayout: React.FC = () => {
         { path: '/admin', label: 'Dashboard', icon: LayoutDashboard },
         { path: '/admin/applications', label: 'Applications', icon: Users },
         { path: '/admin/shops', label: 'Shops', icon: Store },
+        { path: '/admin/users', label: 'Users', icon: Users },
     ];
 
     const [sidebarOpen, setSidebarOpen] = React.useState(false);

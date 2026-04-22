@@ -11,9 +11,7 @@ export const RegisterPage: React.FC = () => {
     const [formData, setFormData] = useState({
         firstName: '',
         lastName: '',
-        email: '',
-        phoneNumber: '', // Added phoneNumber initialization
-        userName: '',
+        phoneNumber: '',
         password: '',
         confirmPassword: ''
     });
@@ -34,7 +32,6 @@ export const RegisterPage: React.FC = () => {
             return;
         }
 
-        // Phone number validation
         const phoneRegex = /^05\d{9}$/;
         if (!phoneRegex.test(formData.phoneNumber)) {
             setError('Telefon numarası 05 ile başlamalı ve toplam 11 haneli olmalıdır. (Örn: 05321234567)');
@@ -47,15 +44,13 @@ export const RegisterPage: React.FC = () => {
             await register({
                 firstName: formData.firstName,
                 lastName: formData.lastName,
-                email: formData.email,
-                phoneNumber: formData.phoneNumber, // Added phoneNumber
-                userName: formData.userName,
-                password: formData.password
+                phoneNumber: formData.phoneNumber,
+                password: formData.password,
             });
             navigate('/');
         } catch (err: any) {
             if (err.response && err.response.data && err.response.data.message) {
-                setError(err.response.data.message); // Backend error message
+                setError(err.response.data.message);
             } else {
                 setError('Kayıt olurken bir hata oluştu.');
             }
@@ -90,27 +85,11 @@ export const RegisterPage: React.FC = () => {
                     />
                 </div>
                 <Input
-                    label="Kullanıcı Adı"
-                    name="userName"
-                    value={formData.userName}
-                    onChange={handleChange}
-                    required
-                />
-                <Input
-                    label="E-posta Adresi"
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required
-                />
-                <Input
                     label="Telefon Numarası"
                     type="tel"
                     name="phoneNumber"
-                    value={formData.phoneNumber || ''}
+                    value={formData.phoneNumber}
                     onChange={(e) => {
-                        // Only allow numbers
                         const val = e.target.value.replace(/\D/g, '');
                         setFormData({ ...formData, phoneNumber: val });
                     }}
@@ -118,7 +97,7 @@ export const RegisterPage: React.FC = () => {
                     placeholder="05XXXXXXXXX"
                     maxLength={11}
                 />
-                <p className="text-xs text-gray-500 mt-1">Başında 0 olacak şekilde giriniz (Örn: 0532...)</p>
+                <p className="text-xs text-gray-500 -mt-2">Başında 0 olacak şekilde giriniz (Örn: 05321234567)</p>
                 <Input
                     label="Şifre"
                     type="password"

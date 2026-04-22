@@ -11,6 +11,11 @@ export const salonApplicationService = {
         return response.data;
     },
 
+    getRejectedApplications: async (): Promise<any[]> => {
+        const response = await api.get('/SalonApplication/rejected');
+        return response.data;
+    },
+
     approve: async (id: string): Promise<void> => {
         await api.put(`/SalonApplication/${id}/approve`);
     },

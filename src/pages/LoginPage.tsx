@@ -7,7 +7,7 @@ import { Link, useNavigate } from 'react-router-dom';
 export const LoginPage: React.FC = () => {
     const { login } = useAuth();
     const navigate = useNavigate();
-    const [identifier, setIdentifier] = useState('');
+    const [phoneNumber, setPhoneNumber] = useState('');
     const [password, setPassword] = useState('');
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
@@ -15,10 +15,17 @@ export const LoginPage: React.FC = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
+
+        const phoneRegex = /^05\d{9}$/;
+        if (!phoneRegex.test(phoneNumber)) {
+            setError('Geçerli bir telefon numarası giriniz. (Örn: 05321234567)');
+            return;
+        }
+
         setLoading(true);
 
         try {
-            await login({ identifier, password });
+            await login({ identifier: phoneNumber, password });
             navigate('/');
         } catch (err: any) {
             if (err.response && err.response.data && err.response.data.message) {
@@ -41,10 +48,12 @@ export const LoginPage: React.FC = () => {
             )}
             <form onSubmit={handleSubmit} className="space-y-4">
                 <Input
-                    label="E-posta veya Telefon Numarası"
-                    type="text"
-                    value={identifier}
-                    onChange={(e) => setIdentifier(e.target.value)}
+                    label="Telefon Numarası"
+                    type="tel"
+                    value={phoneNumber}
+                    onChange={(e) => setPhoneNumber(e.target.value.replace(/\D/g, ''))}
+                    placeholder="05XXXXXXXXX"
+                    maxLength={11}
                     required
                 />
                 <Input

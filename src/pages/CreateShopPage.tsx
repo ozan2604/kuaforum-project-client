@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { shopService } from '../api/shop.service';
-import { ShopCategory } from '../types/shop';
+import { ShopCategory, TargetGender } from '../types/shop';
 
 export const CreateShopPage: React.FC = () => {
     const navigate = useNavigate();
@@ -19,7 +19,8 @@ export const CreateShopPage: React.FC = () => {
         phoneNumber: '',
         latitude: undefined as number | undefined,
         longitude: undefined as number | undefined,
-        category: 2 as ShopCategory // Default Kuafor
+        category: 2 as ShopCategory, // Default Kuafor
+        genderPreference: 3 as TargetGender // Unisex
     });
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {

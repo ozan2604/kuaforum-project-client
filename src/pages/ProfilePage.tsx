@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '../context/AuthContext';
 import { appointmentService } from '../api/appointment.service';
 import { authService } from '../api/auth.service';
 import type { AppointmentDto } from '../types/appointment';
-import type { Address, CreateAddressRequest } from '../types/address';
+
 import { Button } from '../components/Button';
-import { Calendar, User, LogOut, CheckCircle, Clock, XCircle, AlertCircle, Trash2, MapPin, Lock, Plus, Heart, Briefcase } from 'lucide-react';
+import { Calendar, User, LogOut, CheckCircle, Clock, XCircle, AlertCircle, Trash2, MapPin, Lock, Plus, Heart, ChevronRight, Briefcase } from 'lucide-react';
 import { favoriteService } from '../services/favorite.service';
 import { ShopCard } from '../components/ShopCard';
 import type { Shop } from '../types/shop';
@@ -16,535 +17,317 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { reviewService } from '../api/review.service';
 import { ReviewModal } from '../components/ReviewModal';
 
+type TabType = 'appointments' | 'account' | 'favorites' | 'addresses' | 'security';
+
+interface AccordionSection { id: TabType; label: string; icon: React.ReactNode; }
+const sections: AccordionSection[] = [
+    { id: 'appointments', label: 'Randevularım', icon: <Calendar className="h-5 w-5" /> },
+    { id: 'account', label: 'Hesap Bilgileri', icon: <User className="h-5 w-5" /> },
+    { id: 'favorites', label: 'Favorilerim', icon: <Heart className="h-5 w-5" /> },
+
+    { id: 'security', label: 'Güvenlik', icon: <Lock className="h-5 w-5" /> },
+];
+
+const ConfirmModal: React.FC<{
+    title: string; message: string; confirmLabel: string;
+    onConfirm: () => void; onCancel: () => void;
+}> = ({ title, message, confirmLabel, onConfirm, onCancel }) =>
+    createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
+                <h3 className="text-lg font-bold text-gray-900 mb-2">{title}</h3>
+                <p className="text-gray-600 text-sm mb-6">{message}</p>
+                <div className="flex gap-3 justify-end">
+                    <button onClick={onCancel} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg">İptal</button>
+                    <button onClick={onConfirm} className="px-4 py-2 text-sm font-semibold rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors">{confirmLabel}</button>
+                </div>
+            </div>
+        </div>,
+        document.body
+    );
+
 export const ProfilePage: React.FC = () => {
     const { user, logout, updateAuthorization } = useAuth();
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
-    const activeTab = (searchParams.get('tab') as 'appointments' | 'account' | 'security' | 'addresses' | 'salon-owner' | 'favorites') || 'appointments';
+    const activeTab = (searchParams.get('tab') as TabType | null);
+    const [openSection, setOpenSection] = useState<TabType | null>(activeTab || 'appointments');
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
-    const setActiveTab = (tab: 'appointments' | 'account' | 'security' | 'addresses' | 'salon-owner' | 'favorites') => {
-        setSearchParams({ tab });
+    const toggle = (id: TabType) => {
+        const next = openSection === id ? null : id;
+        setOpenSection(next);
+        if (next) setSearchParams({ tab: next }); else setSearchParams({});
     };
 
-    // Appointments State
+    // Form State
     const [appointments, setAppointments] = useState<AppointmentDto[]>([]);
-
-    // Profile State
     const [firstName, setFirstName] = useState(user?.firstName || '');
     const [lastName, setLastName] = useState(user?.lastName || '');
-    const [userName, setUserName] = useState(user?.userName || '');
-    const [email, setEmail] = useState(user?.email || '');
     const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || '');
     const [updatingProfile, setUpdatingProfile] = useState(false);
 
-    // Address State
-    const [addresses, setAddresses] = useState<Address[]>([]);
-    const [showAddAddressModal, setShowAddAddressModal] = useState(false);
-    const [newAddress, setNewAddress] = useState<CreateAddressRequest>({ title: '', city: '', district: '', openAddress: '' });
-
-    // Password State
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
-
-
-
-    // Favorites State
     const [favorites, setFavorites] = useState<Shop[]>([]);
     const [favLoading, setFavLoading] = useState(false);
-
-    // Review Modal State
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
-    const [selectedAppointmentForReview, setSelectedAppointmentForReview] = useState<AppointmentDto | null>(null);
+    const [selectedAppointment, setSelectedAppointment] = useState<AppointmentDto | null>(null);
 
     useEffect(() => {
-        if (activeTab === 'appointments') {
-            loadAppointments();
-        } else if (activeTab === 'addresses') {
-            loadAddresses();
-        } else if (activeTab === 'favorites') {
-            loadFavorites();
-        }
-    }, [activeTab]);
-
-
-
-    useEffect(() => {
-        if (user) {
-            setFirstName(user.firstName);
-            setLastName(user.lastName);
-            setUserName(user.userName);
-            setEmail(user.email);
-            setPhoneNumber(user.phoneNumber || '');
-        }
+        if (user) { setFirstName(user.firstName); setLastName(user.lastName); setPhoneNumber(user.phoneNumber || ''); }
     }, [user]);
 
-    const loadAppointments = async () => {
-        try {
-            const data = await appointmentService.getMyAppointments();
-            setAppointments(data);
-        } catch (error) {
-            console.error('Failed to load appointments', error);
-            toast.error('Randevular yüklenemedi.');
-        }
-    };
+    useEffect(() => {
+        if (openSection === 'appointments') loadAppointments();
 
-    const loadAddresses = async () => {
-        try {
-            const data = await authService.getAddresses();
-            setAddresses(data);
-        } catch (error) {
-            console.error('Failed to load addresses', error);
-            toast.error('Adresler yüklenemedi.');
-        }
-    };
+        else if (openSection === 'favorites') loadFavorites();
+    }, [openSection]);
 
-    const loadFavorites = async () => {
-        setFavLoading(true);
-        try {
-            const data = await favoriteService.getUserFavorites();
-            setFavorites(data);
-        } catch (error) {
-            console.error('Failed to load favorites', error);
-            toast.error('Favoriler yüklenemedi.');
-        } finally {
-            setFavLoading(false);
-        }
-    };
+    const loadAppointments = async () => { try { setAppointments(await appointmentService.getMyAppointments()); } catch { toast.error('Randevular yüklenemedi.'); } };
+
+    const loadFavorites = async () => { setFavLoading(true); try { setFavorites(await favoriteService.getUserFavorites()); } catch { toast.error('Favoriler yüklenemedi.'); } finally { setFavLoading(false); } };
 
     const handleUpdateProfile = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (!/^05\d{9}$/.test(phoneNumber)) { toast.error('Telefon numarası 05XXXXXXXXX formatında olmalıdır.'); return; }
         setUpdatingProfile(true);
-        try {
-            const response = await authService.updateProfile({
-                firstName,
-                lastName,
-                userName,
-                email,
-                phoneNumber
-            });
-            updateAuthorization(response);
-            toast.success('Profil güncellendi.');
-        } catch (error: any) {
-            console.error('Update failed', error);
-            const message = error.response?.data?.Message || 'Güncelleme başarısız.';
-            toast.error(message);
-        } finally {
-            setUpdatingProfile(false);
-        }
+        try { updateAuthorization(await authService.updateProfile({ firstName, lastName, phoneNumber, email: user?.email || '' })); toast.success('Profil güncellendi.'); }
+        catch (err: any) { toast.error(err.response?.data?.Message || 'Güncelleme başarısız.'); }
+        finally { setUpdatingProfile(false); }
     };
 
-    const handleAddAddress = async (e: React.FormEvent) => {
-        e.preventDefault();
-        try {
-            const addedAddress = await authService.addAddress(newAddress);
-            setAddresses([...addresses, addedAddress]);
-            setShowAddAddressModal(false);
-            setNewAddress({ title: '', city: '', district: '', openAddress: '' });
-            toast.success('Adres eklendi.');
-        } catch (error) {
-            console.error('Add address failed', error);
-            toast.error('Adres eklenemedi.');
-        }
-    };
 
-    const handleDeleteAddress = async (id: string) => {
-        if (!window.confirm('Bu adresi silmek istediğinize emin misiniz?')) return;
-        try {
-            await authService.deleteAddress(id);
-            setAddresses(addresses.filter(a => a.id !== id));
-            toast.success('Adres silindi.');
-        } catch (error) {
-            console.error('Delete address failed', error);
-            toast.error('Adres silinemedi.');
-        }
-    };
 
     const handleChangePassword = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (newPassword !== confirmPassword) {
-            toast.error('Yeni şifreler eşleşmiyor.');
-            return;
-        }
-        try {
-            await authService.changePassword({ currentPassword, newPassword, confirmPassword });
-            toast.success('Şifre başarıyla değiştirildi.');
-            setCurrentPassword('');
-            setNewPassword('');
-            setConfirmPassword('');
-        } catch (error: any) {
-            console.error('Change password failed', error);
-            const message = error.response?.data || error.message || 'Şifre değiştirilemedi.'; // Backend might return string directly or error object
-            toast.error(typeof message === 'string' ? message : 'Şifre değiştirilemedi.');
-        }
+        if (newPassword !== confirmPassword) { toast.error('Şifreler eşleşmiyor.'); return; }
+        try { await authService.changePassword({ currentPassword, newPassword, confirmPassword }); toast.success('Şifre değiştirildi.'); setCurrentPassword(''); setNewPassword(''); setConfirmPassword(''); }
+        catch (err: any) { const m = err.response?.data || err.message; toast.error(typeof m === 'string' ? m : 'Hata oluştu.'); }
     };
 
     const handleDeleteAccount = async () => {
-        if (!window.confirm('Hesabınızı silmek istediğinize emin misiniz? Bu işlem geri alınamaz ve tüm verileriniz silinir.')) return;
-
-        try {
-            await authService.deleteAccount();
-            toast.success('Hesabınız silindi.');
-            logout();
-            navigate('/');
-        } catch (error) {
-            console.error('Delete account failed', error);
-            toast.error('Hesap silinemedi.');
-        }
+        try { await authService.deleteAccount(); toast.success('Hesabınız silindi.'); logout(); navigate('/'); }
+        catch { toast.error('Hesap silinemedi.'); }
     };
 
-
-
-    const handleOpenReviewModal = (appointment: AppointmentDto) => {
-        setSelectedAppointmentForReview(appointment);
-        setIsReviewModalOpen(true);
-    };
-
-    const handleReviewSubmit = async (rating: number, comment: string, newImages: File[], _deletedImageUrls: string[]) => {
-        if (!selectedAppointmentForReview) return;
-
-        try {
-            await reviewService.addReview({
-                appointmentId: selectedAppointmentForReview.id,
-                rating,
-                comment,
-                images: newImages
-            });
-            // Update local state to reflect the review
-            await loadAppointments();
-        } catch (error) {
-            console.error('Failed to submit review', error);
-            toast.error('Değerlendirme gönderilemedi.');
-        }
-    };
-
-    const canReview = (appointment: AppointmentDto) => {
-        if (appointment.hasReview) return false;
-
-        return appointment.status === 2; // Completed
+    const handleReviewSubmit = async (rating: number, comment: string, newImages: File[], _: string[]) => {
+        if (!selectedAppointment) return;
+        try { await reviewService.addReview({ appointmentId: selectedAppointment.id, rating, comment, images: newImages }); await loadAppointments(); }
+        catch { toast.error('Değerlendirme gönderilemedi.'); }
     };
 
     const getStatusBadge = (status: number) => {
-        switch (status) {
-            case 0: return <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1"><Clock className="h-3 w-3" /> Onay Bekliyor</span>;
-            case 1: return <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1"><CheckCircle className="h-3 w-3" /> Onaylandı</span>;
-            case 2: return <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1"><CheckCircle className="h-3 w-3" /> Tamamlandı</span>;
-            case 3: return <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1"><AlertCircle className="h-3 w-3" /> İptal Edildi</span>;
-            case 4: return <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1"><XCircle className="h-3 w-3" /> Reddedildi</span>;
-            default: return null;
-        }
+        const map: Record<number, React.ReactNode> = {
+            0: <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1"><Clock className="h-3 w-3" /> Onay Bekliyor</span>,
+            1: <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1"><CheckCircle className="h-3 w-3" /> Onaylandı</span>,
+            2: <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1"><CheckCircle className="h-3 w-3" /> Tamamlandı</span>,
+            3: <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1"><AlertCircle className="h-3 w-3" /> İptal Edildi</span>,
+            4: <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1"><XCircle className="h-3 w-3" /> Reddedildi</span>,
+        };
+        return map[status] ?? null;
     };
 
-    // Filter appointments
     const pendingApps = appointments.filter(a => a.status === 0);
     const upcomingApps = appointments.filter(a => a.status === 1);
     const pastApps = appointments.filter(a => [2, 3, 4].includes(a.status));
+    const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Kullanıcı';
+
+    const inputCls = "block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none";
 
     return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
-            <div className="flex flex-col md:flex-row gap-8">
-                {/* Sidebar */}
-                <div className="w-full md:w-64 flex-shrink-0">
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                        <div className="flex flex-col items-center mb-6">
-                            <div className="h-20 w-20 bg-primary-100 rounded-full flex items-center justify-center text-primary-600 mb-3">
-                                <User className="h-10 w-10" />
-                            </div>
-                            <h2 className="text-xl font-bold text-gray-900">{user?.firstName} {user?.lastName}</h2>
-                            <p className="text-sm text-gray-500">{user?.email}</p>
-                            <p className="text-sm text-gray-500">{user?.phoneNumber}</p>
-                        </div>
-
-                        <nav className="space-y-2">
-                            <button onClick={() => setActiveTab('appointments')} className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'appointments' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-                                <Calendar className="h-5 w-5" /> Randevularım
-                            </button>
-                            <button onClick={() => setActiveTab('account')} className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'account' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-                                <User className="h-5 w-5" /> Hesap Bilgileri
-                            </button>
-                            <button onClick={() => setActiveTab('favorites')} className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'favorites' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-                                <Heart className="h-5 w-5" /> Favorilerim
-                            </button>
-                            <button onClick={() => setActiveTab('addresses')} className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'addresses' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-                                <MapPin className="h-5 w-5" /> Adreslerim
-                            </button>
-                            <button onClick={() => setActiveTab('security')} className={`w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${activeTab === 'security' ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}>
-                                <Lock className="h-5 w-5" /> Güvenlik
-                            </button>
-
-                            {user?.role === 'Employee' && (
-                                <button onClick={() => navigate('/employee-panel/appointments')} className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors">
-                                    <Briefcase className="h-5 w-5" /> Personel Paneli
-                                </button>
-                            )}
-                            <button onClick={() => { logout(); navigate('/login'); }} className="w-full flex items-center gap-3 px-4 py-2 rounded-lg text-sm font-medium text-red-600 hover:bg-red-50 transition-colors">
-                                <LogOut className="h-5 w-5" /> Çıkış Yap
-                            </button>
-                        </nav>
+        <div className="min-h-screen bg-gray-100">
+            {/* Profile Header Card */}
+            <div className="bg-white border-b border-gray-200">
+                <div className="max-w-2xl mx-auto px-4 py-6 flex items-center gap-4">
+                    <div className="h-14 w-14 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 flex-shrink-0 text-xl font-bold">
+                        {user?.firstName?.charAt(0) || <User className="h-6 w-6" />}
                     </div>
-                </div>
-
-                {/* Content */}
-                <div className="flex-1">
-                    {activeTab === 'appointments' && (
-                        <div className="space-y-6">
-                            <h2 className="text-2xl font-bold text-gray-900">Randevularım</h2>
-                            {pendingApps.length > 0 && (
-                                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                                    <h3 className="text-lg font-semibold text-yellow-800 mb-4 flex items-center gap-2"><Clock className="h-5 w-5" /> Onay Bekleyenler</h3>
-                                    <div className="space-y-4">{pendingApps.map(app => <AppointmentCard key={app.id} appointment={app} badge={getStatusBadge(app.status)} />)}</div>
-                                </div>
-                            )}
-                            {upcomingApps.length > 0 && (
-                                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                                    <h3 className="text-lg font-semibold text-green-800 mb-4 flex items-center gap-2"><CheckCircle className="h-5 w-5" /> Gelecek Randevular</h3>
-                                    <div className="space-y-4">{upcomingApps.map(app => (
-                                        <AppointmentCard
-                                            key={app.id}
-                                            appointment={app}
-                                            badge={getStatusBadge(app.status)}
-                                            onReview={canReview(app) ? () => handleOpenReviewModal(app) : undefined}
-                                        />
-                                    ))}</div>
-                                </div>
-                            )}
-                            <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                                <h3 className="text-lg font-semibold text-gray-700 mb-4">Geçmiş Randevular</h3>
-                                {pastApps.length > 0 ? (
-                                    <div className="space-y-4">{pastApps.map(app => (
-                                        <AppointmentCard
-                                            key={app.id}
-                                            appointment={app}
-                                            badge={getStatusBadge(app.status)}
-                                            onReview={canReview(app) ? () => handleOpenReviewModal(app) : undefined}
-                                        />
-                                    ))}</div>
-                                ) : (<p className="text-gray-500 text-sm">Geçmiş randevu bulunmuyor.</p>)}
-                            </div>
-                        </div>
-                    )}
-
-                    {activeTab === 'account' && (
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                            <h2 className="text-2xl font-bold text-gray-900 mb-6">Hesap Bilgileri</h2>
-                            <form onSubmit={handleUpdateProfile} className="space-y-6 max-w-lg">
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Ad</label>
-                                        <input type="text" value={firstName} onChange={(e) => setFirstName(e.target.value)} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" />
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Soyad</label>
-                                        <input type="text" value={lastName} onChange={(e) => setLastName(e.target.value)} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" />
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Kullanıcı Adı</label>
-                                    <input type="text" value={userName} onChange={(e) => setUserName(e.target.value)} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                                    <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Telefon</label>
-                                    <input type="tel" value={phoneNumber} onChange={(e) => setPhoneNumber(e.target.value)} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" />
-                                </div>
-                                <div className="pt-4 flex items-center justify-between">
-                                    <Button type="submit" disabled={updatingProfile}>{updatingProfile ? 'Güncelleniyor...' : 'Kayıt Et'}</Button>
-                                    <button type="button" onClick={handleDeleteAccount} className="text-sm text-red-600 hover:text-red-700 flex items-center gap-1"><Trash2 className="h-4 w-4" /> Hesabımı Sil</button>
-                                </div>
-                            </form>
-                        </div>
-                    )}
-
-                    {activeTab === 'favorites' && (
-                        <div className="space-y-6">
-                            <h2 className="text-2xl font-bold text-gray-900">Favori Salonlarım</h2>
-                            {favLoading ? (
-                                <div className="text-center py-12">
-                                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600 mx-auto"></div>
-                                </div>
-                            ) : favorites.length > 0 ? (
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                    {favorites.map(shop => (
-                                        <ShopCard
-                                            key={shop.id}
-                                            shop={shop}
-                                            initialIsFavorite={true}
-                                            onToggleFavorite={(status) => {
-                                                if (!status) {
-                                                    setFavorites(favorites.filter(f => f.id !== shop.id));
-                                                }
-                                            }}
-                                        />
-                                    ))}
-                                </div>
-                            ) : (
-                                <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8 text-center">
-                                    <Heart className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                                    <h3 className="text-lg font-medium text-gray-900 mb-2">Henüz favoriniz yok</h3>
-                                    <p className="text-gray-500 mb-6">Beğendiğiniz salonları favorilere ekleyerek burada görebilirsiniz.</p>
-                                    <Button onClick={() => navigate('/')}>Salonları Keşfet</Button>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-                    {activeTab === 'addresses' && (
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                            <div className="flex justify-between items-center mb-6">
-                                <h2 className="text-2xl font-bold text-gray-900">Adreslerim</h2>
-                                <Button onClick={() => setShowAddAddressModal(true)} variant="outline" className="flex items-center gap-2">
-                                    <Plus className="h-4 w-4" /> Yeni Adres Ekle
-                                </Button>
-                            </div>
-
-                            <div className="space-y-4">
-                                {addresses.map(address => (
-                                    <div key={address.id} className="border border-gray-200 rounded-lg p-4 flex justify-between items-start">
-                                        <div>
-                                            <h4 className="font-bold text-gray-900">{address.title}</h4>
-                                            <p className="text-sm text-gray-600 mt-1">{address.openAddress}</p>
-                                            <p className="text-sm text-gray-500">{address.district} / {address.city}</p>
-                                        </div>
-                                        <button onClick={() => handleDeleteAddress(address.id)} className="text-gray-400 hover:text-red-600 p-1">
-                                            <Trash2 className="h-4 w-4" />
-                                        </button>
-                                    </div>
-                                ))}
-                                {addresses.length === 0 && <p className="text-gray-500 text-center py-4">Kayıtlı adresiniz bulunmuyor.</p>}
-                            </div>
-
-                            {/* Add Address Modal (Simple inline for now) */}
-                            {showAddAddressModal && (
-                                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                                    <div className="bg-white rounded-xl p-6 w-full max-w-md">
-                                        <h3 className="text-lg font-bold mb-4">Yeni Adres Ekle</h3>
-                                        <form onSubmit={handleAddAddress} className="space-y-4">
-                                            <input type="text" placeholder="Adres Başlığı (Örn: Ev)" value={newAddress.title} onChange={e => setNewAddress({ ...newAddress, title: e.target.value })} className="w-full rounded-md border-gray-300" required />
-                                            <input type="text" placeholder="İl" value={newAddress.city} onChange={e => setNewAddress({ ...newAddress, city: e.target.value })} className="w-full rounded-md border-gray-300" required />
-                                            <input type="text" placeholder="İlçe" value={newAddress.district} onChange={e => setNewAddress({ ...newAddress, district: e.target.value })} className="w-full rounded-md border-gray-300" required />
-                                            <textarea placeholder="Açık Adres" value={newAddress.openAddress} onChange={e => setNewAddress({ ...newAddress, openAddress: e.target.value })} className="w-full rounded-md border-gray-300" required />
-
-                                            <div className="flex items-end gap-2">
-                                                <div className="flex-1">
-                                                    <input type="number" step="any" placeholder="Enlem (Latitude)" value={newAddress.latitude || ''} onChange={e => setNewAddress({ ...newAddress, latitude: parseFloat(e.target.value) })} className="w-full rounded-md border-gray-300" />
-                                                </div>
-                                                <div className="flex-1">
-                                                    <input type="number" step="any" placeholder="Boylam (Longitude)" value={newAddress.longitude || ''} onChange={e => setNewAddress({ ...newAddress, longitude: parseFloat(e.target.value) })} className="w-full rounded-md border-gray-300" />
-                                                </div>
-                                                <Button type="button" variant="outline" onClick={async () => {
-                                                    if (!newAddress.city || !newAddress.district) {
-                                                        toast.error('Şehir ve ilçe giriniz.');
-                                                        return;
-                                                    }
-                                                    const query = `${newAddress.openAddress} ${newAddress.district} ${newAddress.city}`;
-                                                    try {
-                                                        const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
-                                                        const data = await response.json();
-                                                        if (data && data.length > 0) {
-                                                            setNewAddress(prev => ({
-                                                                ...prev,
-                                                                latitude: parseFloat(data[0].lat),
-                                                                longitude: parseFloat(data[0].lon)
-                                                            }));
-                                                            toast.success('Konum bulundu!');
-                                                        } else {
-                                                            toast.error('Konum bulunamadı.');
-                                                        }
-                                                    } catch (error) {
-                                                        console.error(error);
-                                                        toast.error('Hata oluştu.');
-                                                    }
-                                                }}>
-                                                    <MapPin className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-
-                                            <div className="flex justify-end gap-2 pt-2">
-                                                <button type="button" onClick={() => setShowAddAddressModal(false)} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">İptal</button>
-                                                <Button type="submit">Ekle</Button>
-                                            </div>
-                                        </form>
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
-
-
-
-                    {activeTab === 'security' && (
-                        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-                            <h2 className="text-2xl font-bold text-gray-900 mb-6">Güvenlik</h2>
-                            <form onSubmit={handleChangePassword} className="space-y-6 max-w-lg">
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Mevcut Şifre</label>
-                                    <input type="password" value={currentPassword} onChange={(e) => setCurrentPassword(e.target.value)} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" required />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Yeni Şifre</label>
-                                    <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" required minLength={6} />
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-1">Yeni Şifre (Tekrar)</label>
-                                    <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} className="block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500" required minLength={6} />
-                                </div>
-                                <div className="pt-4">
-                                    <Button type="submit">Şifreyi Değiştir</Button>
-                                </div>
-                            </form>
-                        </div>
-                    )}
+                    <div>
+                        <h1 className="text-lg font-bold text-gray-900">{fullName}</h1>
+                        <p className="text-sm text-gray-500">{user?.phoneNumber || ''}</p>
+                    </div>
                 </div>
             </div>
 
-            {selectedAppointmentForReview && (
+            {/* Accordion List */}
+            <div className="max-w-2xl mx-auto px-4 py-4 space-y-2">
+                {sections.map(section => (
+                    <div key={section.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                        {/* Section Header Row */}
+                        <button
+                            onClick={() => toggle(section.id)}
+                            className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
+                        >
+                            <div className="flex items-center gap-3">
+                                <span className={openSection === section.id ? 'text-primary-600' : 'text-gray-500'}>{section.icon}</span>
+                                <span className={`font-medium text-sm ${openSection === section.id ? 'text-primary-700' : 'text-gray-800'}`}>{section.label}</span>
+                            </div>
+                            <ChevronRight className={`h-4 w-4 text-gray-400 transition-transform duration-200 ${openSection === section.id ? 'rotate-90' : ''}`} />
+                        </button>
+
+                        {/* Section Content */}
+                        {openSection === section.id && (
+                            <div className="border-t border-gray-100 px-5 py-5">
+
+                                {/* ── APPOINTMENTS ── */}
+                                {section.id === 'appointments' && (
+                                    <div className="space-y-4">
+                                        {pendingApps.length > 0 && (
+                                            <div>
+                                                <p className="text-xs font-semibold text-yellow-700 uppercase tracking-wider mb-2">Onay Bekliyor</p>
+                                                <div className="space-y-2">{pendingApps.map(app => <AppCard key={app.id} app={app} badge={getStatusBadge(app.status)} />)}</div>
+                                            </div>
+                                        )}
+                                        {upcomingApps.length > 0 && (
+                                            <div>
+                                                <p className="text-xs font-semibold text-green-700 uppercase tracking-wider mb-2">Gelecek</p>
+                                                <div className="space-y-2">{upcomingApps.map(app => <AppCard key={app.id} app={app} badge={getStatusBadge(app.status)} onReview={!app.hasReview && app.status === 2 ? () => { setSelectedAppointment(app); setIsReviewModalOpen(true); } : undefined} />)}</div>
+                                            </div>
+                                        )}
+                                        <div>
+                                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Geçmiş</p>
+                                            {pastApps.length > 0 ? <div className="space-y-2">{pastApps.map(app => <AppCard key={app.id} app={app} badge={getStatusBadge(app.status)} onReview={!app.hasReview && app.status === 2 ? () => { setSelectedAppointment(app); setIsReviewModalOpen(true); } : undefined} />)}</div> : <p className="text-sm text-gray-400 text-center py-4">Geçmiş randevu bulunmuyor.</p>}
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* ── ACCOUNT ── */}
+                                {section.id === 'account' && (
+                                    <form onSubmit={handleUpdateProfile} className="space-y-4">
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-600 mb-1">Ad</label>
+                                                <input type="text" value={firstName} onChange={e => setFirstName(e.target.value)} className={inputCls} required />
+                                            </div>
+                                            <div>
+                                                <label className="block text-xs font-medium text-gray-600 mb-1">Soyad</label>
+                                                <input type="text" value={lastName} onChange={e => setLastName(e.target.value)} className={inputCls} required />
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-600 mb-1">Telefon</label>
+                                            <input type="tel" value={phoneNumber} onChange={e => setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 11))} className={inputCls} placeholder="05XXXXXXXXX" maxLength={11} required />
+                                            <p className="text-xs text-gray-400 mt-1">Format: 05XXXXXXXXX</p>
+                                        </div>
+                                        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 pt-1">
+                                            <Button type="submit" disabled={updatingProfile} className="w-full sm:w-auto">
+                                                {updatingProfile ? 'Kaydediliyor...' : 'Kaydet'}
+                                            </Button>
+                                            <button type="button" onClick={() => setShowDeleteConfirm(true)}
+                                                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors">
+                                                <Trash2 className="h-4 w-4" /> Hesabımı Sil
+                                            </button>
+                                        </div>
+                                    </form>
+                                )}
+
+                                {/* ── FAVORITES ── */}
+                                {section.id === 'favorites' && (
+                                    favLoading ? <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" /></div>
+                                    : favorites.length > 0 ? <div className="grid grid-cols-1 gap-4">{favorites.map(shop => <ShopCard key={shop.id} shop={shop} initialIsFavorite={true} onToggleFavorite={s => { if (!s) setFavorites(favorites.filter(f => f.id !== shop.id)); }} />)}</div>
+                                    : <div className="text-center py-8"><Heart className="h-10 w-10 text-gray-300 mx-auto mb-2" /><p className="text-gray-500 text-sm">Favori salon eklemediniz.</p><Button className="mt-4" onClick={() => navigate('/')}>Salonları Keşfet</Button></div>
+                                )}
+
+
+
+                                {/* ── SECURITY ── */}
+                                {section.id === 'security' && (
+                                    <form onSubmit={handleChangePassword} className="space-y-4">
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-600 mb-1">Mevcut Şifre</label>
+                                            <input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className={inputCls} required />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-600 mb-1">Yeni Şifre</label>
+                                            <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className={inputCls} required minLength={6} />
+                                        </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-600 mb-1">Yeni Şifre (Tekrar)</label>
+                                            <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className={inputCls} required minLength={6} />
+                                        </div>
+                                        <Button type="submit" className="w-full sm:w-auto">Şifreyi Değiştir</Button>
+                                    </form>
+                                )}
+                            </div>
+                        )}
+                    </div>
+                ))}
+
+                {/* Employee Panel Link */}
+                {user?.role === 'Employee' && (
+                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                        <button onClick={() => navigate('/employee-panel/appointments')} className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors">
+                            <div className="flex items-center gap-3"><Briefcase className="h-5 w-5 text-gray-500" /><span className="font-medium text-sm text-gray-800">Personel Paneli</span></div>
+                            <ChevronRight className="h-4 w-4 text-gray-400" />
+                        </button>
+                    </div>
+                )}
+
+                {/* Logout */}
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                    <button onClick={() => setShowLogoutConfirm(true)} className="w-full flex items-center gap-3 px-5 py-4 hover:bg-red-50 transition-colors text-red-600">
+                        <LogOut className="h-5 w-5" />
+                        <span className="font-medium text-sm">Çıkış Yap</span>
+                    </button>
+                </div>
+            </div>
+
+
+
+            {/* Logout Confirm */}
+            {showLogoutConfirm && (
+                <ConfirmModal
+                    title="Çıkış Yap"
+                    message="Hesabınızdan çıkış yapmak istediğinize emin misiniz?"
+                    confirmLabel="Evet, Çıkış Yap"
+                    onConfirm={() => { logout(); navigate('/login'); }}
+                    onCancel={() => setShowLogoutConfirm(false)}
+                />
+            )}
+
+            {/* Delete Account Confirm */}
+            {showDeleteConfirm && (
+                <ConfirmModal
+                    title="Hesabı Sil"
+                    message="Hesabınızı kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz ve tüm verileriniz silinir."
+                    confirmLabel="Evet, Hesabımı Sil"
+                    onConfirm={() => { setShowDeleteConfirm(false); handleDeleteAccount(); }}
+                    onCancel={() => setShowDeleteConfirm(false)}
+                />
+            )}
+
+            {selectedAppointment && (
                 <ReviewModal
                     isOpen={isReviewModalOpen}
                     onClose={() => setIsReviewModalOpen(false)}
                     onSubmit={handleReviewSubmit}
-                    shopName={selectedAppointmentForReview.shopName}
-                    employeeName={selectedAppointmentForReview.employeeName}
+                    shopName={selectedAppointment.shopName}
+                    employeeName={selectedAppointment.employeeName}
                 />
             )}
         </div>
     );
 };
 
-interface AppointmentCardProps {
-    appointment: AppointmentDto;
-    badge: React.ReactNode;
-    onReview?: () => void;
-}
-
-const AppointmentCard: React.FC<AppointmentCardProps> = ({ appointment, badge, onReview }) => {
-    return (
-        <div className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
-            <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
-                <div>
-                    <h4 className="font-bold text-gray-900">{appointment.shopName}</h4>
-                    <p className="text-sm text-gray-600">{appointment.serviceName}</p>
-                    <div className="flex items-center gap-4 mt-2 text-sm text-gray-500">
-                        <span className="flex items-center gap-1"><Calendar className="h-4 w-4" /> {format(new Date(appointment.startTime), 'd MMMM yyyy', { locale: tr })}</span>
-                        <span className="flex items-center gap-1"><Clock className="h-4 w-4" /> {format(new Date(appointment.startTime), 'HH:mm')}</span>
-                        <span>{appointment.employeeName}</span>
-                    </div>
-                </div>
-                <div className="flex flex-col items-end gap-2 w-full sm:w-auto">
-                    <div className="flex justify-between w-full sm:w-auto sm:block">
-                        {badge}
-                    </div>
-                    <span className="font-bold text-gray-900">₺{appointment.price}</span>
-
-                    {onReview && (
-                        <Button size="sm" variant="outline" onClick={onReview} className="mt-2 w-full sm:w-auto">
-                            Değerlendir
-                        </Button>
-                    )}
+const AppCard: React.FC<{ app: AppointmentDto; badge: React.ReactNode; onReview?: () => void }> = ({ app, badge, onReview }) => (
+    <div className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50 transition-colors">
+        <div className="flex flex-col sm:flex-row justify-between gap-2">
+            <div className="flex-1 min-w-0">
+                <p className="font-semibold text-sm text-gray-900 truncate">{app.shopName}</p>
+                <p className="text-xs text-gray-600">{app.serviceName} — {app.employeeName}</p>
+                <div className="flex flex-wrap gap-2 mt-1 text-xs text-gray-400">
+                    <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{format(new Date(app.startTime), 'd MMM yyyy', { locale: tr })}</span>
+                    <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{format(new Date(app.startTime), 'HH:mm')}</span>
                 </div>
             </div>
+            <div className="flex sm:flex-col items-center sm:items-end justify-between gap-2 flex-shrink-0">
+                {badge}
+                <span className="font-bold text-sm text-gray-900">₺{app.price}</span>
+                {onReview && <Button size="sm" variant="outline" onClick={onReview} className="text-xs">Değerlendir</Button>}
+            </div>
         </div>
-    );
-};
+    </div>
+);

@@ -6,6 +6,7 @@ export interface Employee {
     email: string;
     title: string;
     isActive: boolean;
+    isDeleted: boolean;
     averageRating: number;
     reviewCount: number;
     serviceIds?: string[];
@@ -14,9 +15,15 @@ export interface Employee {
 export interface CreateEmployeeDto {
     firstName: string;
     lastName: string;
-    email: string;
-    password?: string; // Optional if we auto-generate or use invite flow
+    phoneNumber: string;
     title: string;
+}
+
+export interface UpdateEmployeeOwnerDto {
+    firstName: string;
+    lastName: string;
+    title: string;
+    isActive: boolean;
 }
 
 export interface AssignServicesDto {

@@ -13,6 +13,14 @@ export const employeeService = {
         await api.post('/employee', data);
     },
 
+    updateEmployee: async (employeeId: string, data: any): Promise<void> => {
+        await api.put(`/employee/${employeeId}`, data);
+    },
+
+    deleteEmployee: async (employeeId: string): Promise<void> => {
+        await api.delete(`/employee/${employeeId}`);
+    },
+
     getPublicShopEmployees: async (shopId: string): Promise<Employee[]> => {
         const response = await api.get<Employee[]>(`/employee/public/shop/${shopId}`);
         return response.data;

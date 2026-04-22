@@ -4,7 +4,7 @@ import { shopService } from '../api/shop.service';
 import { serviceManagementService } from '../api/service.service';
 import type { Shop } from '../types/shop';
 import type { ServiceCategoryDto, ShopServiceDto } from '../types/service';
-import { MapPin, Star, Phone, Clock, Calendar, ChevronLeft, Heart, Grid, Info, Image, MessageCircle } from 'lucide-react';
+import { MapPin, Star, Phone, Clock, Calendar, ChevronLeft, ChevronDown, Heart, Grid, Info, Image, MessageCircle } from 'lucide-react';
 import { Button } from '../components/Button';
 import { toast } from 'react-hot-toast';
 import { BookingModal } from '../components/BookingModal';
@@ -37,6 +37,15 @@ export const ShopDetailsPage: React.FC = () => {
     const [reviewsRefreshTrigger, setReviewsRefreshTrigger] = useState(0);
 
     const [activeTab, setActiveTab] = useState<'services' | 'about' | 'gallery' | 'reviews'>('services');
+
+    // Accordion States for Nested UI (Categories -> Services -> Employees)
+    const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
+    const [expandedServices, setExpandedServices] = useState<Record<string, boolean>>({});
+    const [expandedEmployees, setExpandedEmployees] = useState<Record<string, boolean>>({});
+
+    const toggleAccordion = (setter: React.Dispatch<React.SetStateAction<Record<string, boolean>>>, id: string) => {
+        setter(prev => ({ ...prev, [id]: !prev[id] }));
+    };
 
     useEffect(() => {
         const checkFavorite = async () => {
@@ -292,8 +301,8 @@ export const ShopDetailsPage: React.FC = () => {
 
                         <div className="min-h-[400px]">
                             {activeTab === 'services' && (
-                                <div className="space-y-6 animate-fadeIn">
-                                    <div className="flex items-center justify-between pb-4 border-b border-gray-100">
+                                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8 animate-fadeIn">
+                                    <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-100">
                                         <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
                                             Hizmetlerimiz
                                         </h2>
@@ -307,76 +316,134 @@ export const ShopDetailsPage: React.FC = () => {
                                             <p className="text-gray-500 italic">Henüz hizmet listelenmemiş.</p>
                                         </div>
                                     ) : (
-                                        <div className="space-y-8">
+                                        <div className="space-y-5">
                                             {categories.map((cat) => (
                                                 <div key={cat.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                                                    <div className="px-6 py-4 bg-gray-50/50 border-b border-gray-100 flex justify-between items-center">
-                                                        <h3 className="text-lg font-bold text-gray-900">{cat.name}</h3>
-                                                        <span className="text-xs font-medium text-gray-500 bg-white px-2 py-1 rounded-md border border-gray-100">
+                                                    {/* Category Header */}
+                                                    <button
+                                                        onClick={() => toggleAccordion(setExpandedCategories, cat.id)}
+                                                        className="w-full px-6 py-4 bg-gray-50/50 hover:bg-gray-100/80 transition-colors flex justify-between items-center group text-left"
+                                                    >
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${expandedCategories[cat.id] ? 'bg-primary-100 text-primary-600' : 'bg-white border border-gray-200 text-gray-400 group-hover:text-primary-500 group-hover:border-primary-200'}`}>
+                                                                <ChevronDown className={`w-5 h-5 transition-transform duration-300 ${expandedCategories[cat.id] ? 'rotate-180' : ''}`} />
+                                                            </div>
+                                                            <h3 className="text-lg font-bold text-gray-900 group-hover:text-primary-700 transition-colors">{cat.name}</h3>
+                                                        </div>
+                                                        <span className="text-xs font-semibold text-gray-500 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
                                                             {cat.services.length} seçenek
                                                         </span>
-                                                    </div>
-                                                    <div className="divide-y divide-gray-50">
-                                                        {cat.services.map((service) => (
-                                                            <div key={service.id} className="p-4 border-b border-gray-100 last:border-0 hover:bg-gray-50/50 transition-colors">
-                                                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-                                                                    {/* Service Info */}
-                                                                    <div className="w-full md:w-1/3 min-w-0">
-                                                                        <div className="flex items-center gap-2 mb-1">
-                                                                            <h4 className="font-semibold text-gray-900">{service.name}</h4>
-                                                                            <span className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
-                                                                                {service.duration} dk
-                                                                            </span>
+                                                    </button>
+
+                                                    {/* Services List (Level 1 Expanded) */}
+                                                    <div className={`transition-all duration-400 ease-in-out ${expandedCategories[cat.id] ? 'max-h-[8000px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
+                                                        <div className="divide-y divide-gray-50 border-t border-gray-100 bg-white">
+                                                            {cat.services.map((service) => (
+                                                                <div key={service.id} className="p-4 hover:bg-gray-50/30 transition-colors">
+                                                                    {/* Service Header */}
+                                                                    <div
+                                                                        className="flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer"
+                                                                        onClick={(e) => {
+                                                                            // Prevent triggering if clicked on exactly 'Seç' button
+                                                                            if ((e.target as HTMLElement).closest('button')?.textContent === 'Seç') return;
+                                                                            toggleAccordion(setExpandedServices, service.id);
+                                                                        }}
+                                                                    >
+                                                                        <div className="w-full md:w-1/2 min-w-0 flex flex-row items-center gap-3">
+                                                                            <button
+                                                                                className={`shrink-0 w-7 h-7 rounded flex items-center justify-center transition-colors ${expandedServices[service.id] ? 'bg-primary-50 text-primary-600' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
+                                                                            >
+                                                                                <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${expandedServices[service.id] ? 'rotate-180' : ''}`} />
+                                                                            </button>
+                                                                            <div>
+                                                                                <div className="flex items-center gap-2 mb-0.5">
+                                                                                    <h4 className="font-bold text-gray-900 text-[15px]">{service.name}</h4>
+                                                                                    <span className="text-[11px] font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+                                                                                        {service.duration} dk
+                                                                                    </span>
+                                                                                </div>
+                                                                                <p className="text-sm text-gray-500 mt-0.5 truncate pr-4">Hizmet ayrıntılarını ve kişileri gör</p>
+                                                                            </div>
                                                                         </div>
-                                                                        <p className="text-sm text-gray-500 line-clamp-1">Profesyonel {service.name.toLowerCase()} hizmeti</p>
+
+                                                                        <div className="flex items-center justify-between md:justify-end gap-5 shrink-0 mt-3 md:mt-0 pl-10 md:pl-0">
+                                                                            <span className="font-extrabold text-gray-900 text-lg">₺{service.price}</span>
+                                                                            <Button
+                                                                                size="sm"
+                                                                                onClick={(e) => { e.stopPropagation(); handleBookClick(service); }}
+                                                                                className="px-6 py-2 rounded-xl shadow-sm hover:shadow"
+                                                                            >
+                                                                                Seç
+                                                                            </Button>
+                                                                        </div>
                                                                     </div>
 
-                                                                    {/* Employees Section - Wrap & Full List */}
-                                                                    {service.employees && service.employees.length > 0 && (
-                                                                        <div className="flex-1 flex flex-wrap items-center gap-3">
-                                                                            {service.employees.map((emp) => (
-                                                                                <div
-                                                                                    key={emp.id}
-                                                                                    className="flex items-center gap-2 bg-white border border-gray-200 rounded-full pl-1 pr-3 py-1"
-                                                                                >
-                                                                                    <div className="h-6 w-6 rounded-full bg-gray-100 flex items-center justify-center text-[10px] font-bold text-gray-500 overflow-hidden shrink-0">
-                                                                                        {emp.imageUrl ? (
-                                                                                            <img src={emp.imageUrl} alt={emp.firstName} className="h-full w-full object-cover" />
-                                                                                        ) : (
-                                                                                            <span className={emp.averageRating > 0 ? "text-yellow-600" : ""}>
-                                                                                                {emp.averageRating > 0 ? emp.averageRating.toFixed(1) : "-"}
-                                                                                            </span>
-                                                                                        )}
-                                                                                    </div>
-                                                                                    <div className="flex flex-col">
-                                                                                        <span className="text-xs font-medium text-gray-700 leading-none">
-                                                                                            {emp.firstName} {emp.lastName}
+                                                                    {/* Service Details & Employees (Level 2 Expanded) */}
+                                                                    <div className={`overflow-hidden transition-all duration-400 ease-in-out ${expandedServices[service.id] ? 'max-h-[3000px] opacity-100 mt-4' : 'max-h-0 opacity-0'}`}>
+                                                                        <div className="pl-10 pr-2 pb-2">
+                                                                            <p className="text-[13px] md:text-sm text-gray-600 mb-4 bg-gray-50 p-4 rounded-xl border border-gray-100 shadow-inner">
+                                                                                {service.description || `Profesyonel ${service.name.toLowerCase()} hizmeti. Bu işlem ortalama ${service.duration} dakika sürmektedir ve alanında uzman ekibimiz tarafından özenle uygulanır. Randevu alarak size özel saati ayırtabilirsiniz.`}
+                                                                            </p>
+
+                                                                            {service.employees && service.employees.length > 0 && (
+                                                                                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                                                                                    {/* Employees Header */}
+                                                                                    <button
+                                                                                        onClick={(e) => { e.stopPropagation(); toggleAccordion(setExpandedEmployees, service.id); }}
+                                                                                        className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors group"
+                                                                                    >
+                                                                                        <span className="text-[13px] md:text-sm font-bold text-gray-800 flex items-center gap-2">
+                                                                                            <span className={`w-2 h-2 rounded-full transition-colors ${expandedEmployees[service.id] ? 'bg-primary-500' : 'bg-gray-300 group-hover:bg-primary-400'}`}></span>
+                                                                                            Hizmeti Veren Kişiler
                                                                                         </span>
-                                                                                        {emp.averageRating > 0 && emp.imageUrl && (
-                                                                                            <span className="text-[10px] text-yellow-500 flex items-center gap-0.5 leading-none mt-0.5">
-                                                                                                ★ {emp.averageRating.toFixed(1)}
-                                                                                            </span>
-                                                                                        )}
+                                                                                        <div className="flex items-center gap-3">
+                                                                                            <span className="text-[11px] font-bold text-gray-500 bg-gray-100 px-2.5 py-1 rounded-md">{service.employees.length} Kişi</span>
+                                                                                            <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${expandedEmployees[service.id] ? 'rotate-180 text-primary-500' : 'text-gray-400'}`} />
+                                                                                        </div>
+                                                                                    </button>
+
+                                                                                    {/* Employees List (Level 3 Expanded) */}
+                                                                                    <div className={`transition-all duration-400 ease-in-out ${expandedEmployees[service.id] ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
+                                                                                        <div className="p-4 border-t border-gray-200 bg-gray-50/50 flex flex-wrap gap-3">
+                                                                                            {service.employees.map((emp) => (
+                                                                                                <div
+                                                                                                    key={emp.id}
+                                                                                                    className="flex items-center gap-3 bg-white border border-gray-200 rounded-2xl pl-2 pr-5 py-2 shadow-sm hover:border-primary-300 transition-colors"
+                                                                                                >
+                                                                                                    <div className="h-10 w-10 rounded-xl bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500 overflow-hidden shrink-0">
+                                                                                                        {emp.imageUrl ? (
+                                                                                                            <img src={emp.imageUrl} alt={emp.firstName} className="h-full w-full object-cover" />
+                                                                                                        ) : (
+                                                                                                            <span className={emp.averageRating > 0 ? "text-yellow-600" : ""}>
+                                                                                                                {emp.averageRating > 0 ? emp.averageRating.toFixed(1) : "-"}
+                                                                                                            </span>
+                                                                                                        )}
+                                                                                                    </div>
+                                                                                                    <div className="flex flex-col justify-center">
+                                                                                                        <span className="text-sm font-bold text-gray-900 leading-tight">
+                                                                                                            {emp.firstName} {emp.lastName}
+                                                                                                        </span>
+                                                                                                        <span className="text-[11px] font-bold text-gray-500 flex items-center gap-1 leading-tight mt-1">
+                                                                                                            Uzman Personel
+                                                                                                            {emp.averageRating > 0 && emp.imageUrl && (
+                                                                                                                <span className="text-yellow-600 flex items-center bg-yellow-50 px-1 rounded ml-1">
+                                                                                                                    ★ {emp.averageRating.toFixed(1)}
+                                                                                                                </span>
+                                                                                                            )}
+                                                                                                        </span>
+                                                                                                    </div>
+                                                                                                </div>
+                                                                                            ))}
+                                                                                        </div>
                                                                                     </div>
                                                                                 </div>
-                                                                            ))}
+                                                                            )}
                                                                         </div>
-                                                                    )}
-
-                                                                    {/* Price & Action */}
-                                                                    <div className="flex items-center gap-4 shrink-0 md:ml-auto">
-                                                                        <span className="font-bold text-gray-900 text-lg">₺{service.price}</span>
-                                                                        <Button
-                                                                            size="sm"
-                                                                            onClick={() => handleBookClick(service)}
-                                                                            className="px-4"
-                                                                        >
-                                                                            Seç
-                                                                        </Button>
                                                                     </div>
+
                                                                 </div>
-                                                            </div>
-                                                        ))}
+                                                            ))}
+                                                        </div>
                                                     </div>
                                                 </div>
                                             ))}
@@ -406,139 +473,139 @@ export const ShopDetailsPage: React.FC = () => {
                                 </div>
                             )}
 
-                            {activeTab === 'gallery' && (
-                                <div className="animate-fadeIn">
-                                    <h2 className="text-2xl font-bold text-gray-900 mb-6">Galeri</h2>
-                                    {shop.images && shop.images.length > 0 ? (
-                                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                                            {shop.images.map((image, index) => (
-                                                <div key={index} className="aspect-square rounded-xl overflow-hidden bg-gray-100 group cursor-zoom-in">
-                                                    <img
-                                                        src={getImageUrl(image.url)}
-                                                        alt={`${shop.name} ${index + 1}`}
-                                                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                                                        onClick={() => window.open(getImageUrl(image.url), '_blank')}
+                        {activeTab === 'gallery' && (
+                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8 animate-fadeIn">
+                                <h2 className="text-2xl font-bold text-gray-900 mb-6">Galeri</h2>
+                                {shop.images && shop.images.length > 0 ? (
+                                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                                        {shop.images.map((image, index) => (
+                                            <div key={index} className="aspect-square rounded-xl overflow-hidden bg-gray-100 group cursor-zoom-in">
+                                                <img
+                                                    src={getImageUrl(image.url)}
+                                                    alt={`${shop.name} ${index + 1}`}
+                                                    className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                                                    onClick={() => window.open(getImageUrl(image.url), '_blank')}
+                                                />
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className="text-center py-12 bg-white rounded-xl border border-dashed border-gray-200">
+                                        <p className="text-gray-500 italic">Henüz görsel yüklenmemiş.</p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        {activeTab === 'reviews' && (
+                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 animate-fadeIn">
+                                <div className="flex items-center justify-between mb-8">
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-gray-900">Değerlendirmeler</h2>
+                                        <p className="text-gray-500 mt-1">Müşteri deneyimleri ve puanlar</p>
+                                    </div>
+                                    <div className="flex items-center gap-3 bg-yellow-50 px-5 py-3 rounded-2xl border border-yellow-100">
+                                        <div className="text-3xl font-bold text-yellow-700">{shop.averageRating?.toFixed(1) || '0.0'}</div>
+                                        <div className="flex flex-col">
+                                            <div className="flex">
+                                                {[1, 2, 3, 4, 5].map((star) => (
+                                                    <Star
+                                                        key={star}
+                                                        className={`h-4 w-4 ${star <= (shop.averageRating || 0) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
                                                     />
-                                                </div>
-                                            ))}
+                                                ))}
+                                            </div>
+                                            <span className="text-xs text-yellow-700/70 font-medium">{shop.reviewCount} yorum</span>
                                         </div>
-                                    ) : (
-                                        <div className="text-center py-12 bg-white rounded-xl border border-dashed border-gray-200">
-                                            <p className="text-gray-500 italic">Henüz görsel yüklenmemiş.</p>
-                                        </div>
-                                    )}
+                                    </div>
                                 </div>
-                            )}
 
-                            {activeTab === 'reviews' && (
-                                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 animate-fadeIn">
-                                    <div className="flex items-center justify-between mb-8">
+                                {reviewableAppointment && !editingReview && (
+                                    <div className="mb-8 p-6 bg-primary-50 rounded-xl border border-primary-100 flex items-center justify-between">
                                         <div>
-                                            <h2 className="text-2xl font-bold text-gray-900">Değerlendirmeler</h2>
-                                            <p className="text-gray-500 mt-1">Müşteri deneyimleri ve puanlar</p>
+                                            <h4 className="font-bold text-primary-900">Son hizmetini değerlendir</h4>
+                                            <p className="text-sm text-primary-700 mt-1">
+                                                {reviewableAppointment.employeeName} ile {new Date(reviewableAppointment.startTime).toLocaleDateString('tr-TR')} tarihindeki randevun nasıldı?
+                                            </p>
                                         </div>
-                                        <div className="flex items-center gap-3 bg-yellow-50 px-5 py-3 rounded-2xl border border-yellow-100">
-                                            <div className="text-3xl font-bold text-yellow-700">{shop.averageRating?.toFixed(1) || '0.0'}</div>
-                                            <div className="flex flex-col">
-                                                <div className="flex">
-                                                    {[1, 2, 3, 4, 5].map((star) => (
-                                                        <Star
-                                                            key={star}
-                                                            className={`h-4 w-4 ${star <= (shop.averageRating || 0) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
-                                                        />
-                                                    ))}
-                                                </div>
-                                                <span className="text-xs text-yellow-700/70 font-medium">{shop.reviewCount} yorum</span>
-                                            </div>
-                                        </div>
+                                        <Button onClick={() => setIsReviewModalOpen(true)}>
+                                            Hizmeti Değerlendir
+                                        </Button>
                                     </div>
+                                )}
 
-                                    {reviewableAppointment && !editingReview && (
-                                        <div className="mb-8 p-6 bg-primary-50 rounded-xl border border-primary-100 flex items-center justify-between">
-                                            <div>
-                                                <h4 className="font-bold text-primary-900">Son hizmetini değerlendir</h4>
-                                                <p className="text-sm text-primary-700 mt-1">
-                                                    {reviewableAppointment.employeeName} ile {new Date(reviewableAppointment.startTime).toLocaleDateString('tr-TR')} tarihindeki randevun nasıldı?
-                                                </p>
-                                            </div>
-                                            <Button onClick={() => setIsReviewModalOpen(true)}>
-                                                Hizmeti Değerlendir
-                                            </Button>
-                                        </div>
-                                    )}
-
-                                    <ReviewsList
-                                        shopId={shop.id}
-                                        onEdit={handleEditReview}
-                                        refreshTrigger={reviewsRefreshTrigger}
-                                    />
-                                </div>
-                            )}
-                        </div>
+                                <ReviewsList
+                                    shopId={shop.id}
+                                    onEdit={handleEditReview}
+                                    refreshTrigger={reviewsRefreshTrigger}
+                                />
+                            </div>
+                        )}
                     </div>
+                </div>
 
-                    {/* Right Column: Sticky Sidebar */}
-                    <div className="lg:col-span-1">
-                        <div className="sticky top-24 space-y-6">
-                            <div className="bg-white rounded-2xl shadow-lg shadow-gray-200/50 border border-gray-100 overflow-hidden">
-                                <div className="p-6 bg-gradient-to-br from-gray-900 to-gray-800 text-white">
-                                    <h3 className="font-bold text-lg flex items-center">
-                                        <Clock className="h-5 w-5 mr-2 text-primary-400" />
-                                        Çalışma Saatleri
-                                    </h3>
-                                    <p className="text-gray-400 text-sm mt-1">Haftalık çalışma programı</p>
+                {/* Right Column: Sticky Sidebar */}
+                <div className="lg:col-span-1">
+                    <div className="sticky top-24 space-y-6">
+                        <div className="bg-white rounded-2xl shadow-lg shadow-gray-200/50 border border-gray-100 overflow-hidden">
+                            <div className="p-6 bg-gradient-to-br from-gray-900 to-gray-800 text-white">
+                                <h3 className="font-bold text-lg flex items-center">
+                                    <Clock className="h-5 w-5 mr-2 text-primary-400" />
+                                    Çalışma Saatleri
+                                </h3>
+                                <p className="text-gray-400 text-sm mt-1">Haftalık çalışma programı</p>
+                            </div>
+                            <div className="p-6">
+                                <div className="space-y-4">
+                                    {shop.weeklySchedule ? (
+                                        shop.weeklySchedule.map((s) => {
+                                            const isToday = s.dayOfWeek === new Date().getDay();
+                                            return (
+                                                <div key={s.dayOfWeek} className={`flex justify-between items-center text-sm ${isToday ? 'bg-primary-50 -mx-2 px-2 py-1 rounded-md' : ''}`}>
+                                                    <span className={`font-medium ${isToday ? 'text-primary-700' : 'text-gray-600'}`}>
+                                                        {['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'][s.dayOfWeek]}
+                                                    </span>
+                                                    <span className={s.isClosed ? 'text-red-500 font-medium' : 'text-gray-900'}>
+                                                        {s.isClosed ? 'Kapalı' : `${s.openingTime} - ${s.closingTime}`}
+                                                    </span>
+                                                </div>
+                                            );
+                                        })
+                                    ) : (
+                                        <p className="text-gray-500 italic">Saatler yükleniyor...</p>
+                                    )}
                                 </div>
-                                <div className="p-6">
-                                    <div className="space-y-4">
-                                        {shop.weeklySchedule ? (
-                                            shop.weeklySchedule.map((s) => {
-                                                const isToday = s.dayOfWeek === new Date().getDay();
-                                                return (
-                                                    <div key={s.dayOfWeek} className={`flex justify-between items-center text-sm ${isToday ? 'bg-primary-50 -mx-2 px-2 py-1 rounded-md' : ''}`}>
-                                                        <span className={`font-medium ${isToday ? 'text-primary-700' : 'text-gray-600'}`}>
-                                                            {['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'][s.dayOfWeek]}
-                                                        </span>
-                                                        <span className={s.isClosed ? 'text-red-500 font-medium' : 'text-gray-900'}>
-                                                            {s.isClosed ? 'Kapalı' : `${s.openingTime} - ${s.closingTime}`}
-                                                        </span>
-                                                    </div>
-                                                );
-                                            })
-                                        ) : (
-                                            <p className="text-gray-500 italic">Saatler yükleniyor...</p>
-                                        )}
-                                    </div>
+                            </div>
+                        </div>
+
+                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+                            <h3 className="font-bold text-gray-900 mb-4">İletişim</h3>
+                            <div className="space-y-4">
+                                <div className="flex items-start">
+                                    <MapPin className="h-5 w-5 text-primary-500 mr-3 mt-1" />
+                                    <p className="text-gray-600 text-sm leading-relaxed">{shop.address}<br />{shop.district}, {shop.city}</p>
+                                </div>
+                                <div className="flex items-center">
+                                    <Phone className="h-5 w-5 text-primary-500 mr-3" />
+                                    <p className="text-gray-600 text-sm font-medium">{shop.phoneNumber}</p>
                                 </div>
                             </div>
 
-                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                                <h3 className="font-bold text-gray-900 mb-4">İletişim</h3>
-                                <div className="space-y-4">
-                                    <div className="flex items-start">
-                                        <MapPin className="h-5 w-5 text-primary-500 mr-3 mt-1" />
-                                        <p className="text-gray-600 text-sm leading-relaxed">{shop.address}<br />{shop.district}, {shop.city}</p>
-                                    </div>
-                                    <div className="flex items-center">
-                                        <Phone className="h-5 w-5 text-primary-500 mr-3" />
-                                        <p className="text-gray-600 text-sm font-medium">{shop.phoneNumber}</p>
-                                    </div>
-                                </div>
-
-                                <div className="mt-8 pt-6 border-t border-gray-100">
-                                    <Button className="w-full shadow-lg shadow-secondary-500/20 font-bold" size="lg" variant="secondary" onClick={() => {
-                                        setSelectedService(null);
-                                        setIsBookingModalOpen(true);
-                                    }}>
-                                        <Calendar className="h-5 w-5 mr-2" />
-                                        Randevu Al
-                                    </Button>
-                                    <p className="text-xs text-center text-gray-400 mt-3">Kolay ve hızlı rezervasyon</p>
-                                </div>
+                            <div className="mt-8 pt-6 border-t border-gray-100">
+                                <Button className="w-full shadow-lg shadow-secondary-500/20 font-bold" size="lg" variant="secondary" onClick={() => {
+                                    setSelectedService(null);
+                                    setIsBookingModalOpen(true);
+                                }}>
+                                    <Calendar className="h-5 w-5 mr-2" />
+                                    Randevu Al
+                                </Button>
+                                <p className="text-xs text-center text-gray-400 mt-3">Kolay ve hızlı rezervasyon</p>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
+        </div>
 
             {/* Modals */}
             {isBookingModalOpen && shop && (

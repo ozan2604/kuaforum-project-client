@@ -94,4 +94,5 @@ export interface CreateShopDto {
     latitude?: number;
     longitude?: number;
     category: ShopCategory;
+    genderPreference: TargetGender;
 }

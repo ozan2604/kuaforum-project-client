@@ -1,6 +1,6 @@
 import api from './axios';
 import type { AuthResponse, RegisterRequest, UpdateProfileRequest, ChangePasswordRequest } from '../types/auth';
-import type { Address, CreateAddressRequest } from '../types/address';
+
 
 export const authService = {
     login: async (data: { identifier: string; password: string }): Promise<AuthResponse> => {
@@ -26,17 +26,5 @@ export const authService = {
         await api.delete('/auth/account');
     },
 
-    getAddresses: async (): Promise<Address[]> => {
-        const response = await api.get<Address[]>('/auth/addresses');
-        return response.data;
-    },
 
-    addAddress: async (data: CreateAddressRequest): Promise<Address> => {
-        const response = await api.post<Address>('/auth/addresses', data);
-        return response.data;
-    },
-
-    deleteAddress: async (id: string): Promise<void> => {
-        await api.delete(`/auth/addresses/${id}`);
-    }
 };

@@ -16,16 +16,15 @@ export interface LoginRequest {
 export interface RegisterRequest {
     firstName: string;
     lastName: string;
-    email: string;
-    phoneNumber: string; // Added phoneNumber
-    userName: string;
-    password: string;
+    email?: string;
+    phoneNumber: string;
+    password?: string;
+    role?: string;
 }
 
 export interface UpdateProfileRequest {
     firstName: string;
     lastName: string;
-    userName: string;
     email: string;
     phoneNumber: string;
 }
