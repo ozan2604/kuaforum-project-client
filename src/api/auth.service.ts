@@ -26,5 +26,16 @@ export const authService = {
         await api.delete('/auth/account');
     },
 
+    updateProfileImage: async (image: File): Promise<{ imageUrl: string }> => {
+        const formData = new FormData();
+        formData.append('image', image);
+        const response = await api.put<{ imageUrl: string }>('/auth/profile-image', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data;
+    },
 
+    deleteProfileImage: async (): Promise<void> => {
+        await api.delete('/auth/profile-image');
+    }
 };

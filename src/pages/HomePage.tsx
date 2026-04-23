@@ -152,17 +152,26 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
     useEffect(() => {
         if (!shops) return;
 
-        const term = searchTerm.toLowerCase();
-        let results = [...shops].filter(shop => {
-            const nameMatch = shop.name?.toLowerCase().includes(term) ?? false;
-            const cityMatch = shop.city?.toLowerCase().includes(term) ?? false;
-            const districtMatch = shop.district?.toLowerCase().includes(term) ?? false;
-            const neighborhoodMatch = shop.neighborhood?.toLowerCase().includes(term) ?? false;
-            return nameMatch || cityMatch || districtMatch || neighborhoodMatch;
-        });
+        const term = searchTerm.trim().toLowerCase();
+        let results = [...shops];
 
+        // 1. Search term filter (only if term exists)
+        if (term) {
+            results = results.filter(shop => {
+                const nameMatch = shop.name?.toLowerCase().includes(term) ?? false;
+                const cityMatch = shop.city?.toLowerCase().includes(term) ?? false;
+                const districtMatch = shop.district?.toLowerCase().includes(term) ?? false;
+                const neighborhoodMatch = shop.neighborhood?.toLowerCase().includes(term) ?? false;
+                return nameMatch || cityMatch || districtMatch || neighborhoodMatch;
+            });
+        }
+
+        // 2. Category filter
         if (selectedCategory) {
-            results = results.filter(shop => shop.category === selectedCategory);
+            results = results.filter(shop => {
+                if (!shop.categories || !Array.isArray(shop.categories)) return false;
+                return shop.categories.some(c => Number(c) === Number(selectedCategory));
+            });
         }
 
         if (activeTags.includes('kadin')) {
@@ -538,8 +547,8 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                     {isMapModalOpen && (
                         <div className="w-full h-[400px] sm:h-[450px] mb-8 rounded-[2rem] overflow-hidden shadow-sm border border-gray-200 relative shrink-0 z-0 fade-in-0 animate-in zoom-in-95 duration-300">
                             <MapContainer
-                                center={activeReferenceLocation ? [activeReferenceLocation.lat, activeReferenceLocation.lng] : [39.9, 32.8]}
-                                zoom={activeReferenceLocation ? 14 : 6}
+                                center={userLocation ? [userLocation.lat, userLocation.lng] : [39.9, 32.8]}
+                                zoom={userLocation ? 14 : 6}
                                 style={{ height: '100%', width: '100%', zIndex: 0 }}
                                 zoomControl={true}
                             >
@@ -580,7 +589,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                                                         </div>
                                                     </div>
                                                     <div className="p-3 bg-white">
-                                                        <div className="text-[10px] font-bold text-primary-600 mb-1 uppercase tracking-wider">{ShopCategoryLabels[shop.category]}</div>
+                                                        <div className="text-[10px] font-bold text-primary-600 mb-1 uppercase tracking-wider">{shop.categories?.length > 0 ? ShopCategoryLabels[shop.categories[0] as ShopCategory] : ''}</div>
                                                         <h3 className="font-bold text-gray-900 text-[15px] leading-tight mb-1 line-clamp-1">{shop.name}</h3>
                                                         <div className="flex items-center gap-1 text-gray-500 text-xs mb-3">
                                                             <MapPin className="w-3.5 h-3.5 shrink-0" />

@@ -25,7 +25,6 @@ interface ShopFormData {
     longitude?: number;
     coverImagePath?: string;
     images?: { id: string; url: string }[];
-    category: ShopCategory;
     genderPreference: TargetGender;
 }
 
@@ -36,6 +35,7 @@ export const MyShopPage: React.FC = () => {
     const [initialLoading, setInitialLoading] = useState(true);
     const [shopId, setShopId] = useState<string | null>(null);
     const [refreshImages, setRefreshImages] = useState(0);
+    const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
 
     // Address API state
     const [provinces, setProvinces] = useState<Province[]>([]);
@@ -82,9 +82,9 @@ export const MyShopPage: React.FC = () => {
                     longitude: shop.longitude,
                     coverImagePath: shop.coverImagePath,
                     images: shop.images || [],
-                    category: shop.category,
                     genderPreference: shop.genderPreference?.toString() as any
                 });
+                setSelectedCategories(shop.categories ?? []);
                 // Pre-select province/district if city data exists
                 if (shop.city) {
                     const res = await fetch(`${TURKIYE_API}/provinces`);
@@ -227,11 +227,15 @@ export const MyShopPage: React.FC = () => {
     };
 
     const onSubmit = async (data: ShopFormData) => {
+        if (selectedCategories.length === 0) {
+            toast.error('En az bir kategori seçimi zorunludur.');
+            return;
+        }
         setLoading(true);
         try {
             const formattedData = {
                 ...data,
-                category: Number(data.category) as ShopCategory,
+                categoryIds: selectedCategories,
                 genderPreference: Number(data.genderPreference) as TargetGender,
                 latitude: data.latitude ? Number(data.latitude) : undefined,
                 longitude: data.longitude ? Number(data.longitude) : undefined
@@ -364,22 +368,30 @@ export const MyShopPage: React.FC = () => {
                             placeholder="Örn: Elite Hair Studio"
                         />
 
-                        <div className="space-y-1.5">
+                        <div className="space-y-1.5 md:col-span-2">
                             <label className="block text-sm font-medium text-gray-700">
-                                Kategori
+                                Kategori <span className="text-xs font-normal text-gray-400">(Birden fazla seçebilirsiniz)</span>
                             </label>
-                            <select
-                                {...register('category', {
-                                    required: 'Kategori zorunludur',
-                                    valueAsNumber: true
+                            <div className="grid grid-cols-2 gap-2">
+                                {Object.entries(ShopCategoryLabels).map(([id, name]) => {
+                                    const catId = Number(id);
+                                    const selected = selectedCategories.includes(catId);
+                                    return (
+                                        <label
+                                            key={id}
+                                            className={`cursor-pointer flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${selected ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-gray-200 text-gray-600 hover:border-primary-200 hover:bg-primary-50/50'}`}
+                                            onClick={() => setSelectedCategories(prev =>
+                                                selected ? prev.filter(c => c !== catId) : [...prev, catId]
+                                            )}
+                                        >
+                                            <div className={`w-4 h-4 rounded flex-shrink-0 border-2 flex items-center justify-center ${selected ? 'bg-primary-500 border-primary-500' : 'border-gray-300'}`}>
+                                                {selected && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+                                            </div>
+                                            {name}
+                                        </label>
+                                    );
                                 })}
-                                className="flex w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all duration-200"
-                            >
-                                {Object.entries(ShopCategoryLabels).map(([id, name]) => (
-                                    <option key={id} value={id}>{name}</option>
-                                ))}
-                            </select>
-                            {errors.category && <p className="text-xs text-red-500 mt-1">{errors.category.message}</p>}
+                            </div>
                         </div>
 
                         <div className="space-y-1.5 md:col-span-2">

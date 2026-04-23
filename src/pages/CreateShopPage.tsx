@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { shopService } from '../api/shop.service';
-import { ShopCategory, TargetGender } from '../types/shop';
+import { TargetGender } from '../types/shop';
 
 export const CreateShopPage: React.FC = () => {
     const navigate = useNavigate();
@@ -19,7 +19,7 @@ export const CreateShopPage: React.FC = () => {
         phoneNumber: '',
         latitude: undefined as number | undefined,
         longitude: undefined as number | undefined,
-        category: 2 as ShopCategory, // Default Kuafor
+        categoryIds: [] as number[],
         genderPreference: 3 as TargetGender // Unisex
     });
 
@@ -121,21 +121,22 @@ export const CreateShopPage: React.FC = () => {
 
                 <div className="space-y-1.5">
                     <label className="block text-sm font-medium text-gray-700">
-                        Kategori
+                        Kategori <span className="text-xs font-normal text-gray-400">(Birden fazla seçebilirsiniz)</span>
                     </label>
-                    <select
-                        name="category"
-                        value={formData.category}
-                        onChange={(e) => setFormData({ ...formData, category: parseInt(e.target.value) as any })}
-                        className="flex w-full rounded-lg border border-gray-300 bg-transparent px-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 transition-all duration-200"
-                    >
-                        <option value={1}>Berber</option>
-                        <option value={2}>Kuaför</option>
-                        <option value={3}>Güzellik Merkezi</option>
-                        <option value={4}>Spa Merkezi</option>
-                        <option value={5}>Dövme Stüdyosu</option>
-                        <option value={99}>Diğer</option>
-                    </select>
+                    <div className="grid grid-cols-2 gap-2">
+                        {[{id:1,name:'Berber'},{id:2,name:'Kadın Kuaför'},{id:3,name:'Güzellik Merkezi'},{id:4,name:'Spa Merkezi'},{id:5,name:'Dövme Stüdyosu'},{id:6,name:'Piercing Stüdyosu'},{id:7,name:'Nail Art / Tırnak Salonu'},{id:8,name:'Cilt Bakım Merkezi'},{id:9,name:'Lazer Epilasyon Merkezi'},{id:10,name:'Masaj Salonu'},{id:11,name:'Solaryum'},{id:12,name:'Makyaj Stüdyosu'},{id:13,name:'Kaş & Kirpik Stüdyosu'},{id:99,name:'Diğer'}].map(cat => {
+                            const selected = formData.categoryIds.includes(cat.id);
+                            return (
+                                <label key={cat.id} className={`cursor-pointer flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${selected ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-gray-200 text-gray-600 hover:border-primary-200'}`}
+                                    onClick={() => setFormData(f => ({ ...f, categoryIds: selected ? f.categoryIds.filter(c => c !== cat.id) : [...f.categoryIds, cat.id] }))}>
+                                    <div className={`w-4 h-4 rounded flex-shrink-0 border-2 flex items-center justify-center ${selected ? 'bg-primary-500 border-primary-500' : 'border-gray-300'}`}>
+                                        {selected && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+                                    </div>
+                                    {cat.name}
+                                </label>
+                            );
+                        })}
+                    </div>
                 </div>
 
                 <div className="border-t pt-4">

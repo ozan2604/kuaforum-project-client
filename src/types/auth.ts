@@ -5,6 +5,7 @@ export interface AuthResponse {
     firstName: string;
     lastName: string;
     phoneNumber: string; // Added phoneNumber
+    profileImageUrl?: string;
     token: string;
 }
 
@@ -42,5 +43,6 @@ export interface User {
     firstName: string;
     lastName: string;
     phoneNumber?: string;
+    profileImageUrl?: string;
     role: string; // 'Admin' | 'SalonOwner' | 'Customer'
 }

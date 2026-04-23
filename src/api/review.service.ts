@@ -24,6 +24,9 @@ export interface Review {
     shopId: string;
     shopEmployeeId: string;
     employeeName: string;
+    shopName: string;
+    serviceName: string;
+    appointmentDate: string;
     rating: number;
     comment?: string;
     createdAt: string;
@@ -104,6 +107,11 @@ export const reviewService = {
 
     getShopReviews: async (shopId: string) => {
         const response = await api.get<Review[]>(`/Reviews/shop/${shopId}`);
+        return response.data;
+    },
+
+    getMyReviews: async () => {
+        const response = await api.get<Review[]>('/Reviews/my-reviews');
         return response.data;
     }
 };

@@ -35,7 +35,7 @@ export const SalonApplicationPage: React.FC = () => {
         description: '',
         contactEmail: user?.email || '',
         phoneNumber: user?.phoneNumber || '',
-        categoryId: 1,
+        categoryIds: [] as number[],
         genderPreference: TargetGender.Unisex as TargetGender,
         city: '',
         district: '',
@@ -115,6 +115,7 @@ export const SalonApplicationPage: React.FC = () => {
     const validateStep = (step: number): boolean => {
         if (step === 0) {
             if (!form.shopName.trim()) { toast.error('Salon adı zorunludur.'); return false; }
+            if (form.categoryIds.length === 0) { toast.error('En az bir kategori seçimi zorunludur.'); return false; }
             if (!form.description.trim()) { toast.error('Açıklama zorunludur.'); return false; }
         }
         if (step === 1) {
@@ -203,7 +204,7 @@ export const SalonApplicationPage: React.FC = () => {
                             <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
                                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">İşletme</p>
                                 <p className="font-bold text-gray-900">{application.shopName}</p>
-                                <p className="text-sm text-gray-500">{ShopCategoryLabels[application.category as ShopCategory]}</p>
+                                <p className="text-sm text-gray-500">{(application.categories as number[])?.map((c: number) => ShopCategoryLabels[c as ShopCategory]).join(', ') || '-'}</p>
                             </div>
                             <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
                                 <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">İletişim</p>
@@ -253,12 +254,30 @@ export const SalonApplicationPage: React.FC = () => {
                                         <input type="text" value={form.shopName} onChange={e => setForm(f => ({ ...f, shopName: e.target.value }))} className={inputCls} placeholder="Örn: Stil Kuaför" required />
                                     </div>
                                     <div>
-                                        <label className={labelCls}>Kategori <span className="text-red-500">*</span></label>
-                                        <select value={form.categoryId} onChange={e => setForm(f => ({ ...f, categoryId: Number(e.target.value) }))} className={inputCls} required>
-                                            {Object.entries(ShopCategoryLabels).map(([id, name]) => (
-                                                <option key={id} value={id}>{name}</option>
-                                            ))}
-                                        </select>
+                                        <label className={labelCls}>Kategori <span className="text-red-500">*</span> <span className="text-xs font-normal text-gray-400">(Birden fazla seçebilirsiniz)</span></label>
+                                        <div className="grid grid-cols-2 gap-2">
+                                            {Object.entries(ShopCategoryLabels).map(([id, name]) => {
+                                                const catId = Number(id);
+                                                const selected = form.categoryIds.includes(catId);
+                                                return (
+                                                    <label
+                                                        key={id}
+                                                        className={`cursor-pointer flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${selected ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 text-gray-600 hover:border-indigo-200 hover:bg-indigo-50/50'}`}
+                                                        onClick={() => setForm(f => ({
+                                                            ...f,
+                                                            categoryIds: selected
+                                                                ? f.categoryIds.filter(c => c !== catId)
+                                                                : [...f.categoryIds, catId]
+                                                        }))}
+                                                    >
+                                                        <div className={`w-4 h-4 rounded flex-shrink-0 border-2 flex items-center justify-center ${selected ? 'bg-indigo-500 border-indigo-500' : 'border-gray-300'}`}>
+                                                            {selected && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
+                                                        </div>
+                                                        {name}
+                                                    </label>
+                                                );
+                                            })}
+                                        </div>
                                     </div>
                                     <div>
                                         <label className={labelCls}>Hizmet Verilen Cinsiyet <span className="text-red-500">*</span></label>

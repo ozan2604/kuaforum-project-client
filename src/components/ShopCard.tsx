@@ -85,7 +85,7 @@ export const ShopCard: React.FC<ShopCardProps> = ({ shop, initialIsFavorite = fa
                 {/* Kategori Etiketi */}
                 <div className="absolute top-2 sm:top-3 left-2 sm:left-3 z-20">
                     <span className="inline-flex items-center px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-md sm:rounded-lg text-[8px] sm:text-[10px] font-bold uppercase tracking-wider bg-white/90 text-gray-800 backdrop-blur-sm shadow-sm">
-                        {ShopCategoryLabels[shop.category] || 'Güzellik Salonu'}
+                        {shop.categories?.length > 0 ? ShopCategoryLabels[shop.categories[0] as ShopCategory] : 'Güzellik Salonu'}{shop.categories?.length > 1 ? ` +${shop.categories.length - 1}` : ''}
                     </span>
                 </div>
 

@@ -11,7 +11,7 @@ export interface SalonApplication {
     buildingNumber: string;
     phoneNumber: string;
     contactEmail: string;
-    categoryId: number;
+    categoryIds: number[];
     genderPreference: number;
     status: 'Pending' | 'Approved' | 'Rejected';
     createdAt: string;
@@ -28,6 +28,6 @@ export interface CreateSalonApplicationDto {
     buildingNumber: string;
     phoneNumber: string;
     contactEmail: string;
-    categoryId: number;
+    categoryIds: number[];
     genderPreference: number;
 }

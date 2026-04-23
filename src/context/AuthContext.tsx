@@ -55,7 +55,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 firstName: response.firstName,
                 lastName: response.lastName,
                 role: role,
-                phoneNumber: response.phoneNumber
+                phoneNumber: response.phoneNumber,
+                profileImageUrl: response.profileImageUrl
             };
             setUser(userData);
             setUserState(userData);
@@ -88,7 +89,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 firstName: response.firstName,
                 lastName: response.lastName,
                 role: role,
-                phoneNumber: response.phoneNumber
+                phoneNumber: response.phoneNumber,
+                profileImageUrl: response.profileImageUrl
             };
             setUser(userData);
             setUserState(userData);
@@ -106,9 +108,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
     const updateAuthorization = (response: any) => {
         const token = response.token || response.Token;
+        
         if (token) {
             setToken(token);
-
             const decoded: any = jwtDecode(token);
             const role = decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || decoded['role'];
 
@@ -119,19 +121,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 firstName: response.firstName,
                 lastName: response.lastName,
                 role: role,
-                phoneNumber: response.phoneNumber // Ensure we capture phone number if backend sends it, though DTO check needed
+                phoneNumber: response.phoneNumber,
+                profileImageUrl: response.profileImageUrl
             };
-
-            // Backend AuthService.cs doesn't explicitly return PhoneNumber in AuthResponse yet.
-            // But we can check if we should add it to AuthResponse DTO in backend or just trust local state?
-            // Better to rely on token or response.
-            // Let's assume for now we might need to update backend AuthResponse to include PhoneNumber if we want it in User state.
-            // Looking at User type in frontend, it has phoneNumber?: string.
-            // Looking at AuthService.cs, it does NOT return PhoneNumber in AuthResponse.
-            // We should fix backend too to return PhoneNumber.
 
             setUser(userData);
             setUserState(userData);
+        } else if (user) {
+            // Partial update (e.g. just profile image)
+            const updatedUser = { ...user, ...response };
+            // Ensure we don't accidentally put 'token' inside the user object if it's there
+            if ((updatedUser as any).token) delete (updatedUser as any).token;
+            
+            setUser(updatedUser);
+            setUserState(updatedUser);
         }
     };
 

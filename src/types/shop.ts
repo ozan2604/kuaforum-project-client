@@ -71,7 +71,7 @@ export interface Shop {
     longitude?: number;
     saturdayClosingTime?: string;
     weeklySchedule?: ShopSchedule[];
-    category: ShopCategory;
+    categories: number[];
     genderPreference: TargetGender;
     isAutoProcessEnabled: boolean;
 }
@@ -93,6 +93,6 @@ export interface CreateShopDto {
     phoneNumber: string;
     latitude?: number;
     longitude?: number;
-    category: ShopCategory;
+    categoryIds: number[];
     genderPreference: TargetGender;
 }

@@ -6,10 +6,11 @@ import { authService } from '../api/auth.service';
 import type { AppointmentDto } from '../types/appointment';
 
 import { Button } from '../components/Button';
-import { Calendar, User, LogOut, CheckCircle, Clock, XCircle, AlertCircle, Trash2, MapPin, Lock, Plus, Heart, ChevronRight, Briefcase } from 'lucide-react';
+import { Calendar, User, LogOut, CheckCircle, Clock, XCircle, AlertCircle, Trash2, MapPin, Lock, Plus, Heart, ChevronRight, Briefcase, MessageSquare, Camera, Edit2 } from 'lucide-react';
 import { favoriteService } from '../services/favorite.service';
 import { ShopCard } from '../components/ShopCard';
 import type { Shop } from '../types/shop';
+import type { Review } from '../api/review.service';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { toast } from 'react-hot-toast';
@@ -17,14 +18,14 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { reviewService } from '../api/review.service';
 import { ReviewModal } from '../components/ReviewModal';
 
-type TabType = 'appointments' | 'account' | 'favorites' | 'addresses' | 'security';
+type TabType = 'appointments' | 'account' | 'favorites' | 'reviews' | 'security';
 
 interface AccordionSection { id: TabType; label: string; icon: React.ReactNode; }
 const sections: AccordionSection[] = [
     { id: 'appointments', label: 'Randevularım', icon: <Calendar className="h-5 w-5" /> },
     { id: 'account', label: 'Hesap Bilgileri', icon: <User className="h-5 w-5" /> },
     { id: 'favorites', label: 'Favorilerim', icon: <Heart className="h-5 w-5" /> },
-
+    { id: 'reviews', label: 'Yorumlarım', icon: <MessageSquare className="h-5 w-5" /> },
     { id: 'security', label: 'Güvenlik', icon: <Lock className="h-5 w-5" /> },
 ];
 
@@ -54,6 +55,7 @@ export const ProfilePage: React.FC = () => {
     const [openSection, setOpenSection] = useState<TabType | null>(activeTab || 'appointments');
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [reviewToDelete, setReviewToDelete] = useState<string | null>(null);
 
     const toggle = (id: TabType) => {
         const next = openSection === id ? null : id;
@@ -66,37 +68,78 @@ export const ProfilePage: React.FC = () => {
     const [firstName, setFirstName] = useState(user?.firstName || '');
     const [lastName, setLastName] = useState(user?.lastName || '');
     const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || '');
+    const [email, setEmail] = useState(user?.email || '');
     const [updatingProfile, setUpdatingProfile] = useState(false);
+    const [uploadingImage, setUploadingImage] = useState(false);
 
     const [currentPassword, setCurrentPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
     const [favorites, setFavorites] = useState<Shop[]>([]);
     const [favLoading, setFavLoading] = useState(false);
+    const [myReviews, setMyReviews] = useState<Review[]>([]);
+    const [reviewsLoading, setReviewsLoading] = useState(false);
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
     const [selectedAppointment, setSelectedAppointment] = useState<AppointmentDto | null>(null);
+    const [selectedReview, setSelectedReview] = useState<Review | null>(null);
 
     useEffect(() => {
-        if (user) { setFirstName(user.firstName); setLastName(user.lastName); setPhoneNumber(user.phoneNumber || ''); }
+        if (user) { 
+            setFirstName(user.firstName); 
+            setLastName(user.lastName); 
+            setPhoneNumber(user.phoneNumber || ''); 
+            setEmail(user.email || '');
+        }
     }, [user]);
 
     useEffect(() => {
         if (openSection === 'appointments') loadAppointments();
-
         else if (openSection === 'favorites') loadFavorites();
+        else if (openSection === 'reviews') loadReviews();
     }, [openSection]);
 
     const loadAppointments = async () => { try { setAppointments(await appointmentService.getMyAppointments()); } catch { toast.error('Randevular yüklenemedi.'); } };
 
     const loadFavorites = async () => { setFavLoading(true); try { setFavorites(await favoriteService.getUserFavorites()); } catch { toast.error('Favoriler yüklenemedi.'); } finally { setFavLoading(false); } };
 
+    const loadReviews = async () => { setReviewsLoading(true); try { setMyReviews(await reviewService.getMyReviews()); } catch { toast.error('Yorumlar yüklenemedi.'); } finally { setReviewsLoading(false); } };
+
     const handleUpdateProfile = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!/^05\d{9}$/.test(phoneNumber)) { toast.error('Telefon numarası 05XXXXXXXXX formatında olmalıdır.'); return; }
         setUpdatingProfile(true);
-        try { updateAuthorization(await authService.updateProfile({ firstName, lastName, phoneNumber, email: user?.email || '' })); toast.success('Profil güncellendi.'); }
-        catch (err: any) { toast.error(err.response?.data?.Message || 'Güncelleme başarısız.'); }
+        try { 
+            const updatedUser = await authService.updateProfile({ firstName, lastName, phoneNumber, email }); 
+            updateAuthorization(updatedUser); 
+            toast.success('Profil güncellendi.'); 
+        }
+        catch (err: any) { toast.error(err.response?.data?.message || err.response?.data?.Message || 'Güncelleme başarısız.'); }
         finally { setUpdatingProfile(false); }
+    };
+
+    const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        setUploadingImage(true);
+        try {
+            const { imageUrl } = await authService.updateProfileImage(file);
+            updateAuthorization({ ...user!, profileImageUrl: imageUrl } as any);
+            toast.success('Profil fotoğrafı güncellendi.');
+        } catch {
+            toast.error('Fotoğraf yüklenemedi.');
+        } finally {
+            setUploadingImage(false);
+        }
+    };
+
+    const handleDeleteImage = async () => {
+        try {
+            await authService.deleteProfileImage();
+            updateAuthorization({ ...user!, profileImageUrl: undefined } as any);
+            toast.success('Profil fotoğrafı silindi.');
+        } catch {
+            toast.error('Fotoğraf silinemedi.');
+        }
     };
 
 
@@ -113,10 +156,37 @@ export const ProfilePage: React.FC = () => {
         catch { toast.error('Hesap silinemedi.'); }
     };
 
-    const handleReviewSubmit = async (rating: number, comment: string, newImages: File[], _: string[]) => {
-        if (!selectedAppointment) return;
-        try { await reviewService.addReview({ appointmentId: selectedAppointment.id, rating, comment, images: newImages }); await loadAppointments(); }
-        catch { toast.error('Değerlendirme gönderilemedi.'); }
+    const handleReviewSubmit = async (rating: number, comment: string, newImages: File[], deletedImageUrls: string[]) => {
+        try { 
+            if (selectedReview) {
+                await reviewService.updateReview(selectedReview.id, { id: selectedReview.id, rating, comment, newImages, deletedImageUrls });
+                toast.success('Değerlendirme güncellendi.');
+            } else if (selectedAppointment) {
+                await reviewService.addReview({ appointmentId: selectedAppointment.id, rating, comment, images: newImages }); 
+                toast.success('Değerlendirme gönderildi.');
+            }
+            if (openSection === 'reviews') loadReviews();
+            if (openSection === 'appointments') loadAppointments();
+        }
+        catch { toast.error('İşlem başarısız.'); }
+        finally { setSelectedReview(null); setSelectedAppointment(null); setIsReviewModalOpen(false); }
+    };
+
+    const handleDeleteReview = async (id: string) => {
+        setReviewToDelete(id);
+    };
+
+    const confirmDeleteReview = async () => {
+        if (!reviewToDelete) return;
+        try {
+            await reviewService.deleteReview(reviewToDelete);
+            toast.success('Yorum silindi.');
+            loadReviews();
+        } catch {
+            toast.error('Yorum silinemedi.');
+        } finally {
+            setReviewToDelete(null);
+        }
     };
 
     const getStatusBadge = (status: number) => {
@@ -140,14 +210,72 @@ export const ProfilePage: React.FC = () => {
     return (
         <div className="min-h-screen bg-gray-100">
             {/* Profile Header Card */}
-            <div className="bg-white border-b border-gray-200">
-                <div className="max-w-2xl mx-auto px-4 py-6 flex items-center gap-4">
-                    <div className="h-14 w-14 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 flex-shrink-0 text-xl font-bold">
-                        {user?.firstName?.charAt(0) || <User className="h-6 w-6" />}
-                    </div>
-                    <div>
-                        <h1 className="text-lg font-bold text-gray-900">{fullName}</h1>
-                        <p className="text-sm text-gray-500">{user?.phoneNumber || ''}</p>
+            <div className="bg-white border-b border-gray-200 shadow-sm relative overflow-hidden">
+                {/* Decorative background element for premium feel */}
+                <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-r from-primary-600/5 to-secondary-600/5 -z-10" />
+                
+                <div className="max-w-2xl mx-auto px-4 pt-10 pb-8">
+                    <div className="flex flex-col items-center text-center">
+                        {/* Avatar Section */}
+                        <div className="relative mb-6">
+                            <div className="h-32 w-32 bg-gradient-to-br from-white to-gray-50 rounded-full flex items-center justify-center text-primary-700 flex-shrink-0 text-4xl font-black overflow-hidden border-4 border-white shadow-[0_10px_40px_-10px_rgba(0,0,0,0.15)] ring-1 ring-gray-100">
+                                {user?.profileImageUrl ? (
+                                    <img 
+                                        src={user.profileImageUrl} 
+                                        alt={fullName} 
+                                        className="h-full w-full object-cover transition-all duration-700 hover:scale-105"
+                                        style={{ imageRendering: 'auto' }}
+                                        onError={(e) => {
+                                            (e.target as HTMLImageElement).src = ''; 
+                                        }}
+                                    />
+                                ) : (
+                                    <span className="uppercase text-gray-400 font-light">{user?.firstName?.charAt(0) || 'K'}</span>
+                                )}
+                                {uploadingImage && (
+                                    <div className="absolute inset-0 bg-white/60 backdrop-blur-sm flex items-center justify-center z-10">
+                                        <div className="animate-spin rounded-full h-8 w-8 border-[3px] border-primary-600 border-t-transparent" />
+                                    </div>
+                                )}
+                            </div>
+                            <label className="absolute bottom-1 right-1 bg-primary-600 shadow-xl rounded-full p-2.5 cursor-pointer hover:bg-primary-700 border-2 border-white transition-all hover:scale-110 active:scale-95 z-20 group">
+                                <Camera className="h-5 w-5 text-white" />
+                                <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} disabled={uploadingImage} />
+                            </label>
+                        </div>
+
+                        {/* Info Section */}
+                        <div className="space-y-4 w-full">
+                            <div className="space-y-1">
+                                <h1 className="text-3xl font-black text-gray-900 tracking-tight leading-tight">{fullName}</h1>
+                                
+                                <div className="flex flex-col items-center gap-1">
+                                    {user?.phoneNumber && (
+                                        <div className="inline-flex items-center gap-1.5 text-gray-600 font-bold text-sm bg-gray-50 px-3 py-1 rounded-full border border-gray-100">
+                                            {user.phoneNumber}
+                                        </div>
+                                    )}
+                                    {user?.email && (
+                                        <p className="text-sm text-gray-400 font-medium">
+                                            {user.email}
+                                        </p>
+                                    )}
+                                </div>
+                            </div>
+                            
+                            <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                                <div className="px-4 py-1.5 bg-gray-900 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-md">
+                                    {user?.role === 'SalonOwner' ? 'İşletme Sahibi' : user?.role === 'Employee' ? 'Personel' : 'Müşteri'}
+                                </div>
+                                <div className="px-4 py-1.5 bg-white text-green-600 rounded-full text-[10px] font-black uppercase tracking-widest border-2 border-green-500 shadow-sm flex items-center gap-2">
+                                    <span className="relative flex h-2 w-2">
+                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                    </span>
+                                    Aktif Profil
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -212,6 +340,15 @@ export const ProfilePage: React.FC = () => {
                                             <input type="tel" value={phoneNumber} onChange={e => setPhoneNumber(e.target.value.replace(/\D/g, '').slice(0, 11))} className={inputCls} placeholder="05XXXXXXXXX" maxLength={11} required />
                                             <p className="text-xs text-gray-400 mt-1">Format: 05XXXXXXXXX</p>
                                         </div>
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-600 mb-1">E-posta (Opsiyonel)</label>
+                                            <input type="email" value={email} onChange={e => setEmail(e.target.value)} className={inputCls} placeholder="ornek@mail.com" />
+                                        </div>
+                                        {user?.profileImageUrl && (
+                                            <button type="button" onClick={handleDeleteImage} className="text-xs text-red-600 hover:text-red-700 flex items-center gap-1">
+                                                <Trash2 className="h-3 w-3" /> Profil Fotoğrafını Sil
+                                            </button>
+                                        )}
                                         <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 pt-1">
                                             <Button type="submit" disabled={updatingProfile} className="w-full sm:w-auto">
                                                 {updatingProfile ? 'Kaydediliyor...' : 'Kaydet'}
@@ -228,7 +365,45 @@ export const ProfilePage: React.FC = () => {
                                 {section.id === 'favorites' && (
                                     favLoading ? <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" /></div>
                                     : favorites.length > 0 ? <div className="grid grid-cols-1 gap-4">{favorites.map(shop => <ShopCard key={shop.id} shop={shop} initialIsFavorite={true} onToggleFavorite={s => { if (!s) setFavorites(favorites.filter(f => f.id !== shop.id)); }} />)}</div>
-                                    : <div className="text-center py-8"><Heart className="h-10 w-10 text-gray-300 mx-auto mb-2" /><p className="text-gray-500 text-sm">Favori salon eklemediniz.</p><Button className="mt-4" onClick={() => navigate('/')}>Salonları Keşfet</Button></div>
+                                : <div className="text-center py-8"><Heart className="h-10 w-10 text-gray-300 mx-auto mb-2" /><p className="text-gray-500 text-sm">Favori salon eklemediniz.</p><Button className="mt-4" onClick={() => navigate('/')}>Salonları Keşfet</Button></div>
+                                )}
+
+                                {/* ── REVIEWS ── */}
+                                {section.id === 'reviews' && (
+                                    reviewsLoading ? <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" /></div>
+                                    : myReviews.length > 0 ? (
+                                        <div className="space-y-4">
+                                            {myReviews.map(review => (
+                                                <div key={review.id} className="border border-gray-100 rounded-xl p-4 bg-gray-50/50">
+                                                    <div className="flex justify-between items-start mb-2">
+                                                        <div className="cursor-pointer group" onClick={() => navigate(`/shop/${review.shopId}?tab=reviews`)}>
+                                                            <h4 className="font-bold text-sm text-gray-900 group-hover:text-primary-600 transition-colors">{review.shopName}</h4>
+                                                            <p className="text-xs text-gray-500">{review.serviceName} • {review.employeeName}</p>
+                                                            <p className="text-[10px] text-gray-400 mt-0.5">{format(new Date(review.appointmentDate), 'd MMMM yyyy', { locale: tr })}</p>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <button onClick={() => { setSelectedReview(review); setIsReviewModalOpen(true); }} className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-white rounded-lg transition-all shadow-sm"><Edit2 className="h-3.5 w-3.5" /></button>
+                                                            <button onClick={() => handleDeleteReview(review.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-white rounded-lg transition-all shadow-sm"><Trash2 className="h-3.5 w-3.5" /></button>
+                                                        </div>
+                                                    </div>
+                                                    <div className="flex items-center gap-1 mb-2">
+                                                        {[...Array(5)].map((_, i) => (
+                                                            <span key={i} className={`h-3 w-3 ${i < review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`}>★</span>
+                                                        ))}
+                                                    </div>
+                                                    {review.comment && <p className="text-sm text-gray-700 leading-relaxed italic">"{review.comment}"</p>}
+                                                    {review.imageUrls && review.imageUrls.length > 0 && (
+                                                        <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
+                                                            {review.imageUrls.map((url, i) => (
+                                                                <img key={i} src={url} alt="review" className="h-16 w-16 object-cover rounded-lg flex-shrink-0 border border-gray-200" />
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )
+                                    : <div className="text-center py-8"><MessageSquare className="h-10 w-10 text-gray-300 mx-auto mb-2" /><p className="text-gray-500 text-sm">Henüz bir değerlendirme yapmadınız.</p></div>
                                 )}
 
 
@@ -299,13 +474,39 @@ export const ProfilePage: React.FC = () => {
                 />
             )}
 
+            {/* Delete Review Confirm */}
+            {reviewToDelete && (
+                <ConfirmModal
+                    title="Yorumu Sil"
+                    message="Bu değerlendirmeyi kalıcı olarak silmek istediğinize emin misiniz?"
+                    confirmLabel="Evet, Yorumu Sil"
+                    onConfirm={confirmDeleteReview}
+                    onCancel={() => setReviewToDelete(null)}
+                />
+            )}
+
             {selectedAppointment && (
                 <ReviewModal
-                    isOpen={isReviewModalOpen}
-                    onClose={() => setIsReviewModalOpen(false)}
+                    isOpen={isReviewModalOpen && !selectedReview}
+                    onClose={() => { setIsReviewModalOpen(false); setSelectedAppointment(null); }}
                     onSubmit={handleReviewSubmit}
                     shopName={selectedAppointment.shopName}
                     employeeName={selectedAppointment.employeeName}
+                />
+            )}
+
+            {selectedReview && (
+                <ReviewModal
+                    isOpen={isReviewModalOpen}
+                    onClose={() => { setIsReviewModalOpen(false); setSelectedReview(null); }}
+                    onSubmit={handleReviewSubmit}
+                    shopName={selectedReview.shopName}
+                    employeeName={selectedReview.employeeName}
+                    initialData={{
+                        rating: selectedReview.rating,
+                        comment: selectedReview.comment || '',
+                        imageUrls: selectedReview.imageUrls || []
+                    }}
                 />
             )}
         </div>

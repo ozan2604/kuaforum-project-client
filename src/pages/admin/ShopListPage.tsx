@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { shopService } from '../../api/shop.service';
 import type { Shop } from '../../types/shop';
-import { ShopCategoryLabels, TargetGenderLabels } from '../../types/shop';
+import { ShopCategoryLabels, TargetGenderLabels, type ShopCategory } from '../../types/shop';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { MapPin, Phone, Mail, User, Trash2, Search, Store, ChevronLeft, ChevronRight, Tags, Users, FileX, Calendar } from 'lucide-react';
@@ -136,7 +136,7 @@ export const ShopListPage: React.FC = () => {
                                         <div className="text-xs text-gray-500 flex items-center gap-2 mt-1">
                                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-100 text-purple-800">
                                                 <Tags className="w-3 h-3 mr-1" />
-                                                {ShopCategoryLabels[shop.category as keyof typeof ShopCategoryLabels] || 'Diğer'}
+                                                {shop.categories?.length > 0 ? shop.categories.slice(0, 2).map((c: number) => ShopCategoryLabels[c as ShopCategory]).join(', ') : 'Diğer'}
                                             </span>
                                             <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
                                                 <Users className="w-3 h-3 mr-1" />
