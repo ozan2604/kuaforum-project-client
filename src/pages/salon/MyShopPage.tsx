@@ -4,7 +4,8 @@ import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { shopService } from '../../api/shop.service';
 import { toast } from 'react-hot-toast';
-import { MapPin, Phone, Building2, Trash2, Loader2 } from 'lucide-react';
+import { MapPin, Phone, Building2, Trash2, Loader2, Search } from 'lucide-react';
+import { SearchableSelect } from '../../components/SearchableSelect';
 import { ShopCategory, ShopCategoryLabels, TargetGender, TargetGenderLabels } from '../../types/shop';
 
 const TURKIYE_API = 'https://turkiyeapi.dev/api/v1';
@@ -55,7 +56,8 @@ export const MyShopPage: React.FC = () => {
         try {
             const res = await fetch(`${TURKIYE_API}/provinces`);
             const json = await res.json();
-            setProvinces(json.data || []);
+            const data = (json.data || []).sort((a: any, b: any) => a.name.localeCompare(b.name, 'tr'));
+            setProvinces(data);
         } catch {
             toast.error('İller yüklenemedi.');
         } finally {
@@ -136,7 +138,8 @@ export const MyShopPage: React.FC = () => {
         try {
             const res = await fetch(`${TURKIYE_API}/neighborhoods?districtId=${districtId}`);
             const json = await res.json();
-            setNeighborhoods(json.data || []);
+            const data = (json.data || []).sort((a: any, b: any) => a.name.localeCompare(b.name, 'tr'));
+            setNeighborhoods(data);
         } catch {
             toast.error('Mahalleler yüklenemedi.');
         } finally {
@@ -472,51 +475,37 @@ export const MyShopPage: React.FC = () => {
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">İl <span className="text-red-500">*</span></label>
-                                    <div className="relative">
-                                        <select
-                                            value={selectedProvinceId ?? ''}
-                                            onChange={e => handleProvinceChange(Number(e.target.value))}
-                                            className="w-full px-4 py-2.5 rounded-lg border-2 border-gray-200 bg-white focus:border-primary-500 outline-none transition-all text-sm disabled:bg-gray-50"
-                                            disabled={loadingProvinces}
-                                        >
-                                            <option value="">-- İl Seçin --</option>
-                                            {provinces.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                                        </select>
-                                        {loadingProvinces && <Loader2 className="absolute right-3 top-3 h-4 w-4 animate-spin text-gray-400" />}
-                                    </div>
-                                </div>
-                                <div>
-                                    <label className="block text-sm font-semibold text-gray-700 mb-1.5">İlçe <span className="text-red-500">*</span></label>
-                                    <div className="relative">
-                                        <select
-                                            value={selectedDistrictId ?? ''}
-                                            onChange={e => handleDistrictChange(Number(e.target.value))}
-                                            className="w-full px-4 py-2.5 rounded-lg border-2 border-gray-200 bg-white focus:border-primary-500 outline-none transition-all text-sm disabled:bg-gray-50"
-                                            disabled={!selectedProvinceId}
-                                        >
-                                            <option value="">-- İlçe Seçin --</option>
-                                            {districts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                                        </select>
-                                    </div>
-                                </div>
+                                <SearchableSelect
+                                    label="İl"
+                                    required
+                                    options={provinces}
+                                    value={selectedProvinceId}
+                                    onChange={(val) => handleProvinceChange(val)}
+                                    placeholder="İl Seçin"
+                                    loading={loadingProvinces}
+                                />
+                                <SearchableSelect
+                                    label="İlçe"
+                                    required
+                                    options={districts}
+                                    value={selectedDistrictId}
+                                    onChange={(val) => handleDistrictChange(val)}
+                                    placeholder="İlçe Seçin"
+                                    disabled={!selectedProvinceId}
+                                />
                             </div>
 
                             <div className="mb-4">
-                                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Mahalle <span className="text-red-500">*</span></label>
-                                <div className="relative">
-                                    <select
-                                        value={neighborhoods.find(n => n.name === watch('neighborhood'))?.id ?? ''}
-                                        onChange={e => handleNeighborhoodChange(Number(e.target.value))}
-                                        className="w-full px-4 py-2.5 rounded-lg border-2 border-gray-200 bg-white focus:border-primary-500 outline-none transition-all text-sm disabled:bg-gray-50"
-                                        disabled={!selectedDistrictId || loadingNeighborhoods}
-                                    >
-                                        <option value="">-- Mahalle Seçin --</option>
-                                        {neighborhoods.map(n => <option key={n.id} value={n.id}>{n.name}</option>)}
-                                    </select>
-                                    {loadingNeighborhoods && <Loader2 className="absolute right-3 top-3 h-4 w-4 animate-spin text-gray-400" />}
-                                </div>
+                                <SearchableSelect
+                                    label="Mahalle"
+                                    required
+                                    options={neighborhoods}
+                                    value={neighborhoods.find(n => n.name === watch('neighborhood'))?.id ?? ''}
+                                    onChange={(val) => handleNeighborhoodChange(val)}
+                                    placeholder="Mahalle Seçin"
+                                    disabled={!selectedDistrictId || loadingNeighborhoods}
+                                    loading={loadingNeighborhoods}
+                                />
                             </div>
 
                             <div className="grid grid-cols-3 gap-4 mb-4">

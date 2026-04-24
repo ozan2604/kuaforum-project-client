@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { salonApplicationService } from '../api/salon-application.service';
 import { Button } from '../components/Button';
-import { Clock, CheckCircle, XCircle, MapPin, Phone, Mail, Store, ChevronRight, Loader2 } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, MapPin, Phone, Mail, Store, ChevronRight, Loader2, Search } from 'lucide-react';
+import { SearchableSelect } from '../components/SearchableSelect';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { TargetGender, TargetGenderLabels, ShopCategory, ShopCategoryLabels } from '../types/shop';
@@ -70,7 +71,8 @@ export const SalonApplicationPage: React.FC = () => {
         try {
             const res = await fetch(`${TURKIYE_API}/provinces`);
             const json = await res.json();
-            setProvinces(json.data || []);
+            const data = (json.data || []).sort((a: any, b: any) => a.name.localeCompare(b.name, 'tr'));
+            setProvinces(data);
         } catch {
             toast.error('İller yüklenemedi.');
         } finally {
@@ -98,7 +100,8 @@ export const SalonApplicationPage: React.FC = () => {
         try {
             const res = await fetch(`${TURKIYE_API}/neighborhoods?districtId=${districtId}`);
             const json = await res.json();
-            setNeighborhoods(json.data || []);
+            const data = (json.data || []).sort((a: any, b: any) => a.name.localeCompare(b.name, 'tr'));
+            setNeighborhoods(data);
         } catch {
             toast.error('Mahalleler yüklenemedi.');
         } finally {
@@ -321,55 +324,38 @@ export const SalonApplicationPage: React.FC = () => {
                                     </div>
 
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                        <div>
-                                            <label className={labelCls}>İl <span className="text-red-500">*</span></label>
-                                            <div className="relative">
-                                                <select
-                                                    value={selectedProvinceId ?? ''}
-                                                    onChange={e => handleProvinceChange(Number(e.target.value))}
-                                                    className={inputCls}
-                                                    required
-                                                    disabled={loadingProvinces}
-                                                >
-                                                    <option value="">-- İl Seçin --</option>
-                                                    {provinces.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
-                                                </select>
-                                                {loadingProvinces && <Loader2 className="absolute right-3 top-3.5 h-4 w-4 animate-spin text-gray-400" />}
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <label className={labelCls}>İlçe <span className="text-red-500">*</span></label>
-                                            <div className="relative">
-                                                <select
-                                                    value={selectedDistrictId ?? ''}
-                                                    onChange={e => handleDistrictChange(Number(e.target.value))}
-                                                    className={inputCls}
-                                                    required
-                                                    disabled={!selectedProvinceId || loadingDistricts}
-                                                >
-                                                    <option value="">-- İlçe Seçin --</option>
-                                                    {districts.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-                                                </select>
-                                                {loadingDistricts && <Loader2 className="absolute right-3 top-3.5 h-4 w-4 animate-spin text-gray-400" />}
-                                            </div>
-                                        </div>
+                                        <SearchableSelect
+                                            label="İl"
+                                            required
+                                            options={provinces}
+                                            value={selectedProvinceId}
+                                            onChange={(val) => handleProvinceChange(val)}
+                                            placeholder="İl Seçin"
+                                            loading={loadingProvinces}
+                                        />
+                                        <SearchableSelect
+                                            label="İlçe"
+                                            required
+                                            options={districts}
+                                            value={selectedDistrictId}
+                                            onChange={(val) => handleDistrictChange(val)}
+                                            placeholder="İlçe Seçin"
+                                            disabled={!selectedProvinceId}
+                                            loading={loadingDistricts}
+                                        />
                                     </div>
 
                                     <div>
-                                        <label className={labelCls}>Mahalle <span className="text-red-500">*</span></label>
-                                        <div className="relative">
-                                            <select
-                                                value={neighborhoods.find(n => n.name === form.neighborhood)?.id ?? ''}
-                                                onChange={e => handleNeighborhoodChange(Number(e.target.value))}
-                                                className={inputCls}
-                                                required
-                                                disabled={!selectedDistrictId || loadingNeighborhoods}
-                                            >
-                                                <option value="">-- Mahalle Seçin --</option>
-                                                {neighborhoods.map(n => <option key={n.id} value={n.id}>{n.name}</option>)}
-                                            </select>
-                                            {loadingNeighborhoods && <Loader2 className="absolute right-3 top-3.5 h-4 w-4 animate-spin text-gray-400" />}
-                                        </div>
+                                        <SearchableSelect
+                                            label="Mahalle"
+                                            required
+                                            options={neighborhoods}
+                                            value={neighborhoods.find(n => n.name === form.neighborhood)?.id ?? ''}
+                                            onChange={(val) => handleNeighborhoodChange(val)}
+                                            placeholder="Mahalle Seçin"
+                                            disabled={!selectedDistrictId || loadingNeighborhoods}
+                                            loading={loadingNeighborhoods}
+                                        />
                                         {selectedDistrictId && neighborhoods.length === 0 && !loadingNeighborhoods && (
                                             <p className="text-xs text-amber-600 mt-1">Bu ilçe için mahalle verisi bulunamadı. Lütfen sokak/cadde alanına tüm adresinizi yazın.</p>
                                         )}
