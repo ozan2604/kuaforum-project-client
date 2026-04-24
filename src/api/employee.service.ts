@@ -9,8 +9,9 @@ export const employeeService = {
     },
 
     // Add a new employee
-    addEmployee: async (data: CreateEmployeeDto): Promise<void> => {
-        await api.post('/employee', data);
+    addEmployee: async (data: CreateEmployeeDto): Promise<{ message: string }> => {
+        const response = await api.post<{ message: string }>('/employee', data);
+        return response.data;
     },
 
     updateEmployee: async (employeeId: string, data: any): Promise<void> => {
@@ -19,6 +20,10 @@ export const employeeService = {
 
     deleteEmployee: async (employeeId: string): Promise<void> => {
         await api.delete(`/employee/${employeeId}`);
+    },
+
+    restoreEmployee: async (employeeId: string): Promise<void> => {
+        await api.patch(`/employee/${employeeId}/restore`);
     },
 
     getPublicShopEmployees: async (shopId: string): Promise<Employee[]> => {

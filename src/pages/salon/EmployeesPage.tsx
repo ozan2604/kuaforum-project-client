@@ -7,7 +7,7 @@ import { serviceManagementService } from '../../api/service.service';
 import type { Employee, CreateEmployeeDto } from '../../types/employee';
 import type { ServiceCategoryDto } from '../../types/service';
 import { toast } from 'react-hot-toast';
-import { Plus, Users, Phone, User as UserIcon, Scissors, Clock, Trash2, Edit } from 'lucide-react';
+import { Plus, Users, Phone, User as UserIcon, Scissors, Clock, Trash2, Edit, RotateCcw } from 'lucide-react';
 import type { UpdateEmployeeOwnerDto } from '../../types/employee';
 
 const DAYS = [
@@ -27,6 +27,8 @@ export const EmployeesPage: React.FC = () => {
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
+    const [isRestoreModalOpen, setIsRestoreModalOpen] = useState(false);
+    const [employeeToRestore, setEmployeeToRestore] = useState<Employee | null>(null);
     const [isServicesModalOpen, setIsServicesModalOpen] = useState(false);
     const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
     const [availableServices, setAvailableServices] = useState<ServiceCategoryDto[]>([]);
@@ -155,8 +157,8 @@ export const EmployeesPage: React.FC = () => {
         const onSubmit = async (data: CreateEmployeeDto) => {
             setIsSubmitting(true);
             try {
-                await employeeService.addEmployee(data);
-                toast.success('Çalışan başarıyla eklendi.');
+                const result = await employeeService.addEmployee(data);
+                toast.success(result.message, { duration: 6000 });
                 setIsAddModalOpen(false);
                 reset();
                 loadEmployees();
@@ -191,6 +193,24 @@ export const EmployeesPage: React.FC = () => {
                 </div>
             </form>
         );
+    };
+
+    const confirmRestoreEmployee = (employee: Employee) => {
+        setEmployeeToRestore(employee);
+        setIsRestoreModalOpen(true);
+    };
+
+    const handleRestoreEmployee = async () => {
+        if (!employeeToRestore) return;
+        try {
+            await employeeService.restoreEmployee(employeeToRestore.id);
+            toast.success(`${employeeToRestore.firstName} ${employeeToRestore.lastName} başarıyla geri yüklendi.`);
+            setIsRestoreModalOpen(false);
+            setEmployeeToRestore(null);
+            loadEmployees();
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Çalışan geri yüklenemedi');
+        }
     };
 
     const confirmDeleteEmployee = (employee: Employee) => {
@@ -311,16 +331,16 @@ export const EmployeesPage: React.FC = () => {
                                 <span className={`px-2 py-1 rounded-full text-xs font-semibold ${employee.isDeleted ? 'bg-red-100 text-red-800' : employee.isActive ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
                                     {employee.isDeleted ? 'Silindi' : employee.isActive ? 'Aktif' : 'Pasif'}
                                 </span>
-                                {activeTab === 'active' && (
+                                {activeTab === 'active' ? (
                                     <div className="flex space-x-1">
-                                        <button 
+                                        <button
                                             onClick={() => { setSelectedEmployee(employee); setIsEditModalOpen(true); }}
                                             className="p-1 text-gray-400 hover:text-primary-600 transition-colors"
                                             title="Düzenle"
                                         >
                                             <Edit className="h-4 w-4" />
                                         </button>
-                                        <button 
+                                        <button
                                             onClick={() => confirmDeleteEmployee(employee)}
                                             className="p-1 text-gray-400 hover:text-red-600 transition-colors"
                                             title="Sil"
@@ -328,6 +348,14 @@ export const EmployeesPage: React.FC = () => {
                                             <Trash2 className="h-4 w-4" />
                                         </button>
                                     </div>
+                                ) : (
+                                    <button
+                                        onClick={() => confirmRestoreEmployee(employee)}
+                                        className="p-1 text-gray-400 hover:text-green-600 transition-colors"
+                                        title="Geri Yükle"
+                                    >
+                                        <RotateCcw className="h-4 w-4" />
+                                    </button>
                                 )}
                             </div>
                         </div>
@@ -385,6 +413,24 @@ export const EmployeesPage: React.FC = () => {
                             <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>İptal</Button>
                             <Button onClick={handleDeleteEmployee} className="bg-red-600 hover:bg-red-700 text-white border-transparent">
                                 Evet, Sil
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Restore Confirmation Modal */}
+            {isRestoreModalOpen && employeeToRestore && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-xl p-6 w-full max-w-sm">
+                        <h2 className="text-xl font-bold mb-4 text-gray-900">Çalışanı Geri Yükle</h2>
+                        <p className="text-gray-600 mb-6">
+                            <span className="font-semibold">{employeeToRestore.firstName} {employeeToRestore.lastName}</span> isimli çalışanı geri yüklemek istediğinize emin misiniz? Çalışana Employee rolü yeniden atanacak ve panele erişimi açılacaktır.
+                        </p>
+                        <div className="flex justify-end space-x-2">
+                            <Button variant="outline" onClick={() => { setIsRestoreModalOpen(false); setEmployeeToRestore(null); }}>İptal</Button>
+                            <Button onClick={handleRestoreEmployee} className="bg-green-600 hover:bg-green-700 text-white border-transparent">
+                                Evet, Geri Yükle
                             </Button>
                         </div>
                     </div>

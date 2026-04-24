@@ -25,8 +25,12 @@ export const LoginPage: React.FC = () => {
         setLoading(true);
 
         try {
-            await login({ identifier: phoneNumber, password });
-            navigate('/');
+            const role = await login({ identifier: phoneNumber, password });
+            const roles = Array.isArray(role) ? role : [role];
+            if (roles.includes('Admin')) navigate('/admin');
+            else if (roles.includes('SalonOwner')) navigate('/salon-panel');
+            else if (roles.includes('Employee')) navigate('/employee-panel/appointments');
+            else navigate('/');
         } catch (err: any) {
             if (err.response && err.response.data && err.response.data.message) {
                 setError(err.response.data.message);

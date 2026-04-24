@@ -23,7 +23,8 @@ export const SalonOwnerLayout: React.FC = () => {
         return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
     }
 
-    if (!user || user.role !== 'SalonOwner') {
+    const userRoles = user ? (Array.isArray(user.role) ? user.role : [user.role]) : [];
+    if (!user || !userRoles.includes('SalonOwner')) {
         return <Navigate to="/" replace />;
     }
 

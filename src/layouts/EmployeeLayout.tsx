@@ -21,7 +21,8 @@ export const EmployeeLayout: React.FC = () => {
         return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
     }
 
-    if (!user || user.role !== 'Employee') {
+    const userRoles = user ? (Array.isArray(user.role) ? user.role : [user.role]) : [];
+    if (!user || !userRoles.includes('Employee')) {
         return <Navigate to="/" replace />;
     }
 

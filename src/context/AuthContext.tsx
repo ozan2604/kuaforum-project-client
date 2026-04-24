@@ -8,7 +8,7 @@ interface AuthContextType {
     user: User | null;
     isAuthenticated: boolean;
     isLoading: boolean;
-    login: (data: LoginRequest) => Promise<void>;
+    login: (data: LoginRequest) => Promise<string>;
     register: (data: RegisterRequest) => Promise<void>;
     logout: () => void;
     updateAuthorization: (response: any) => void;
@@ -32,7 +32,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setIsLoading(false);
     }, []);
 
-    const login = async (data: LoginRequest) => {
+    const login = async (data: LoginRequest): Promise<string> => {
         setIsLoading(true);
         try {
             const response = await authService.login(data);
@@ -61,6 +61,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setUser(userData);
             setUserState(userData);
             setIsAuthenticated(true);
+            return role;
         } finally {
             setIsLoading(false);
         }
