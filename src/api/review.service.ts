@@ -31,6 +31,7 @@ export interface Review {
     comment?: string;
     createdAt: string;
     imageUrls: string[];
+    servicePrice: number;
 }
 
 export const reviewService = {

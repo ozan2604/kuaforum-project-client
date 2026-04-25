@@ -11,6 +11,11 @@ export const shopService = {
         return response.data;
     },
 
+    getDashboardStats: async (): Promise<any> => {
+        const response = await api.get<any>('/shop/my-shop/dashboard-stats');
+        return response.data;
+    },
+
     update: async (data: CreateShopDto): Promise<void> => {
         await api.put('/shop', data);
     },
