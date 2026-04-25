@@ -37,8 +37,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     const [submitting, setSubmitting] = useState(false);
 
     // State
-    const [currentStep, setCurrentStep] = useState<Step>('service');
-    const [selectedService, setSelectedService] = useState<ShopServiceDto | null>(null);
+    const [currentStep, setCurrentStep] = useState<Step>('personnel');
+    const [selectedServices, setSelectedServices] = useState<ShopServiceDto[]>([]);
     const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
     // Türkiye saatiyle bugünün tarihi (YYYY-MM-DD). toISOString() UTC verir, localDate doğru sonucu verir.
     const getTodayLocal = () => new Date().toLocaleDateString('en-CA');
@@ -49,19 +49,19 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     useEffect(() => {
         if (isOpen && shopId) {
             loadShopData();
-            setCurrentStep('service'); // Reset to first step on open
+            setCurrentStep('personnel'); // Reset to first step on open
 
             // Pre-select service if provided
             if (initialServiceId) {
-                setSelectedService({
+                setSelectedServices([{
                     id: initialServiceId,
                     name: initialServiceName || '',
                     duration: initialServiceDuration || 0,
                     price: initialServicePrice || 0,
                     isActive: true
-                });
+                }]);
             } else {
-                setSelectedService(null);
+                setSelectedServices([]);
             }
 
             setSelectedEmployeeId('');
@@ -115,7 +115,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             return [];
         }
 
-        const duration = selectedService?.duration ?? 15;
+        const duration = selectedServices.reduce((total, s) => total + s.duration, 0) || 15;
+        const slotInterval = 15; // Sabit 15 dakikalık başlangıç slotları
         const now = new Date();
         const isToday = selectedDate === getTodayLocal();
 
@@ -142,7 +143,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             const slotEnd = addMinutes(current, duration);
 
             // Hizmet süresi mesai bitimine sığmıyorsa bu slotu gösterme
-            if (slotEnd > end) break;
+            if (slotEnd > end) {
+                current = addMinutes(current, slotInterval);
+                continue;
+            }
 
             const label = `${timeString} - ${format(slotEnd, 'HH:mm')}`;
 
@@ -165,13 +169,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
             slots.push({ time: timeString, label, isBooked, isBreak, isPast });
 
-            current = addMinutes(current, duration);
+            current = addMinutes(current, slotInterval);
         }
         return slots;
     };
 
     const handleSubmit = async () => {
-        if (!selectedService) return;
+        if (selectedServices.length === 0) return;
 
         setSubmitting(true);
         try {
@@ -180,7 +184,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
             await appointmentService.createAppointment({
                 shopId,
-                shopServiceId: selectedService.id,
+                serviceIds: selectedServices.map(s => s.id),
                 shopEmployeeId: selectedEmployeeId,
                 startTime: startTime.toISOString(),
                 note: note
@@ -200,8 +204,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     if (!isOpen) return null;
 
     const steps: { id: Step; label: string; number: number }[] = [
-        { id: 'service', label: 'Hizmet Seçin', number: 1 },
-        { id: 'personnel', label: 'Personel Seçin', number: 2 },
+        { id: 'personnel', label: 'Personel Seçin', number: 1 },
+        { id: 'service', label: 'Hizmet Seçin', number: 2 },
         { id: 'datetime', label: 'Tarih & Saat', number: 3 },
         { id: 'confirm', label: 'Onay', number: 4 }
     ];
@@ -209,23 +213,19 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     const currentStepIndex = steps.findIndex(s => s.id === currentStep);
 
     const nextStep = () => {
-        if (currentStep === 'service') {
-            if (!selectedService) {
-                toast.error('Lütfen bir hizmet seçin.');
+        if (currentStep === 'personnel') {
+            if (!selectedEmployeeId) {
+                toast.error('Lütfen bir personel seçin.');
                 return;
             }
-            setCurrentStep('personnel');
+            setCurrentStep('service');
         }
-        else if (currentStep === 'personnel') {
-            if (!selectedEmployeeId) {
-                if (employees.length > 0 && !selectedEmployeeId) {
-                    toast.error('Lütfen bir personel seçin.');
-                    return;
-                }
-                setCurrentStep('datetime');
-            } else {
-                setCurrentStep('datetime');
+        else if (currentStep === 'service') {
+            if (selectedServices.length === 0) {
+                toast.error('Lütfen en az bir hizmet seçin.');
+                return;
             }
+            setCurrentStep('datetime');
         }
         else if (currentStep === 'datetime') {
             if (!selectedDate || !selectedTime) {
@@ -237,14 +237,22 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     };
 
     const prevStep = () => {
-        if (currentStep === 'personnel') setCurrentStep('service');
-        else if (currentStep === 'datetime') setCurrentStep('personnel');
+        if (currentStep === 'service') setCurrentStep('personnel');
+        else if (currentStep === 'datetime') setCurrentStep('service');
         else if (currentStep === 'confirm') setCurrentStep('datetime');
     };
 
-    const handleSelectService = (service: ShopServiceDto) => {
-        setSelectedService(service);
-        // Optional: Auto advance? No, let user confirm their choice visually first
+    const handleAddService = (service: ShopServiceDto) => {
+        setSelectedServices([...selectedServices, service]);
+    };
+
+    const handleRemoveService = (serviceId: string) => {
+        const index = selectedServices.findIndex(s => s.id === serviceId);
+        if (index !== -1) {
+            const newServices = [...selectedServices];
+            newServices.splice(index, 1);
+            setSelectedServices(newServices);
+        }
     };
 
     return (
@@ -311,21 +319,28 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                 <div className="text-center py-8 text-gray-500">Bu dükkanda hizmet bulunamadı.</div>
                             ) : (
                                 <div className="space-y-6">
-                                    {categories.map((cat) => (
+                                    {categories
+                                        .map(cat => ({
+                                            ...cat,
+                                            services: cat.services.filter(s => employees.find(e => e.id === selectedEmployeeId)?.serviceIds?.includes(s.id))
+                                        }))
+                                        .filter(cat => cat.services.length > 0)
+                                        .map((cat) => (
                                         <div key={cat.id} className="mb-6">
                                             <h4 className="text-sm font-bold text-gray-500 uppercase tracking-wider mb-3 px-1">{cat.name}</h4>
                                             <div className="grid grid-cols-1 gap-3">
-                                                {cat.services.map((service) => (
+                                                {cat.services.map((service) => {
+                                                    const count = selectedServices.filter(s => s.id === service.id).length;
+                                                    return (
                                                     <div
                                                         key={service.id}
-                                                        onClick={() => handleSelectService(service)}
-                                                        className={`group relative p-4 rounded-xl border-2 cursor-pointer flex justify-between items-center transition-all duration-300 ease-in-out
-                                                            ${selectedService?.id === service.id
+                                                        className={`group relative p-4 rounded-xl border-2 transition-all duration-300 ease-in-out flex justify-between items-center
+                                                            ${count > 0
                                                                 ? 'border-primary-600 bg-primary-50 shadow-md'
                                                                 : 'border-gray-100 bg-white hover:border-primary-200 hover:shadow-sm'}`}
                                                     >
                                                         <div className="flex flex-col">
-                                                            <span className={`font-bold text-lg transition-colors duration-200 ${selectedService?.id === service.id ? 'text-primary-900' : 'text-gray-900'}`}>
+                                                            <span className={`font-bold text-lg transition-colors duration-200 ${count > 0 ? 'text-primary-900' : 'text-gray-900'}`}>
                                                                 {service.name}
                                                             </span>
                                                             <div className="flex items-center gap-2 mt-1">
@@ -337,18 +352,42 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
                                                         <div className="flex items-center gap-5">
                                                             <span className="font-bold text-xl text-gray-900">₺{service.price}</span>
-                                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all duration-300
-                                                                ${selectedService?.id === service.id
-                                                                    ? 'bg-primary-600 text-white scale-110 shadow-lg'
-                                                                    : 'bg-gray-100 text-gray-300 group-hover:bg-primary-100 group-hover:text-primary-400'}`}>
-                                                                <Check className={`w-5 h-5 transition-transform duration-300 ${selectedService?.id === service.id ? 'scale-100' : 'scale-75'}`} />
+                                                            <div className="flex items-center gap-2 bg-gray-100 rounded-lg p-1">
+                                                                <button 
+                                                                    onClick={(e) => { e.preventDefault(); handleRemoveService(service.id); }} 
+                                                                    disabled={count === 0}
+                                                                    className={`w-8 h-8 flex items-center justify-center rounded-md font-bold text-lg transition-colors ${count > 0 ? 'bg-white text-red-500 shadow-sm' : 'text-gray-300'}`}
+                                                                >
+                                                                    -
+                                                                </button>
+                                                                <span className="font-bold text-lg w-4 text-center">{count}</span>
+                                                                <button 
+                                                                    onClick={(e) => { e.preventDefault(); handleAddService(service); }}
+                                                                    className="w-8 h-8 flex items-center justify-center rounded-md bg-white text-primary-600 font-bold text-lg shadow-sm"
+                                                                >
+                                                                    +
+                                                                </button>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                ))}
+                                                )})}
                                             </div>
                                         </div>
                                     ))}
+                                </div>
+                            )}
+                            
+                            {/* Sepet Özeti */}
+                            {selectedServices.length > 0 && (
+                                <div className="sticky bottom-0 bg-white border-t border-gray-100 p-4 -mx-6 -mb-6 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] flex justify-between items-center">
+                                    <div>
+                                        <p className="text-sm text-gray-500 font-medium">Toplam Süre</p>
+                                        <p className="font-bold text-primary-700">{selectedServices.reduce((t, s) => t + s.duration, 0)} dk</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-sm text-gray-500 font-medium">Toplam Tutar</p>
+                                        <p className="font-bold text-xl text-primary-700">₺{selectedServices.reduce((t, s) => t + s.price, 0)}</p>
+                                    </div>
                                 </div>
                             )}
                         </div>
@@ -365,12 +404,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                             ) : (
                                 <div className="space-y-4">
                                     {employees
-                                        .filter(emp => !selectedService || (emp.serviceIds && emp.serviceIds.includes(selectedService.id)))
+                                        .filter(emp => selectedServices.length === 0 || selectedServices.every(s => emp.serviceIds?.includes(s.id)))
                                         .length === 0 ? (
                                         <div className="text-center py-8 text-gray-500">Bu hizmeti veren uygun personel bulunamadı.</div>
                                     ) : (
                                         employees
-                                            .filter(emp => !selectedService || (emp.serviceIds && emp.serviceIds.includes(selectedService.id)))
+                                            .filter(emp => selectedServices.length === 0 || selectedServices.every(s => emp.serviceIds?.includes(s.id)))
                                             .map((emp) => (
                                                 <div
                                                     key={emp.id}
@@ -507,9 +546,20 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                             <h3 className="text-lg font-bold text-gray-900 mb-4 text-center">Randevu Özeti</h3>
 
                             <div className="bg-gray-50 rounded-xl p-6 space-y-4">
-                                <div className="flex justify-between border-b border-gray-200 pb-3">
-                                    <span className="text-gray-500">Hizmet</span>
-                                    <span className="font-bold text-gray-900">{selectedService?.name}</span>
+                                <div className="flex flex-col gap-2 border-b border-gray-200 pb-3">
+                                    <span className="text-gray-500">Hizmetler</span>
+                                    <ul className="space-y-1">
+                                        {Array.from(new Set(selectedServices.map(s => s.id))).map(uniqueId => {
+                                            const service = selectedServices.find(s => s.id === uniqueId);
+                                            const count = selectedServices.filter(s => s.id === uniqueId).length;
+                                            return (
+                                                <li key={uniqueId} className="flex justify-between items-center text-gray-900 font-bold text-sm">
+                                                    <span>{count > 1 ? `${count}x ` : ''}{service?.name}</span>
+                                                    <span>₺{(service?.price || 0) * count}</span>
+                                                </li>
+                                            );
+                                        })}
+                                    </ul>
                                 </div>
                                 <div className="flex justify-between border-b border-gray-200 pb-3">
                                     <span className="text-gray-500">Personel</span>
@@ -528,14 +578,14 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                             if (!selectedTime) return '';
                                             const [h, m] = selectedTime.split(':').map(Number);
                                             const start = setHours(setMinutes(new Date(), m), h);
-                                            const end = addMinutes(start, selectedService?.duration ?? 15);
+                                            const end = addMinutes(start, selectedServices.reduce((t, s) => t + s.duration, 0) || 15);
                                             return `${selectedTime} - ${format(end, 'HH:mm')}`;
                                         })()}
                                     </span>
                                 </div>
                                 <div className="flex justify-between items-center pt-2">
                                     <span className="text-gray-600 font-medium">Toplam Tutar</span>
-                                    <span className="text-2xl font-bold text-primary-700">₺{selectedService?.price}</span>
+                                    <span className="text-2xl font-bold text-primary-700">₺{selectedServices.reduce((t, s) => t + s.price, 0)}</span>
                                 </div>
                             </div>
 

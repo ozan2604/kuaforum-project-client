@@ -24,6 +24,7 @@ export interface AppointmentDto {
     endTime: string;
     status: AppointmentStatus;
     note?: string;
+    groupId?: string;
     hasReview: boolean;
 }
 
@@ -32,7 +33,7 @@ export type Appointment = AppointmentDto;
 
 export interface CreateAppointmentDto {
     shopId: string;
-    shopServiceId: string;
+    serviceIds: string[];
     shopEmployeeId: string;
     startTime: string;
     note?: string;
