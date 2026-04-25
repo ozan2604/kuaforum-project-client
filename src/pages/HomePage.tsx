@@ -22,6 +22,53 @@ L.Icon.Default.mergeOptions({
 
 const TURKIYE_API = 'https://turkiyeapi.dev/api/v1';
 
+const escapeHtml = (s: string) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+
+const createShopMarkerIcon = (shop: { name: string; coverImagePath?: string }): L.DivIcon => {
+    const label = escapeHtml(shop.name.length > 18 ? shop.name.slice(0, 16) + '…' : shop.name);
+    return L.divIcon({
+        className: '',
+        html: `<div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 3px 10px rgba(0,0,0,0.22));">
+            <div style="display:flex;align-items:center;gap:5px;background:#fff;border-radius:20px;padding:4px 10px 4px 5px;border:1.5px solid #fecaca;">
+                <div style="width:8px;height:8px;background:linear-gradient(135deg,#ef4444,#dc2626);border-radius:50%;flex-shrink:0;box-shadow:0 1px 3px rgba(239,68,68,0.5);"></div>
+                <span style="font-size:11px;font-weight:700;color:#111827;white-space:nowrap;max-width:110px;overflow:hidden;text-overflow:ellipsis;">${label}</span>
+            </div>
+            <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:6px solid #fecaca;"></div>
+        </div>`,
+        iconSize: [140, 34],
+        iconAnchor: [70, 34],
+        popupAnchor: [0, -36],
+    });
+};
+
+const createUserMarkerIcon = (profileImageUrl?: string | null): L.DivIcon => {
+    if (profileImageUrl) {
+        const src = escapeHtml(profileImageUrl);
+        return L.divIcon({
+            className: '',
+            html: `<div style="display:flex;flex-direction:column;align-items:center;filter:drop-shadow(0 3px 12px rgba(0,0,0,0.28));">
+                <div style="padding:2.5px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#8b5cf6);">
+                    <img src="${src}" style="width:38px;height:38px;border-radius:50%;border:2px solid #fff;object-fit:cover;display:block;" />
+                </div>
+                <div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid #8b5cf6;margin-top:-1px;"></div>
+            </div>`,
+            iconSize: [44, 54],
+            iconAnchor: [22, 54],
+            popupAnchor: [0, -56],
+        });
+    }
+    return L.divIcon({
+        className: '',
+        html: `<div style="position:relative;display:flex;align-items:center;justify-content:center;width:32px;height:32px;">
+            <span class="animate-ping" style="position:absolute;display:inline-flex;height:100%;width:100%;border-radius:50%;background:#60a5fa;opacity:0.35;"></span>
+            <div style="position:relative;width:16px;height:16px;background:#2563eb;border-radius:50%;border:2.5px solid #fff;box-shadow:0 2px 8px rgba(37,99,235,0.5);"></div>
+        </div>`,
+        iconSize: [32, 32],
+        iconAnchor: [16, 16],
+        popupAnchor: [0, -18],
+    });
+};
+
 interface Province { id: number; name: string; districts: { id: number; name: string }[] }
 interface Neighborhood { id: number; name: string }
 
@@ -36,7 +83,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
     const [searchParams] = useSearchParams();
     const searchTerm = searchParams.get('search') || '';
     const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-    const { isAuthenticated } = useAuth();
+    const { isAuthenticated, user } = useAuth();
     const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
 
     // Location API state
@@ -530,13 +577,14 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
             <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-1">
                 {/* Ana İçerik Listesi */}
                 <main className="flex-1 min-w-0">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-                        <h2 className="text-xl font-bold text-gray-900">
-                            {filteredShops.length} Salon Bulundu
-                        </h2>
+                    <div className="flex items-center justify-end mb-6">
                         <button
                             onClick={() => setIsMapModalOpen(!isMapModalOpen)}
-                            className={`px-5 py-2.5 rounded-xl font-semibold transition-all shadow-sm flex items-center justify-center gap-2 border w-full sm:w-auto ${isMapModalOpen ? 'bg-primary-50 text-primary-700 border-primary-200 hover:bg-primary-100' : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'}`}
+                            className={`px-5 py-2.5 rounded-xl font-semibold transition-all shadow-sm flex items-center justify-center gap-2 border w-full ${
+                                isMapModalOpen
+                                    ? 'bg-primary-50 text-primary-700 border-primary-200 hover:bg-primary-100'
+                                    : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                            }`}
                         >
                             <Map className="w-4 h-4" />
                             {isMapModalOpen ? 'Haritayı Gizle' : 'Haritada Gör'}
@@ -559,9 +607,12 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
 
                                 {/* User Location Marker */}
                                 {userLocation && (
-                                    <Marker position={[userLocation.lat, userLocation.lng]}>
-                                        <Popup>
-                                            <div className="font-bold text-primary-600 py-0.5">Sizin Konumunuz</div>
+                                    <Marker
+                                        position={[userLocation.lat, userLocation.lng]}
+                                        icon={createUserMarkerIcon(user?.profileImageUrl)}
+                                    >
+                                        <Popup closeButton={false}>
+                                            <div className="font-bold text-primary-600 py-0.5 px-1">📍 Sizin Konumunuz</div>
                                         </Popup>
                                     </Marker>
                                 )}
@@ -573,6 +624,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                                         <Marker
                                             key={shop.id}
                                             position={[shop.latitude, shop.longitude]}
+                                            icon={createShopMarkerIcon(shop)}
                                         >
                                             <Popup className="shop-popup rounded-2xl border-0 overflow-visible" closeButton={false}>
                                                 <div className="-mx-[20px] -my-[14px] min-w-[220px] font-sans flex flex-col overflow-hidden rounded-xl">
@@ -609,22 +661,25 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                     )}
 
                     {selectedProvince === null && (
-                        <div className="bg-gradient-to-r from-primary-50 to-primary-100 border border-primary-200 rounded-2xl p-4 sm:p-5 mb-6 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
-                            <div className="flex items-center gap-4">
-                                <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center shrink-0 shadow-sm">
-                                    <MapPin className="w-6 h-6 text-primary-600" />
+                        <div className="relative overflow-hidden bg-gradient-to-br from-primary-600 to-primary-800 rounded-2xl p-4 sm:p-5 mb-6 shadow-md">
+                            {/* decorative circles */}
+                            <div className="absolute -right-6 -top-6 w-28 h-28 bg-white/5 rounded-full pointer-events-none" />
+                            <div className="absolute -right-2 bottom-0 w-20 h-20 bg-white/5 rounded-full pointer-events-none" />
+                            <div className="relative flex items-center gap-3">
+                                <div className="shrink-0 w-10 h-10 bg-white/15 rounded-xl flex items-center justify-center">
+                                    <MapPin className="w-5 h-5 text-white" />
                                 </div>
-                                <div>
-                                    <h3 className="text-gray-900 font-bold text-lg leading-tight">Size Yakın Kuaförleri Keşfedin!</h3>
-                                    <p className="text-gray-600 text-sm mt-1 font-medium">Size en uygun sonuçları görmek ve randevu almak için hemen konumunuzu belirleyin.</p>
+                                <div className="flex-1 min-w-0">
+                                    <h3 className="text-white font-bold text-sm sm:text-base leading-tight truncate">Size Yakın Kuaförleri Keşfedin!</h3>
+                                    <p className="text-primary-200 text-xs sm:text-sm mt-0.5 leading-snug">Konumunuzu seçin, en yakın salonları bulun.</p>
                                 </div>
+                                <button
+                                    onClick={() => setIsLocationDropdownOpen(true)}
+                                    className="shrink-0 bg-white text-primary-700 px-4 py-2 rounded-xl font-bold text-sm transition-all hover:bg-primary-50 shadow-sm whitespace-nowrap"
+                                >
+                                    Konum Seç
+                                </button>
                             </div>
-                            <button
-                                onClick={() => setIsLocationDropdownOpen(true)}
-                                className="flex-shrink-0 bg-primary-600 hover:bg-primary-700 text-white px-5 py-2.5 rounded-xl font-semibold transition-colors shadow-sm w-full sm:w-auto"
-                            >
-                                Konum Seç
-                            </button>
                         </div>
                     )}
                     {loading ? (
