@@ -16,7 +16,7 @@ interface Option {
 interface SearchableSelectProps {
     options: Option[];
     value: number | string | null;
-    onChange: (value: number) => void;
+    onChange: (value: any) => void;
     placeholder: string;
     label?: string;
     disabled?: boolean;
@@ -69,7 +69,7 @@ export const SearchableSelect: React.FC<SearchableSelectProps> = ({
                 value={selectedOption}
                 onChange={(opt: Option | null) => {
                     if (opt) {
-                        onChange(Number(opt.id));
+                        onChange(opt.id);
                         setQuery('');
                     }
                 }}

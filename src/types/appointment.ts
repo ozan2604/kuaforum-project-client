@@ -26,6 +26,7 @@ export interface AppointmentDto {
     note?: string;
     groupId?: string;
     hasReview: boolean;
+    cancellationReason?: string;
 }
 
 // Alias for backward compatibility if needed, or just use AppointmentDto

@@ -12,12 +12,16 @@ export interface PagedResult<T> {
 export const appointmentService = {
     // Get appointments for a specific shop (Salon Owner)
     // Get appointments for a specific shop (Salon Owner)
-    getShopAppointments: async (shopId: string, page: number = 1, pageSize: number = 10, status?: AppointmentStatus): Promise<PagedResult<Appointment>> => {
+    getShopAppointments: async (shopId: string, page: number = 1, pageSize: number = 10, status?: AppointmentStatus, searchTerm?: string, date?: string, employeeId?: string, serviceId?: string): Promise<PagedResult<Appointment>> => {
         const response = await api.get<PagedResult<Appointment>>(`/Appointment/shop/${shopId}`, {
             params: {
                 page,
                 pageSize,
-                status
+                status,
+                searchTerm,
+                date,
+                employeeId,
+                serviceId
             }
         });
         return response.data;
