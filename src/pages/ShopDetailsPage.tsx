@@ -6,7 +6,7 @@ import { employeeService } from '../api/employee.service';
 import type { Shop } from '../types/shop';
 import type { ServiceCategoryDto, ShopServiceDto } from '../types/service';
 import type { PublicEmployeeScheduleDto } from '../types/employee';
-import { MapPin, Star, Phone, Clock, Calendar, ChevronLeft, ChevronDown, Heart, Grid, Info, Image, MessageCircle, Users } from 'lucide-react';
+import { MapPin, Star, Clock, Calendar, ChevronLeft, ChevronDown, Heart, Grid, Info, Image, MessageCircle, Users } from 'lucide-react';
 import { Button } from '../components/Button';
 import { toast } from 'react-hot-toast';
 import { BookingModal } from '../components/BookingModal';
@@ -270,11 +270,11 @@ export const ShopDetailsPage: React.FC = () => {
                 </div>
             </div>
 
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
-                    {/* Left Column: Content with Tabs */}
-                    <div className="lg:col-span-2 space-y-8">
-                        <div className="flex flex-wrap gap-3 pb-2">
+            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
+                <div>
+                    {/* Content with Tabs */}
+                    <div className="space-y-8">
+                        <div className="flex overflow-x-auto gap-2 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
                             {(['services', 'about', 'gallery', 'reviews', 'hours'] as const).map((tab) => {
                                 const icons = {
                                     services: Grid,
@@ -296,7 +296,7 @@ export const ShopDetailsPage: React.FC = () => {
                                     <button
                                         key={tab}
                                         onClick={() => setActiveTab(tab)}
-                                        className={`flex items-center gap-2 px-6 py-2.5 rounded-full font-medium text-sm transition-all duration-200 border ${activeTab === tab
+                                        className={`flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full font-medium text-sm transition-all duration-200 border whitespace-nowrap ${activeTab === tab
                                             ? 'bg-white border-primary-600 text-primary-600 shadow-sm ring-1 ring-primary-600'
                                             : 'bg-gray-100 border-transparent text-gray-600 hover:bg-gray-200'
                                             }`}
@@ -650,52 +650,6 @@ export const ShopDetailsPage: React.FC = () => {
                                 />
                             </div>
                         )}
-                    </div>
-                </div>
-
-                {/* Right Column: Sticky Sidebar */}
-                <div className="lg:col-span-1">
-                    <div className="sticky top-24 space-y-6">
-                        {shop.openTime && shop.closeTime && (
-                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex items-center gap-3">
-                                <Clock className="h-5 w-5 text-primary-500 flex-shrink-0" />
-                                <div>
-                                    <p className="text-xs text-gray-500">Çalışma Saatleri</p>
-                                    <p className="font-bold text-gray-900">{shop.openTime} – {shop.closeTime}</p>
-                                </div>
-                                <button
-                                    onClick={() => setActiveTab('hours')}
-                                    className="ml-auto text-xs text-primary-600 font-medium hover:underline"
-                                >
-                                    Detay
-                                </button>
-                            </div>
-                        )}
-
-                        <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-                            <h3 className="font-bold text-gray-900 mb-4">İletişim</h3>
-                            <div className="space-y-4">
-                                <div className="flex items-start">
-                                    <MapPin className="h-5 w-5 text-primary-500 mr-3 mt-1" />
-                                    <p className="text-gray-600 text-sm leading-relaxed">{shop.address}<br />{shop.district}, {shop.city}</p>
-                                </div>
-                                <div className="flex items-center">
-                                    <Phone className="h-5 w-5 text-primary-500 mr-3" />
-                                    <p className="text-gray-600 text-sm font-medium">{shop.phoneNumber}</p>
-                                </div>
-                            </div>
-
-                            <div className="mt-8 pt-6 border-t border-gray-100">
-                                <Button className="w-full shadow-lg shadow-secondary-500/20 font-bold" size="lg" variant="secondary" onClick={() => {
-                                    setSelectedService(null);
-                                    setIsBookingModalOpen(true);
-                                }}>
-                                    <Calendar className="h-5 w-5 mr-2" />
-                                    Randevu Al
-                                </Button>
-                                <p className="text-xs text-center text-gray-400 mt-3">Kolay ve hızlı rezervasyon</p>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
