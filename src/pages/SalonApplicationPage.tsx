@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { salonApplicationService } from '../api/salon-application.service';
 import { Button } from '../components/Button';
-import { Clock, CheckCircle, XCircle, MapPin, Phone, Mail, Store, ChevronRight, Loader2, Search } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, MapPin, Phone, Mail, Store, ChevronRight, Loader2 } from 'lucide-react';
 import { SearchableSelect } from '../components/SearchableSelect';
+import MapPicker from '../components/MapPicker';
 import { toast } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { TargetGender, TargetGenderLabels, ShopCategory, ShopCategoryLabels } from '../types/shop';
@@ -28,8 +29,10 @@ export const SalonApplicationPage: React.FC = () => {
     const [districts, setDistricts] = useState<{ id: number; name: string }[]>([]);
     const [neighborhoods, setNeighborhoods] = useState<Neighborhood[]>([]);
     const [loadingProvinces, setLoadingProvinces] = useState(false);
-    const [loadingDistricts, setLoadingDistricts] = useState(false);
+    const [loadingDistricts] = useState(false);
     const [loadingNeighborhoods, setLoadingNeighborhoods] = useState(false);
+
+    const [isCheckingEmail, setIsCheckingEmail] = useState(false);
 
     const [form, setForm] = useState({
         shopName: '',
@@ -43,7 +46,9 @@ export const SalonApplicationPage: React.FC = () => {
         neighborhood: '',
         street: '',
         buildingNumber: '',
-        address: ''
+        address: '',
+        latitude: null as number | null,
+        longitude: null as number | null,
     });
 
     // Selected IDs for API chain
@@ -136,8 +141,29 @@ export const SalonApplicationPage: React.FC = () => {
         return true;
     };
 
-    const handleNext = () => {
-        if (validateStep(currentStep)) setCurrentStep(s => s + 1);
+    const handleNext = async () => {
+        if (!validateStep(currentStep)) return;
+
+        if (currentStep === 1) {
+            setIsCheckingEmail(true);
+            try {
+                const result = await salonApplicationService.checkContactEmail(form.contactEmail);
+                if (!result.isAvailable) {
+                    if (result.isUsedByShop || result.isUsedByApplication)
+                        toast.error('Bu e-posta adresi başka bir salona ait.');
+                    else if (result.isRegisteredUser)
+                        toast.error('Bu e-posta adresi sistemde kayıtlı bir kullanıcıya ait.');
+                    return;
+                }
+            } catch {
+                toast.error('E-posta kontrolü sırasında bir hata oluştu.');
+                return;
+            } finally {
+                setIsCheckingEmail(false);
+            }
+        }
+
+        setCurrentStep(s => s + 1);
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
@@ -377,6 +403,16 @@ export const SalonApplicationPage: React.FC = () => {
                                         <textarea value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} className={inputCls} rows={3} placeholder="Örn: Atatürk Cad. No:12B Kat:2, Karşıyaka AVM yanı, İzmir" required />
                                         <p className="text-xs text-gray-400 mt-1">Kargo veya müşterinin kolayca bulabilmesi için tam adresi girin.</p>
                                     </div>
+
+                                    <MapPicker
+                                        latitude={form.latitude}
+                                        longitude={form.longitude}
+                                        onLocationChange={(lat, lng) => setForm(f => ({ ...f, latitude: lat, longitude: lng }))}
+                                        city={form.city}
+                                        district={form.district}
+                                        neighborhood={form.neighborhood}
+                                        street={form.street}
+                                    />
                                 </div>
                             )}
 
@@ -388,8 +424,8 @@ export const SalonApplicationPage: React.FC = () => {
                                     </button>
                                 )}
                                 {currentStep < steps.length - 1 ? (
-                                    <button type="button" onClick={handleNext} className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all active:scale-95">
-                                        Devam Et <ChevronRight className="h-4 w-4" />
+                                    <button type="button" onClick={handleNext} disabled={isCheckingEmail} className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-700 disabled:bg-indigo-400 shadow-lg shadow-indigo-200 transition-all active:scale-95">
+                                        {isCheckingEmail ? <><Loader2 className="h-4 w-4 animate-spin" /> Kontrol ediliyor...</> : <>Devam Et <ChevronRight className="h-4 w-4" /></>}
                                     </button>
                                 ) : (
                                     <button type="submit" className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all active:scale-95 text-base">

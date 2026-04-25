@@ -30,4 +30,13 @@ export interface CreateSalonApplicationDto {
     contactEmail: string;
     categoryIds: number[];
     genderPreference: number;
+    latitude?: number | null;
+    longitude?: number | null;
+}
+
+export interface ContactEmailCheckResult {
+    isAvailable: boolean;
+    isUsedByShop: boolean;
+    isUsedByApplication: boolean;
+    isRegisteredUser: boolean;
 }

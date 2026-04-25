@@ -4,9 +4,10 @@ import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { shopService } from '../../api/shop.service';
 import { toast } from 'react-hot-toast';
-import { MapPin, Phone, Building2, Trash2, Loader2, Search } from 'lucide-react';
+import { MapPin, Phone, Building2, Trash2, Loader2 } from 'lucide-react';
 import { SearchableSelect } from '../../components/SearchableSelect';
 import { ShopCategory, ShopCategoryLabels, TargetGender, TargetGenderLabels } from '../../types/shop';
+import MapPicker from '../../components/MapPicker';
 
 const TURKIYE_API = 'https://turkiyeapi.dev/api/v1';
 interface Province { id: number; name: string; districts: { id: number; name: string }[] }
@@ -153,29 +154,6 @@ export const MyShopPage: React.FC = () => {
         setValue('neighborhood', n.name);
     };
 
-    const handleGeocode = async () => {
-        const { address, city, district } = getValues();
-        if (!city || !district) {
-            toast.error('Lütfen önce İl ve İlçe bilgilerini girin.');
-            return;
-        }
-
-        const query = `${address} ${district} ${city}`;
-        try {
-            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}`);
-            const data = await response.json();
-            if (data && data.length > 0) {
-                setValue('latitude', parseFloat(data[0].lat));
-                setValue('longitude', parseFloat(data[0].lon));
-                toast.success('Konum bulundu!');
-            } else {
-                toast.error('Konum bulunamadı. Lütfen adresinizi kontrol edin.');
-            }
-        } catch (error) {
-            console.error('Geocoding error:', error);
-            toast.error('Konum alınırken bir hata oluştu.');
-        }
-    };
 
     const handleCoverImageUpload = async (file: File) => {
         if (!shopId) return;
@@ -464,9 +442,6 @@ export const MyShopPage: React.FC = () => {
                                     <MapPin className="mr-2 h-5 w-5 text-gray-500" />
                                     Konum Detayları
                                 </h3>
-                                <Button type="button" variant="outline" onClick={handleGeocode} size="sm">
-                                    Otomatik Konum Bul
-                                </Button>
                             </div>
 
                             <div className="flex items-center gap-2 text-sm text-indigo-600 bg-indigo-50 px-4 py-3 rounded-xl border border-indigo-100 mb-4">
@@ -527,23 +502,17 @@ export const MyShopPage: React.FC = () => {
                                 {errors.address && <p className="text-xs text-red-500 mt-1">{errors.address.message}</p>}
                                 <p className="text-xs text-gray-400 mt-1">Müşterinin kolayca bulabilmesi için tam adresi girin.</p>
                             </div>
+
+                            <MapPicker
+                                latitude={watch('latitude') ?? null}
+                                longitude={watch('longitude') ?? null}
+                                onLocationChange={(lat, lng) => { setValue('latitude', lat); setValue('longitude', lng); }}
+                                city={watch('city')}
+                                district={watch('district')}
+                                neighborhood={watch('neighborhood')}
+                                street={watch('street')}
+                            />
                         </div>
-
-                        <Input
-                            label="Enlem (Latitude)"
-                            type="number"
-                            step="any"
-                            {...register('latitude', { valueAsNumber: true })}
-                            placeholder="Örn: 41.0082"
-                        />
-
-                        <Input
-                            label="Boylam (Longitude)"
-                            type="number"
-                            step="any"
-                            {...register('longitude', { valueAsNumber: true })}
-                            placeholder="Örn: 28.9784"
-                        />
                     </div>
 
                     <div className="pt-4 border-t border-gray-100 flex justify-end">

@@ -1,5 +1,5 @@
 import api from './axios';
-import type { CreateSalonApplicationDto } from '../types/salon-application';
+import type { ContactEmailCheckResult, CreateSalonApplicationDto } from '../types/salon-application';
 
 export const salonApplicationService = {
     apply: async (data: CreateSalonApplicationDto): Promise<void> => {
@@ -26,6 +26,13 @@ export const salonApplicationService = {
 
     getMyApplication: async (): Promise<any> => {
         const response = await api.get('/SalonApplication/my-application');
+        return response.data;
+    },
+
+    checkContactEmail: async (email: string): Promise<ContactEmailCheckResult> => {
+        const response = await api.get('/SalonApplication/check-contact-email', {
+            params: { email }
+        });
         return response.data;
     }
 };
