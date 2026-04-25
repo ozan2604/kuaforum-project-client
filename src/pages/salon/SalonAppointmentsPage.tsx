@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Button } from '../../components/Button';
 import { appointmentService } from '../../api/appointment.service';
 import { shopService } from '../../api/shop.service';
@@ -18,6 +19,7 @@ export const SalonAppointmentsPage: React.FC = () => {
     const [totalPages, setTotalPages] = useState(0);
     const [isAutoProcessEnabled, setIsAutoProcessEnabled] = useState(false);
     const [shopId, setShopId] = useState<string | null>(null);
+    const [confirmAction, setConfirmAction] = useState<{ id: string; status: AppointmentStatus; label: string; actionText: string } | null>(null);
 
     const loadData = async () => {
         setLoading(true);
@@ -61,6 +63,10 @@ export const SalonAppointmentsPage: React.FC = () => {
         }
     };
 
+    const requestStatusUpdate = (id: string, status: AppointmentStatus, label: string, actionText: string) => {
+        setConfirmAction({ id, status, label, actionText });
+    };
+
     const handleStatusUpdate = async (id: string, status: AppointmentStatus) => {
         try {
             await appointmentService.updateStatus(id, status);
@@ -75,6 +81,8 @@ export const SalonAppointmentsPage: React.FC = () => {
             }
         } catch (error) {
             toast.error('Durum güncellenemedi');
+        } finally {
+            setConfirmAction(null);
         }
     };
 
@@ -87,9 +95,9 @@ export const SalonAppointmentsPage: React.FC = () => {
             case AppointmentStatus.Completed:
                 return <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold flex items-center shadow-sm"><CheckCircle className="w-3.5 h-3.5 mr-1" /> Tamamlandı</span>;
             case AppointmentStatus.Cancelled:
-                return <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-semibold flex items-center shadow-sm"><XCircle className="w-3.5 h-3.5 mr-1" /> İptal Edildi</span>;
+                return <span className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-semibold flex items-center shadow-sm"><XCircle className="w-3.5 h-3.5 mr-1" /> İptal Edildi</span>;
             case AppointmentStatus.Rejected:
-                return <span className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-semibold flex items-center shadow-sm"><XCircle className="w-3.5 h-3.5 mr-1" /> Reddedildi</span>;
+                return <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-semibold flex items-center shadow-sm"><XCircle className="w-3.5 h-3.5 mr-1" /> Reddedildi</span>;
             default:
                 return null;
         }
@@ -239,20 +247,20 @@ export const SalonAppointmentsPage: React.FC = () => {
                                                 <div className="flex justify-end gap-2">
                                                     {appointment.status === AppointmentStatus.Pending && (
                                                         <>
-                                                            <Button size="sm" onClick={() => handleStatusUpdate(appointment.id, AppointmentStatus.Confirmed)}>
+                                                            <Button size="sm" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Confirmed, 'Randevuyu Onayla', 'Bu randevuyu onaylamak istediğinize emin misiniz?')}>
                                                                 Onayla
                                                             </Button>
-                                                            <Button size="sm" variant="danger" onClick={() => handleStatusUpdate(appointment.id, AppointmentStatus.Rejected)}>
+                                                            <Button size="sm" variant="danger" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Rejected, 'Randevuyu Reddet', 'Bu randevuyu reddetmek istediğinize emin misiniz? Müşteriye bildirim gönderilecektir.')}>
                                                                 Reddet
                                                             </Button>
                                                         </>
                                                     )}
                                                     {appointment.status === AppointmentStatus.Confirmed && (
                                                         <>
-                                                            <Button size="sm" variant="outline" onClick={() => handleStatusUpdate(appointment.id, AppointmentStatus.Completed)}>
+                                                            <Button size="sm" variant="outline" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Completed, 'Randevuyu Tamamla', 'Bu randevunun tamamlandığını onaylıyor musunuz?')}>
                                                                 Tamamlandı
                                                             </Button>
-                                                            <Button size="sm" variant="danger" onClick={() => handleStatusUpdate(appointment.id, AppointmentStatus.Cancelled)}>
+                                                            <Button size="sm" variant="danger" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Cancelled, 'Randevuyu İptal Et', 'Bu randevuyu iptal etmek istediğinize emin misiniz? İşlem geri alınamaz.')}>
                                                                 İptal
                                                             </Button>
                                                         </>
@@ -343,6 +351,21 @@ export const SalonAppointmentsPage: React.FC = () => {
                     </>
                 )}
             </div>
+
+            {/* Confirmation Modal */}
+            {confirmAction && createPortal(
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">{confirmAction.label}</h3>
+                        <p className="text-gray-600 text-sm mb-6">{confirmAction.actionText}</p>
+                        <div className="flex gap-3 justify-end">
+                            <button onClick={() => setConfirmAction(null)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg">Vazgeç</button>
+                            <button onClick={() => handleStatusUpdate(confirmAction.id, confirmAction.status)} className={`px-4 py-2 text-sm font-semibold rounded-lg text-white transition-colors ${confirmAction.status === AppointmentStatus.Rejected || confirmAction.status === AppointmentStatus.Cancelled ? 'bg-red-600 hover:bg-red-700' : 'bg-primary-600 hover:bg-primary-700'}`}>Onayla</button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
         </div>
     );
 };

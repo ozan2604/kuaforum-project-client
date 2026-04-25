@@ -56,6 +56,8 @@ export const ProfilePage: React.FC = () => {
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [reviewToDelete, setReviewToDelete] = useState<string | null>(null);
+    const [appointmentToCancel, setAppointmentToCancel] = useState<string | null>(null);
+    const [cancelReason, setCancelReason] = useState('');
 
     const toggle = (id: TabType) => {
         const next = openSection === id ? null : id;
@@ -189,6 +191,20 @@ export const ProfilePage: React.FC = () => {
         }
     };
 
+    const confirmCancelAppointment = async () => {
+        if (!appointmentToCancel) return;
+        try {
+            await appointmentService.cancelAppointment(appointmentToCancel, cancelReason);
+            toast.success('Randevu iptal edildi.');
+            loadAppointments();
+        } catch (err: any) {
+            toast.error(err.response?.data?.message || err.response?.data?.Message || 'Randevu iptal edilemedi.');
+        } finally {
+            setAppointmentToCancel(null);
+            setCancelReason('');
+        }
+    };
+
     const getStatusBadge = (status: number) => {
         const map: Record<number, React.ReactNode> = {
             0: <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1"><Clock className="h-3 w-3" /> Onay Bekliyor</span>,
@@ -306,13 +322,13 @@ export const ProfilePage: React.FC = () => {
                                         {pendingApps.length > 0 && (
                                             <div>
                                                 <p className="text-xs font-semibold text-yellow-700 uppercase tracking-wider mb-2">Onay Bekliyor</p>
-                                                <div className="space-y-2">{pendingApps.map(app => <AppCard key={app.id} app={app} badge={getStatusBadge(app.status)} />)}</div>
+                                                <div className="space-y-2">{pendingApps.map(app => <AppCard key={app.id} app={app} badge={getStatusBadge(app.status)} onCancel={() => setAppointmentToCancel(app.id)} />)}</div>
                                             </div>
                                         )}
                                         {upcomingApps.length > 0 && (
                                             <div>
                                                 <p className="text-xs font-semibold text-green-700 uppercase tracking-wider mb-2">Gelecek</p>
-                                                <div className="space-y-2">{upcomingApps.map(app => <AppCard key={app.id} app={app} badge={getStatusBadge(app.status)} onReview={!app.hasReview && app.status === 2 ? () => { setSelectedAppointment(app); setIsReviewModalOpen(true); } : undefined} />)}</div>
+                                                <div className="space-y-2">{upcomingApps.map(app => <AppCard key={app.id} app={app} badge={getStatusBadge(app.status)} onCancel={() => setAppointmentToCancel(app.id)} onReview={!app.hasReview && app.status === 2 ? () => { setSelectedAppointment(app); setIsReviewModalOpen(true); } : undefined} />)}</div>
                                             </div>
                                         )}
                                         <div>
@@ -485,6 +501,38 @@ export const ProfilePage: React.FC = () => {
                 />
             )}
 
+            {/* Cancel Appointment Confirm */}
+            {appointmentToCancel && createPortal(
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">Randevu İptali</h3>
+                        <p className="text-gray-600 text-sm mb-4">Bu randevuyu iptal etmek istediğinize emin misiniz? Bu işlem geri alınamaz.</p>
+                        
+                        <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4 flex gap-2 text-orange-800">
+                            <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                            <p className="text-xs font-medium">Randevuya 2 saatten az süre kaldıysa iptal işlemi gerçekleştirilemez.</p>
+                        </div>
+
+                        <div className="mb-6">
+                            <label className="block text-xs font-medium text-gray-700 mb-1">İptal Sebebi (Opsiyonel)</label>
+                            <textarea 
+                                value={cancelReason}
+                                onChange={(e) => setCancelReason(e.target.value)}
+                                className="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none"
+                                rows={3}
+                                placeholder="İptal sebebinizi belirtebilirsiniz..."
+                            />
+                        </div>
+
+                        <div className="flex gap-3 justify-end">
+                            <button onClick={() => { setAppointmentToCancel(null); setCancelReason(''); }} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg">Vazgeç</button>
+                            <button onClick={confirmCancelAppointment} className="px-4 py-2 text-sm font-semibold rounded-lg bg-red-600 hover:bg-red-700 text-white transition-colors">Evet, İptal Et</button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
             {selectedAppointment && (
                 <ReviewModal
                     isOpen={isReviewModalOpen && !selectedReview}
@@ -513,22 +561,41 @@ export const ProfilePage: React.FC = () => {
     );
 };
 
-const AppCard: React.FC<{ app: AppointmentDto; badge: React.ReactNode; onReview?: () => void }> = ({ app, badge, onReview }) => (
-    <div className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50 transition-colors">
-        <div className="flex flex-col sm:flex-row justify-between gap-2">
-            <div className="flex-1 min-w-0">
-                <p className="font-semibold text-sm text-gray-900 truncate">{app.shopName}</p>
-                <p className="text-xs text-gray-600">{app.serviceName} — {app.employeeName}</p>
-                <div className="flex flex-wrap gap-2 mt-1 text-xs text-gray-400">
-                    <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{format(new Date(app.startTime), 'd MMM yyyy', { locale: tr })}</span>
-                    <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{format(new Date(app.startTime), 'HH:mm')}</span>
+const AppCard: React.FC<{ app: AppointmentDto; badge: React.ReactNode; onReview?: () => void; onCancel?: () => void }> = ({ app, badge, onReview, onCancel }) => {
+    const isCancelDisabled = (new Date(app.startTime).getTime() - new Date().getTime()) < 2 * 60 * 60 * 1000;
+    
+    return (
+        <div className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50 transition-colors">
+            <div className="flex flex-col sm:flex-row justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                    <p className="font-semibold text-sm text-gray-900 truncate">{app.shopName}</p>
+                    <p className="text-xs text-gray-600">{app.serviceName} — {app.employeeName}</p>
+                    <div className="flex flex-wrap gap-2 mt-1 text-xs text-gray-400">
+                        <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{format(new Date(app.startTime), 'd MMM yyyy', { locale: tr })}</span>
+                        <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{format(new Date(app.startTime), 'HH:mm')}</span>
+                    </div>
+                </div>
+                <div className="flex sm:flex-col items-center sm:items-end justify-between gap-2 flex-shrink-0">
+                    {badge}
+                    <span className="font-bold text-sm text-gray-900">₺{app.price}</span>
+                    <div className="flex gap-2">
+                        {onCancel && (
+                            <div title={isCancelDisabled ? "Randevuya 2 saatten az kaldığı için iptal edilemez." : ""}>
+                                <Button 
+                                    size="sm" 
+                                    variant="outline" 
+                                    onClick={onCancel} 
+                                    disabled={isCancelDisabled}
+                                    className="text-xs text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    İptal Et
+                                </Button>
+                            </div>
+                        )}
+                        {onReview && <Button size="sm" variant="outline" onClick={onReview} className="text-xs">Değerlendir</Button>}
+                    </div>
                 </div>
             </div>
-            <div className="flex sm:flex-col items-center sm:items-end justify-between gap-2 flex-shrink-0">
-                {badge}
-                <span className="font-bold text-sm text-gray-900">₺{app.price}</span>
-                {onReview && <Button size="sm" variant="outline" onClick={onReview} className="text-xs">Değerlendir</Button>}
-            </div>
         </div>
-    </div>
-);
+    );
+};

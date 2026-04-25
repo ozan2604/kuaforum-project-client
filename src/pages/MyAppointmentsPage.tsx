@@ -8,6 +8,7 @@ import { tr } from 'date-fns/locale';
 import { Calendar, Clock, MapPin, User } from 'lucide-react';
 import { Button } from '../components/Button';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-hot-toast';
 
 // Reuse Appointment type if Dto is not distinct enough, or define here
 // Based on backend MapToDto:
@@ -35,6 +36,18 @@ export const MyAppointmentsPage: React.FC = () => {
         }
     };
 
+    const handleCancelAppointment = async (appointment: Appointment) => {
+        if (!window.confirm(`"${appointment.shopName}" salonundaki randevunuzu iptal etmek istediğinizden emin misiniz?`)) return;
+        try {
+            await appointmentService.cancelAppointment(appointment.id);
+            toast.success('Randevu iptal edildi.');
+            await loadAppointments();
+        } catch (error: any) {
+            const msg = error.response?.data?.Message || 'Randevu iptal edilemedi.';
+            toast.error(msg);
+        }
+    };
+
     const handleOpenReviewModal = (appointment: Appointment) => {
         setSelectedAppointmentForReview(appointment);
         setIsReviewModalOpen(true);
@@ -57,25 +70,14 @@ export const MyAppointmentsPage: React.FC = () => {
         }
     };
 
-    const getStatusColor = (status: number) => {
+    const getStatusBadge = (status: number) => {
         switch (status) {
-            case 0: return 'bg-yellow-100 text-yellow-800'; // Pending
-            case 1: return 'bg-green-100 text-green-800';   // Confirmed
-            case 2: return 'bg-blue-100 text-blue-800';     // Completed
-            case 3: return 'bg-gray-100 text-gray-800';    // Cancelled
-            case 4: return 'bg-red-100 text-red-800';      // Rejected
-            default: return 'bg-gray-100 text-gray-800';
-        }
-    };
-
-    const getStatusText = (status: number) => {
-        switch (status) {
-            case 0: return 'Onay Bekliyor';
-            case 1: return 'Onaylandı';
-            case 2: return 'Tamamlandı';
-            case 3: return 'İptal Edildi';
-            case 4: return 'Reddedildi';
-            default: return 'Bilinmiyor';
+            case 0: return <span className="px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">Onay Bekliyor</span>;
+            case 1: return <span className="px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-800">Onaylandı</span>;
+            case 2: return <span className="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">Tamamlandı</span>;
+            case 3: return <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">İptal Edildi</span>;
+            case 4: return <span className="px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">Reddedildi</span>;
+            default: return <span className="px-3 py-1 rounded-full text-sm font-medium bg-gray-100 text-gray-800">Bilinmiyor</span>;
         }
     };
 
@@ -144,12 +146,13 @@ export const MyAppointmentsPage: React.FC = () => {
                             </div>
 
                             <div className="flex flex-col items-end gap-3">
-                                <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(appointment.status)}`}>
-                                    {getStatusText(appointment.status)}
-                                </span>
+                                {getStatusBadge(appointment.status)}
 
-                                {appointment.status === 0 && (
-                                    <button className="text-sm text-red-600 hover:text-red-700 font-medium">
+                                {(appointment.status === 0 || appointment.status === 1) && (
+                                    <button
+                                        className="text-sm text-red-600 hover:text-red-700 font-medium"
+                                        onClick={() => handleCancelAppointment(appointment)}
+                                    >
                                         İptal Et
                                     </button>
                                 )}

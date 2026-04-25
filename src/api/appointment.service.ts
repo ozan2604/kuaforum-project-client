@@ -62,5 +62,13 @@ export const appointmentService = {
     updateStatusByEmployee: async (id: string, status: AppointmentStatus): Promise<void> => {
         const payload: UpdateAppointmentStatusDto = { status };
         await api.put(`/Appointment/employee/${id}/status`, payload);
+    },
+
+    cancelAppointment: async (id: string, reason?: string): Promise<void> => {
+        let url = `/Appointment/${id}`;
+        if (reason) {
+            url += `?reason=${encodeURIComponent(reason)}`;
+        }
+        await api.delete(url);
     }
 };

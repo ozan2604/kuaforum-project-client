@@ -40,7 +40,9 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     const [currentStep, setCurrentStep] = useState<Step>('service');
     const [selectedService, setSelectedService] = useState<ShopServiceDto | null>(null);
     const [selectedEmployeeId, setSelectedEmployeeId] = useState<string>('');
-    const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+    // Türkiye saatiyle bugünün tarihi (YYYY-MM-DD). toISOString() UTC verir, localDate doğru sonucu verir.
+    const getTodayLocal = () => new Date().toLocaleDateString('en-CA');
+    const [selectedDate, setSelectedDate] = useState<string>(getTodayLocal());
     const [selectedTime, setSelectedTime] = useState<string>('');
     const [note, setNote] = useState('');
 
@@ -63,7 +65,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             }
 
             setSelectedEmployeeId('');
-            setSelectedDate(new Date().toISOString().split('T')[0]);
+            setSelectedDate(getTodayLocal());
             setSelectedTime('');
             setNote('');
         }
@@ -113,15 +115,17 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             return [];
         }
 
+        const duration = selectedService?.duration ?? 15;
+        const now = new Date();
+        const isToday = selectedDate === getTodayLocal();
+
         const slots = [];
-        // Parse Work Start/End
         const [startHour, startMinute] = availability.workStartTime.split(':').map(Number);
         const [endHour, endMinute] = availability.workEndTime.split(':').map(Number);
 
         let current = setHours(setMinutes(new Date(), startMinute), startHour);
         const end = setHours(setMinutes(new Date(), endMinute), endHour);
 
-        // Parse Break Start/End if exists
         let breakStart: Date | null = null;
         let breakEnd: Date | null = null;
         if (availability.breakStartTime) {
@@ -135,39 +139,33 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
         while (current < end) {
             const timeString = format(current, 'HH:mm');
-            const slotEnd = addMinutes(current, 15);
+            const slotEnd = addMinutes(current, duration);
+
+            // Hizmet süresi mesai bitimine sığmıyorsa bu slotu gösterme
+            if (slotEnd > end) break;
+
             const label = `${timeString} - ${format(slotEnd, 'HH:mm')}`;
 
-            // Check if Booked
-            const isBooked = availability.bookedSlots.some(slot => {
-                // Normalize everything to the selected date.
-                const slotStartOnDay = new Date(`${selectedDate}T${format(current, 'HH:mm')}:00`);
+            // Bugünse geçmiş saatleri disable et
+            const slotStartOnDay = new Date(`${selectedDate}T${timeString}:00`);
+            const isPast = isToday && slotStartOnDay <= now;
 
-                // Check if slot start is within the booked range [Start, End)
-                return (slotStartOnDay >= new Date(slot.startTime) && slotStartOnDay < new Date(slot.endTime));
-            });
+            const isBooked = availability.bookedSlots.some(slot =>
+                slotStartOnDay >= new Date(slot.startTime) && slotStartOnDay < new Date(slot.endTime)
+            );
 
-            // Check if Break
             let isBreak = false;
             if (breakStart && breakEnd) {
-                // Normalize break times to selected date
                 const breakStartOnDay = new Date(`${selectedDate}T${format(breakStart, 'HH:mm')}:00`);
                 const breakEndOnDay = new Date(`${selectedDate}T${format(breakEnd, 'HH:mm')}:00`);
-                const slotStartOnDay = new Date(`${selectedDate}T${format(current, 'HH:mm')}:00`);
-
                 if (slotStartOnDay >= breakStartOnDay && slotStartOnDay < breakEndOnDay) {
                     isBreak = true;
                 }
             }
 
-            slots.push({
-                time: timeString,
-                label,
-                isBooked,
-                isBreak
-            });
+            slots.push({ time: timeString, label, isBooked, isBreak, isPast });
 
-            current = addMinutes(current, 15); // 15 min intervals
+            current = addMinutes(current, duration);
         }
         return slots;
     };
@@ -433,7 +431,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                         type="date"
                                         className="w-full bg-transparent border-none p-2 text-lg font-medium text-gray-900 focus:ring-0 cursor-pointer"
                                         value={selectedDate}
-                                        min={new Date().toISOString().split('T')[0]}
+                                        min={getTodayLocal()}
                                         onChange={(e) => setSelectedDate(e.target.value)}
                                     />
                                 </div>
@@ -456,19 +454,21 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                             Bu tarihte uygun saat bulunamadı veya çalışan izinli.
                                         </div>
                                     ) : (
-                                        generateTimeSlots().map(({ time, label, isBooked, isBreak }) => (
+                                        generateTimeSlots().map(({ time, label, isBooked, isBreak, isPast }) => (
                                             <button
                                                 key={time}
-                                                disabled={isBooked || isBreak}
+                                                disabled={isBooked || isBreak || isPast}
                                                 onClick={() => setSelectedTime(time)}
                                                 className={`py-3 px-2 text-xs font-semibold rounded-lg border transition-all duration-200 flex items-center justify-center
-                                                    ${isBooked
-                                                        ? 'bg-blue-50 text-blue-400 border-blue-100 cursor-not-allowed opacity-60'
-                                                        : isBreak
-                                                            ? 'bg-red-50 text-red-400 border-red-100 cursor-not-allowed opacity-60'
-                                                            : selectedTime === time
-                                                                ? 'bg-primary-600 text-white border-primary-600 shadow-md transform scale-105'
-                                                                : 'bg-white text-gray-700 border-gray-200 hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700 hover:shadow-sm'
+                                                    ${isPast
+                                                        ? 'bg-gray-50 text-gray-300 border-gray-100 cursor-not-allowed opacity-50'
+                                                        : isBooked
+                                                            ? 'bg-blue-50 text-blue-400 border-blue-100 cursor-not-allowed opacity-60'
+                                                            : isBreak
+                                                                ? 'bg-red-50 text-red-400 border-red-100 cursor-not-allowed opacity-60'
+                                                                : selectedTime === time
+                                                                    ? 'bg-primary-600 text-white border-primary-600 shadow-md transform scale-105'
+                                                                    : 'bg-white text-gray-700 border-gray-200 hover:border-primary-300 hover:bg-primary-50 hover:text-primary-700 hover:shadow-sm'
                                                     }`}
                                             >
                                                 {label}
@@ -476,7 +476,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                         ))
                                     )}
                                 </div>
-                                <div className="flex gap-6 text-xs text-gray-500 justify-center pt-2">
+                                <div className="flex gap-4 text-xs text-gray-500 justify-center pt-2 flex-wrap">
                                     <div className="flex items-center gap-2">
                                         <div className="w-3 h-3 bg-white border border-gray-300 rounded"></div>
                                         <span>Müsait</span>
@@ -488,6 +488,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                     <div className="flex items-center gap-2">
                                         <div className="w-3 h-3 bg-red-50 border border-red-100 rounded opacity-60"></div>
                                         <span>Mola</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-3 h-3 bg-gray-50 border border-gray-100 rounded opacity-50"></div>
+                                        <span>Geçmiş</span>
                                     </div>
                                 </div>
                             </div>
@@ -520,7 +524,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                             if (!selectedTime) return '';
                                             const [h, m] = selectedTime.split(':').map(Number);
                                             const start = setHours(setMinutes(new Date(), m), h);
-                                            const end = addMinutes(start, 15);
+                                            const end = addMinutes(start, selectedService?.duration ?? 15);
                                             return `${selectedTime} - ${format(end, 'HH:mm')}`;
                                         })()}
                                     </span>

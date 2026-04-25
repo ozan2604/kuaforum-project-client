@@ -48,9 +48,9 @@ export const EmployeeAppointmentsPage: React.FC = () => {
             case AppointmentStatus.Completed:
                 return <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold flex items-center shadow-sm"><CheckCircle className="w-3.5 h-3.5 mr-1" /> Tamamlandı</span>;
             case AppointmentStatus.Cancelled:
-                return <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-semibold flex items-center shadow-sm"><XCircle className="w-3.5 h-3.5 mr-1" /> İptal Edildi</span>;
+                return <span className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-semibold flex items-center shadow-sm"><XCircle className="w-3.5 h-3.5 mr-1" /> İptal Edildi</span>;
             case AppointmentStatus.Rejected:
-                return <span className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-semibold flex items-center shadow-sm"><XCircle className="w-3.5 h-3.5 mr-1" /> Reddedildi</span>;
+                return <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-semibold flex items-center shadow-sm"><XCircle className="w-3.5 h-3.5 mr-1" /> Reddedildi</span>;
             default:
                 return null;
         }

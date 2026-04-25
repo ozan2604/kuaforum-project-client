@@ -32,8 +32,8 @@ export const SalonDashboard: React.FC = () => {
                 // Calculate total services from categories
                 const totalServices = services.reduce((acc, cat) => acc + cat.services.length, 0);
 
-                // Filter today's appointments
-                const today = new Date().toISOString().split('T')[0];
+                // Lokal tarihe göre filtrele — toISOString() UTC verir, bu gece yarısı yanlış güne düşürür
+                const today = new Date().toLocaleDateString('en-CA');
                 const todayAppointments = appointments.items.filter(a => a.startTime.startsWith(today));
 
                 setStats({
