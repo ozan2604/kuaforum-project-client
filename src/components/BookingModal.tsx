@@ -449,7 +449,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                 </h3>
 
                                 <div className="grid grid-cols-3 gap-3 max-h-[350px] overflow-y-auto pr-2 custom-scrollbar">
-                                    {generateTimeSlots().length === 0 ? (
+                                    {availability?.isShopClosed ? (
+                                        <div className="col-span-3 text-center py-8 bg-red-50 rounded-xl border border-dashed border-red-200">
+                                            <span className="text-red-600 font-medium text-sm">Salon bu tarihte kapalıdır.</span>
+                                        </div>
+                                    ) : generateTimeSlots().length === 0 ? (
                                         <div className="col-span-3 text-center text-gray-500 py-8 bg-gray-50 rounded-xl border border-dashed border-gray-200">
                                             Bu tarihte uygun saat bulunamadı veya çalışan izinli.
                                         </div>

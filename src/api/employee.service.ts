@@ -1,5 +1,5 @@
 import api from './axios';
-import type { Employee, CreateEmployeeDto, UpdateScheduleDto, ScheduleDto, EmployeeProfile, UpdateEmployeeProfileDto } from '../types/employee';
+import type { Employee, CreateEmployeeDto, UpdateScheduleDto, ScheduleDto, EmployeeProfile, UpdateEmployeeProfileDto, PublicEmployeeScheduleDto } from '../types/employee';
 
 export const employeeService = {
     // Get all employees for the logged-in salon owner's shop
@@ -28,6 +28,11 @@ export const employeeService = {
 
     getPublicShopEmployees: async (shopId: string): Promise<Employee[]> => {
         const response = await api.get<Employee[]>(`/employee/public/shop/${shopId}`);
+        return response.data;
+    },
+
+    getPublicShopSchedules: async (shopId: string): Promise<PublicEmployeeScheduleDto[]> => {
+        const response = await api.get<PublicEmployeeScheduleDto[]>(`/employee/public/shop/${shopId}/schedules`);
         return response.data;
     },
 

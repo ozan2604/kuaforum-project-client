@@ -13,10 +13,22 @@ interface ShopCardProps {
     onToggleFavorite?: (newStatus: boolean) => void;
 }
 
+function isOpenNow(openTime?: string, closeTime?: string): boolean | null {
+    if (!openTime || !closeTime) return null;
+    const now = new Date();
+    const [oh, om] = openTime.split(':').map(Number);
+    const [ch, cm] = closeTime.split(':').map(Number);
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+    const openMinutes = oh * 60 + om;
+    const closeMinutes = ch * 60 + cm;
+    return currentMinutes >= openMinutes && currentMinutes < closeMinutes;
+}
+
 export const ShopCard: React.FC<ShopCardProps> = ({ shop, initialIsFavorite = false, onToggleFavorite }) => {
     const { isAuthenticated } = useAuth();
     const [isFavorite, setIsFavorite] = useState(initialIsFavorite);
     const [isLoading, setIsLoading] = useState(false);
+    const openStatus = isOpenNow(shop.openTime, shop.closeTime);
 
     useEffect(() => {
         setIsFavorite(initialIsFavorite);
@@ -116,10 +128,17 @@ export const ShopCard: React.FC<ShopCardProps> = ({ shop, initialIsFavorite = fa
                 </p>
 
                 <div className="flex items-center justify-between pt-2 sm:pt-3 border-t border-gray-100 mt-auto">
-                    <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 bg-green-50 text-green-700 rounded-md">
-                        <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                        Açık
-                    </span>
+                    {openStatus === null ? null : openStatus ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 bg-green-50 text-green-700 rounded-md">
+                            <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                            Açık
+                        </span>
+                    ) : (
+                        <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 bg-red-50 text-red-700 rounded-md">
+                            <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-red-500"></span>
+                            Kapalı
+                        </span>
+                    )}
                     <Button
                         size="sm"
                         variant="secondary"

@@ -2,9 +2,11 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { shopService } from '../api/shop.service';
 import { serviceManagementService } from '../api/service.service';
+import { employeeService } from '../api/employee.service';
 import type { Shop } from '../types/shop';
 import type { ServiceCategoryDto, ShopServiceDto } from '../types/service';
-import { MapPin, Star, Phone, Clock, Calendar, ChevronLeft, ChevronDown, Heart, Grid, Info, Image, MessageCircle } from 'lucide-react';
+import type { PublicEmployeeScheduleDto } from '../types/employee';
+import { MapPin, Star, Phone, Clock, Calendar, ChevronLeft, ChevronDown, Heart, Grid, Info, Image, MessageCircle, Users } from 'lucide-react';
 import { Button } from '../components/Button';
 import { toast } from 'react-hot-toast';
 import { BookingModal } from '../components/BookingModal';
@@ -36,7 +38,9 @@ export const ShopDetailsPage: React.FC = () => {
     const [editingReview, setEditingReview] = useState<any | null>(null);
     const [reviewsRefreshTrigger, setReviewsRefreshTrigger] = useState(0);
 
-    const [activeTab, setActiveTab] = useState<'services' | 'about' | 'gallery' | 'reviews'>('services');
+    const [activeTab, setActiveTab] = useState<'services' | 'about' | 'gallery' | 'reviews' | 'hours'>('services');
+    const [employeeSchedules, setEmployeeSchedules] = useState<PublicEmployeeScheduleDto[]>([]);
+    const [selectedScheduleEmployeeId, setSelectedScheduleEmployeeId] = useState<string>('');
 
     // Accordion States for Nested UI (Categories -> Services -> Employees)
     const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
@@ -88,12 +92,15 @@ export const ShopDetailsPage: React.FC = () => {
         const loadShopData = async () => {
             if (!id) return;
             try {
-                const [shopData, servicesData] = await Promise.all([
+                const [shopData, servicesData, schedulesData] = await Promise.all([
                     shopService.getPublicShopById(id),
-                    serviceManagementService.getPublicShopServices(id)
+                    serviceManagementService.getPublicShopServices(id),
+                    employeeService.getPublicShopSchedules(id).catch(() => [])
                 ]);
                 setShop(shopData);
                 setCategories(servicesData);
+                setEmployeeSchedules(schedulesData);
+                if (schedulesData.length > 0) setSelectedScheduleEmployeeId(schedulesData[0].employeeId);
 
                 if (isAuthenticated) {
                     try {
@@ -268,19 +275,21 @@ export const ShopDetailsPage: React.FC = () => {
                     {/* Left Column: Content with Tabs */}
                     <div className="lg:col-span-2 space-y-8">
                         <div className="flex flex-wrap gap-3 pb-2">
-                            {(['services', 'about', 'gallery', 'reviews'] as const).map((tab) => {
+                            {(['services', 'about', 'gallery', 'reviews', 'hours'] as const).map((tab) => {
                                 const icons = {
                                     services: Grid,
                                     about: Info,
                                     gallery: Image,
-                                    reviews: MessageCircle
+                                    reviews: MessageCircle,
+                                    hours: Clock
                                 };
                                 const Icon = icons[tab];
                                 const labels = {
                                     services: 'Hizmetler',
                                     about: 'Hakkında',
                                     gallery: 'Galeri',
-                                    reviews: 'Değerlendirmeler'
+                                    reviews: 'Değerlendirmeler',
+                                    hours: 'Çalışma Saatleri'
                                 };
 
                                 return (
@@ -497,6 +506,106 @@ export const ShopDetailsPage: React.FC = () => {
                             </div>
                         )}
 
+                        {activeTab === 'hours' && (
+                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 animate-fadeIn space-y-8">
+                                <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                                    <Clock className="w-6 h-6 text-primary-600" />
+                                    Çalışma Saatleri
+                                </h2>
+
+                                {/* General Hours */}
+                                {shop.openTime && shop.closeTime && (
+                                    <div className="flex items-center gap-3 px-4 py-3 bg-primary-50 rounded-xl border border-primary-100">
+                                        <Clock className="h-5 w-5 text-primary-600 flex-shrink-0" />
+                                        <div>
+                                            <p className="text-xs text-primary-600 font-medium">Genel Açılış / Kapanış</p>
+                                            <p className="font-bold text-primary-900">{shop.openTime} – {shop.closeTime}</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Employee Schedule Dropdown */}
+                                {employeeSchedules.length > 0 && (
+                                    <div>
+                                        <div className="flex items-center justify-between mb-4">
+                                            <h3 className="font-bold text-gray-800 flex items-center gap-2">
+                                                <Users className="w-4 h-4 text-gray-500" />
+                                                Personel Çalışma Takvimi
+                                            </h3>
+                                            <select
+                                                value={selectedScheduleEmployeeId}
+                                                onChange={e => setSelectedScheduleEmployeeId(e.target.value)}
+                                                className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-300"
+                                            >
+                                                {employeeSchedules.map(emp => (
+                                                    <option key={emp.employeeId} value={emp.employeeId}>
+                                                        {emp.firstName} {emp.lastName}{emp.title ? ` — ${emp.title}` : ''}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        {(() => {
+                                            const emp = employeeSchedules.find(e => e.employeeId === selectedScheduleEmployeeId);
+                                            if (!emp) return null;
+                                            const dayNames = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
+                                            const todayDow = new Date().getDay();
+                                            return (
+                                                <div className="divide-y divide-gray-100 rounded-xl border border-gray-100 overflow-hidden">
+                                                    {emp.schedule.length === 0 ? (
+                                                        <p className="text-sm text-gray-500 italic p-4">Bu personel için program girilmemiş.</p>
+                                                    ) : emp.schedule.map(s => {
+                                                        const isToday = s.dayOfWeek === todayDow;
+                                                        return (
+                                                            <div key={s.dayOfWeek} className={`flex justify-between items-center px-4 py-3 text-sm ${isToday ? 'bg-primary-50' : 'bg-white'}`}>
+                                                                <span className={`font-medium ${isToday ? 'text-primary-700' : 'text-gray-700'}`}>
+                                                                    {dayNames[s.dayOfWeek]}
+                                                                </span>
+                                                                {s.isWorking ? (
+                                                                    <div className="text-right">
+                                                                        <span className="text-gray-900 font-medium">{s.startTime} – {s.endTime}</span>
+                                                                        {s.breakStartTime && s.breakEndTime && (
+                                                                            <p className="text-xs text-gray-400">Mola: {s.breakStartTime} – {s.breakEndTime}</p>
+                                                                        )}
+                                                                    </div>
+                                                                ) : (
+                                                                    <span className="text-red-500 font-medium">Kapalı</span>
+                                                                )}
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            );
+                                        })()}
+                                    </div>
+                                )}
+
+                                {/* Closure Dates */}
+                                {shop.closureDates && shop.closureDates.filter(c => new Date(c.closureDate) >= new Date(new Date().toLocaleDateString('en-CA'))).length > 0 && (
+                                    <div>
+                                        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                            <span className="text-red-500">🔒</span> Yaklaşan Kapalı Günler
+                                        </h3>
+                                        <ul className="divide-y divide-gray-100 rounded-xl border border-red-100 overflow-hidden">
+                                            {shop.closureDates
+                                                .filter(c => new Date(c.closureDate) >= new Date(new Date().toLocaleDateString('en-CA')))
+                                                .map(c => (
+                                                    <li key={c.id} className="px-4 py-3 bg-red-50/40">
+                                                        <span className="text-sm font-medium text-gray-800">
+                                                            {new Date(c.closureDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', weekday: 'long' })}
+                                                        </span>
+                                                        {c.reason && <p className="text-xs text-gray-500 mt-0.5">{c.reason}</p>}
+                                                    </li>
+                                                ))}
+                                        </ul>
+                                    </div>
+                                )}
+
+                                {!shop.openTime && !shop.closeTime && employeeSchedules.length === 0 && (!shop.closureDates || shop.closureDates.length === 0) && (
+                                    <p className="text-gray-500 italic text-center py-8">Çalışma saati bilgisi henüz girilmemiş.</p>
+                                )}
+                            </div>
+                        )}
+
                         {activeTab === 'reviews' && (
                             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 animate-fadeIn">
                                 <div className="flex items-center justify-between mb-8">
@@ -547,36 +656,21 @@ export const ShopDetailsPage: React.FC = () => {
                 {/* Right Column: Sticky Sidebar */}
                 <div className="lg:col-span-1">
                     <div className="sticky top-24 space-y-6">
-                        <div className="bg-white rounded-2xl shadow-lg shadow-gray-200/50 border border-gray-100 overflow-hidden">
-                            <div className="p-6 bg-gradient-to-br from-gray-900 to-gray-800 text-white">
-                                <h3 className="font-bold text-lg flex items-center">
-                                    <Clock className="h-5 w-5 mr-2 text-primary-400" />
-                                    Çalışma Saatleri
-                                </h3>
-                                <p className="text-gray-400 text-sm mt-1">Haftalık çalışma programı</p>
-                            </div>
-                            <div className="p-6">
-                                <div className="space-y-4">
-                                    {shop.weeklySchedule ? (
-                                        shop.weeklySchedule.map((s) => {
-                                            const isToday = s.dayOfWeek === new Date().getDay();
-                                            return (
-                                                <div key={s.dayOfWeek} className={`flex justify-between items-center text-sm ${isToday ? 'bg-primary-50 -mx-2 px-2 py-1 rounded-md' : ''}`}>
-                                                    <span className={`font-medium ${isToday ? 'text-primary-700' : 'text-gray-600'}`}>
-                                                        {['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'][s.dayOfWeek]}
-                                                    </span>
-                                                    <span className={s.isClosed ? 'text-red-500 font-medium' : 'text-gray-900'}>
-                                                        {s.isClosed ? 'Kapalı' : `${s.openingTime} - ${s.closingTime}`}
-                                                    </span>
-                                                </div>
-                                            );
-                                        })
-                                    ) : (
-                                        <p className="text-gray-500 italic">Saatler yükleniyor...</p>
-                                    )}
+                        {shop.openTime && shop.closeTime && (
+                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 flex items-center gap-3">
+                                <Clock className="h-5 w-5 text-primary-500 flex-shrink-0" />
+                                <div>
+                                    <p className="text-xs text-gray-500">Çalışma Saatleri</p>
+                                    <p className="font-bold text-gray-900">{shop.openTime} – {shop.closeTime}</p>
                                 </div>
+                                <button
+                                    onClick={() => setActiveTab('hours')}
+                                    className="ml-auto text-xs text-primary-600 font-medium hover:underline"
+                                >
+                                    Detay
+                                </button>
                             </div>
-                        </div>
+                        )}
 
                         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
                             <h3 className="font-bold text-gray-900 mb-4">İletişim</h3>

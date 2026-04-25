@@ -4,9 +4,10 @@ import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { shopService } from '../../api/shop.service';
 import { toast } from 'react-hot-toast';
-import { MapPin, Phone, Building2, Trash2, Loader2 } from 'lucide-react';
+import { MapPin, Phone, Building2, Trash2, Loader2, CalendarX, Clock } from 'lucide-react';
 import { SearchableSelect } from '../../components/SearchableSelect';
 import { ShopCategory, ShopCategoryLabels, TargetGender, TargetGenderLabels } from '../../types/shop';
+import type { ShopClosureDateDto } from '../../types/shop';
 import MapPicker from '../../components/MapPicker';
 
 const TURKIYE_API = 'https://turkiyeapi.dev/api/v1';
@@ -28,6 +29,8 @@ interface ShopFormData {
     coverImagePath?: string;
     images?: { id: string; url: string }[];
     genderPreference: TargetGender;
+    openTime?: string;
+    closeTime?: string;
 }
 
 export const MyShopPage: React.FC = () => {
@@ -38,6 +41,12 @@ export const MyShopPage: React.FC = () => {
     const [shopId, setShopId] = useState<string | null>(null);
     const [refreshImages, setRefreshImages] = useState(0);
     const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
+
+    // Closure dates state
+    const [closureDates, setClosureDates] = useState<ShopClosureDateDto[]>([]);
+    const [newClosureDate, setNewClosureDate] = useState('');
+    const [newClosureReason, setNewClosureReason] = useState('');
+    const [addingClosure, setAddingClosure] = useState(false);
 
     // Address API state
     const [provinces, setProvinces] = useState<Province[]>([]);
@@ -85,9 +94,12 @@ export const MyShopPage: React.FC = () => {
                     longitude: shop.longitude,
                     coverImagePath: shop.coverImagePath,
                     images: shop.images || [],
-                    genderPreference: shop.genderPreference?.toString() as any
+                    genderPreference: shop.genderPreference?.toString() as any,
+                    openTime: shop.openTime || '',
+                    closeTime: shop.closeTime || ''
                 });
                 setSelectedCategories(shop.categories ?? []);
+                setClosureDates(shop.closureDates || []);
                 // Pre-select province/district if city data exists
                 if (shop.city) {
                     const res = await fetch(`${TURKIYE_API}/provinces`);
@@ -205,6 +217,34 @@ export const MyShopPage: React.FC = () => {
         if (!path) return '';
         if (path.startsWith('http')) return path;
         return `http://localhost:5000${path}`;
+    };
+
+    const handleAddClosureDate = async () => {
+        if (!shopId || !newClosureDate) return;
+        setAddingClosure(true);
+        try {
+            await shopService.addClosureDate(shopId, newClosureDate, newClosureReason || undefined);
+            const updated = await shopService.getClosureDates(shopId);
+            setClosureDates(updated);
+            setNewClosureDate('');
+            setNewClosureReason('');
+            toast.success('Kapalı gün eklendi.');
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Kapalı gün eklenemedi.');
+        } finally {
+            setAddingClosure(false);
+        }
+    };
+
+    const handleRemoveClosureDate = async (id: string) => {
+        if (!shopId) return;
+        try {
+            await shopService.removeClosureDate(id);
+            setClosureDates(prev => prev.filter(c => c.id !== id));
+            toast.success('Kapalı gün silindi.');
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Kapalı gün silinemedi.');
+        }
     };
 
     const onSubmit = async (data: ShopFormData) => {
@@ -515,6 +555,33 @@ export const MyShopPage: React.FC = () => {
                         </div>
                     </div>
 
+                    {/* Working Hours */}
+                    <div className="border-t pt-6 space-y-4">
+                        <h3 className="text-lg font-medium text-gray-900 flex items-center gap-2">
+                            <Clock className="h-5 w-5 text-gray-500" />
+                            Genel Çalışma Saatleri
+                        </h3>
+                        <p className="text-sm text-gray-500">Salonunuzun genel açılış ve kapanış saatini girin (opsiyonel).</p>
+                        <div className="grid grid-cols-2 gap-4 max-w-xs">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Açılış</label>
+                                <input
+                                    type="time"
+                                    {...register('openTime')}
+                                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 text-sm"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Kapanış</label>
+                                <input
+                                    type="time"
+                                    {...register('closeTime')}
+                                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 text-sm"
+                                />
+                            </div>
+                        </div>
+                    </div>
+
                     <div className="pt-4 border-t border-gray-100 flex justify-end">
                         <Button type="submit" isLoading={loading} size="lg">
                             Değişiklikleri Kaydet
@@ -522,6 +589,81 @@ export const MyShopPage: React.FC = () => {
                     </div>
                 </form>
             </div>
+
+            {/* Closure Dates Section */}
+            {shopId && (
+                <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mt-6">
+                    <div className="p-6 md:p-8">
+                        <h3 className="text-lg font-medium text-gray-900 flex items-center gap-2 mb-1">
+                            <CalendarX className="h-5 w-5 text-gray-500" />
+                            Kapalı Günler
+                        </h3>
+                        <p className="text-sm text-gray-500 mb-5">Salonunuzun kapalı olduğu özel günleri ekleyin (bayramlar, tatiller vb.). Bu günlerde müşteriler randevu alamaz.</p>
+
+                        {/* Add new */}
+                        <div className="flex flex-wrap gap-3 items-end mb-6">
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">Tarih</label>
+                                <input
+                                    type="date"
+                                    value={newClosureDate}
+                                    min={new Date().toLocaleDateString('en-CA')}
+                                    onChange={e => setNewClosureDate(e.target.value)}
+                                    className="px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 text-sm"
+                                />
+                            </div>
+                            <div className="flex-1 min-w-40">
+                                <label className="block text-xs font-medium text-gray-600 mb-1">Açıklama (opsiyonel)</label>
+                                <input
+                                    type="text"
+                                    value={newClosureReason}
+                                    onChange={e => setNewClosureReason(e.target.value)}
+                                    placeholder="Örn: 23 Nisan Ulusal Egemenlik"
+                                    className="w-full px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 text-sm"
+                                />
+                            </div>
+                            <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={handleAddClosureDate}
+                                isLoading={addingClosure}
+                                disabled={!newClosureDate}
+                            >
+                                + Ekle
+                            </Button>
+                        </div>
+
+                        {/* List */}
+                        {closureDates.length === 0 ? (
+                            <div className="text-center py-8 text-gray-400 text-sm bg-gray-50 rounded-lg border border-dashed">
+                                Henüz kapalı gün eklenmemiş.
+                            </div>
+                        ) : (
+                            <ul className="divide-y divide-gray-100 border rounded-lg overflow-hidden">
+                                {closureDates.map(c => (
+                                    <li key={c.id} className="flex items-center justify-between px-4 py-3 hover:bg-gray-50">
+                                        <div>
+                                            <span className="font-medium text-sm text-gray-800">
+                                                {new Date(c.closureDate).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                            </span>
+                                            {c.reason && <span className="ml-3 text-xs text-gray-500">{c.reason}</span>}
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleRemoveClosureDate(c.id)}
+                                            className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                            title="Sil"
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

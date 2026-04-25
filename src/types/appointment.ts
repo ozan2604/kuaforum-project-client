@@ -49,6 +49,7 @@ export interface TimeSlotDto {
 
 export interface EmployeeAvailabilityDto {
     isWorking: boolean;
+    isShopClosed?: boolean;
     workStartTime?: string; // HH:mm:ss
     workEndTime?: string;
     breakStartTime?: string;

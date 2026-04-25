@@ -1,5 +1,5 @@
 import api from './axios';
-import type { Shop, CreateShopDto } from '../types/shop';
+import type { Shop, CreateShopDto, ShopClosureDateDto } from '../types/shop';
 
 export const shopService = {
     create: async (data: CreateShopDto): Promise<void> => {
@@ -67,5 +67,18 @@ export const shopService = {
         await api.patch(`/shop/${id}/auto-process`, isEnabled, {
             headers: { 'Content-Type': 'application/json' }
         });
+    },
+
+    getClosureDates: async (shopId: string): Promise<ShopClosureDateDto[]> => {
+        const response = await api.get<ShopClosureDateDto[]>(`/shop/${shopId}/closure-dates`);
+        return response.data;
+    },
+
+    addClosureDate: async (shopId: string, date: string, reason?: string): Promise<void> => {
+        await api.post(`/shop/${shopId}/closure-dates`, { date, reason });
+    },
+
+    removeClosureDate: async (id: string): Promise<void> => {
+        await api.delete(`/shop/closure-dates/${id}`);
     }
 };

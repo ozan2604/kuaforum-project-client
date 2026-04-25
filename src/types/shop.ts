@@ -48,6 +48,12 @@ export const ShopCategoryLabels: { [key in ShopCategory]: string } = {
     [ShopCategory.Diger]: "Diğer"
 };
 
+export interface ShopClosureDateDto {
+    id: string;
+    closureDate: string;
+    reason?: string;
+}
+
 export interface Shop {
     id: string;
     ownerId: string;
@@ -74,6 +80,9 @@ export interface Shop {
     categories: number[];
     genderPreference: TargetGender;
     isAutoProcessEnabled: boolean;
+    openTime?: string;
+    closeTime?: string;
+    closureDates?: ShopClosureDateDto[];
 }
 
 export interface ShopSchedule {
@@ -95,4 +104,6 @@ export interface CreateShopDto {
     longitude?: number;
     categoryIds: number[];
     genderPreference: TargetGender;
+    openTime?: string;
+    closeTime?: string;
 }

@@ -52,6 +52,14 @@ export interface ScheduleDto {
     breakEndTime?: string;
 }
 
+export interface PublicEmployeeScheduleDto {
+    employeeId: string;
+    firstName: string;
+    lastName: string;
+    title?: string;
+    schedule: ScheduleDto[];
+}
+
 export interface EmployeeProfile {
     id: string;
     userId: string;
