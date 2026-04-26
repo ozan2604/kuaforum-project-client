@@ -57,9 +57,24 @@ export const appointmentService = {
         return response.data;
     },
 
-    // Employee - Assigned Appointments
+    // Employee - Assigned Appointments (all, for weekly calendar)
     getAssignedAppointments: async (): Promise<Appointment[]> => {
         const response = await api.get<Appointment[]>('/Appointment/employee/my-appointments');
+        return response.data;
+    },
+
+    // Employee - Assigned Appointments (paginated, for management table)
+    getAssignedAppointmentsPaged: async (
+        page: number = 1,
+        pageSize: number = 10,
+        status?: AppointmentStatus,
+        searchTerm?: string,
+        date?: string,
+        serviceId?: string
+    ): Promise<PagedResult<Appointment>> => {
+        const response = await api.get<PagedResult<Appointment>>('/Appointment/employee/my-appointments/paged', {
+            params: { page, pageSize, status, searchTerm, date, serviceId }
+        });
         return response.data;
     },
 
