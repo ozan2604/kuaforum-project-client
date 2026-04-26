@@ -23,15 +23,14 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ roles }) => {
 
     if (roles) {
         if (!user?.role) {
-            // Roles are required but user has no role defined
-            return <Navigate to="/" replace />;
+            return <Navigate to="/unauthorized" replace />;
         }
 
         const userRoles = Array.isArray(user.role) ? user.role : [user.role];
         const hasRole = roles.some(role => userRoles.includes(role));
 
         if (!hasRole) {
-            return <Navigate to="/" replace />;
+            return <Navigate to="/unauthorized" replace />;
         }
     }
 

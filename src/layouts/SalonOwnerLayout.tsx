@@ -24,21 +24,37 @@ export const SalonOwnerLayout: React.FC = () => {
     }
 
     const userRoles = user ? (Array.isArray(user.role) ? user.role : [user.role]) : [];
-    if (!user || !userRoles.includes('SalonOwner')) {
+    const isSalonOwner = userRoles.includes('SalonOwner');
+    const isEmployee   = userRoles.includes('Employee');
+
+    if (!user || (!isSalonOwner && !isEmployee)) {
         return <Navigate to="/" replace />;
     }
 
-    const navigation = [
-        { name: 'Anasayfa', href: '/', icon: Store },
-        { name: 'Dashboard', href: '/salon-panel', icon: LayoutDashboard },
+    const ownerNavigation = [
+        { name: 'Anasayfa',   href: '/',                        icon: Store },
+        { name: 'Dashboard',  href: '/salon-panel',             icon: LayoutDashboard },
         { name: 'Randevular', href: '/salon-panel/appointments', icon: Calendar },
-        { name: 'Salonum', href: '/salon-panel/shop', icon: Store },
-        { name: 'Hizmetler', href: '/salon-panel/services', icon: Scissors },
-        { name: 'Çalışanlar', href: '/salon-panel/employees', icon: Users },
-        // { name: 'Finans', href: '/salon-panel/finance', icon: PieChart },
-        // { name: 'Müşteriler', href: '/salon-panel/customers', icon: UserCheck },
-        { name: 'Ayarlar', href: '/salon-panel/settings', icon: Settings },
+        { name: 'Salonum',    href: '/salon-panel/shop',         icon: Store },
+        { name: 'Hizmetler',  href: '/salon-panel/services',     icon: Scissors },
+        { name: 'Çalışanlar', href: '/salon-panel/employees',    icon: Users },
+        { name: 'Ayarlar',    href: '/salon-panel/settings',     icon: Settings },
     ];
+
+    // Çalışan: aynı menü ama Randevular kendi sayfasına yönlenir.
+    // Diğer linkler App.tsx'deki route'lar sayesinde UnauthorizedPage'e düşer.
+    const employeeNavigation = [
+        { name: 'Anasayfa',   href: '/',                                 icon: Store },
+        { name: 'Dashboard',  href: '/salon-panel',                      icon: LayoutDashboard },
+        { name: 'Randevular', href: '/salon-panel/employee-appointments', icon: Calendar },
+        { name: 'Salonum',    href: '/salon-panel/shop',                  icon: Store },
+        { name: 'Hizmetler',  href: '/salon-panel/services',              icon: Scissors },
+        { name: 'Çalışanlar', href: '/salon-panel/employees',             icon: Users },
+        { name: 'Ayarlar',    href: '/salon-panel/settings',              icon: Settings },
+    ];
+
+    const navigation = isSalonOwner ? ownerNavigation : employeeNavigation;
+    const panelTitle = isSalonOwner ? 'Salon Paneli' : 'Personel Paneli';
 
     return (
         <div className="min-h-screen bg-gray-50 flex">
@@ -59,7 +75,7 @@ export const SalonOwnerLayout: React.FC = () => {
                     {/* Header */}
                     <div className="h-16 flex items-center px-6 border-b border-gray-200">
                         <Store className="h-8 w-8 text-primary-600 mr-3" />
-                        <span className="text-xl font-bold text-gray-900">Salon Paneli</span>
+                        <span className="text-xl font-bold text-gray-900">{panelTitle}</span>
                         <button
                             className="ml-auto lg:hidden"
                             onClick={() => setIsSidebarOpen(false)}
@@ -128,7 +144,7 @@ export const SalonOwnerLayout: React.FC = () => {
                     >
                         <Menu className="h-6 w-6" />
                     </button>
-                    <span className="font-bold text-gray-900">Salon Yönetimi</span>
+                    <span className="font-bold text-gray-900">{panelTitle}</span>
                     <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-full relative">
                         <Bell className="h-5 w-5" />
                         <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-red-500 rounded-full"></span>
