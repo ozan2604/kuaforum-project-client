@@ -5,7 +5,7 @@ import { Input } from '../../components/Input';
 import { serviceManagementService } from '../../api/service.service';
 import type { ServiceCategoryDto, CreateServiceDto, CreateCategoryDto } from '../../types/service';
 import { toast } from 'react-hot-toast';
-import { Plus, Scissors, Tag, Clock, DollarSign, Edit, Trash2 } from 'lucide-react';
+import { Plus, Scissors, Tag, Clock, DollarSign, Edit, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
 import type { UpdateServiceCategoryDto, UpdateShopServiceDto } from '../../types/service';
 
 export const ServicesPage: React.FC = () => {
@@ -24,6 +24,10 @@ export const ServicesPage: React.FC = () => {
     const [isDeleteServiceModalOpen, setIsDeleteServiceModalOpen] = useState(false);
     const [selectedService, setSelectedService] = useState<any>(null);
     const [activeTab, setActiveTab] = useState<'active' | 'deleted'>('active');
+    const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({});
+
+    const toggleCategory = (id: string) =>
+        setOpenCategories(prev => ({ ...prev, [id]: !prev[id] }));
 
     const loadServices = async () => {
         setLoading(true);
@@ -313,84 +317,133 @@ export const ServicesPage: React.FC = () => {
                             <Button onClick={() => setIsCategoryModalOpen(true)}>Kategori Oluştur</Button>
                         </div>
                     ) : (
-                        activeCategories.map((category) => (
-                            <div key={category.id} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                                <div className="px-6 py-4 bg-gray-50 border-b border-gray-100 flex justify-between items-center">
-                                    <div className="flex items-center gap-3">
-                                        <div>
-                                            <h3 className="font-bold text-gray-900">{category.name}</h3>
-                                            {category.description && <p className="text-sm text-gray-500">{category.description}</p>}
+                        activeCategories.map((category) => {
+                            const isOpen = !!openCategories[category.id];
+                            return (
+                                <div key={category.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-200">
+                                    {/* Kategori başlığı – tüm satır tıklanabilir, butonlar propagasyonu durdurur */}
+                                    <div
+                                        onClick={() => toggleCategory(category.id)}
+                                        className="px-5 sm:px-6 py-4 flex justify-between items-center cursor-pointer hover:bg-gray-50 transition-colors select-none relative"
+                                    >
+                                        <div className="flex items-center gap-3 pr-4">
+                                            <div className="p-2 bg-primary-50 text-primary-600 rounded-xl shrink-0">
+                                                <Tag className="h-4 w-4" />
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <h3 className="font-bold text-gray-900">{category.name}</h3>
+                                                    {!category.isActive && (
+                                                        <span className="px-2 py-0.5 bg-gray-200 text-gray-600 text-xs rounded-full font-medium border border-gray-300">Pasif</span>
+                                                    )}
+                                                    <span className="text-xs text-gray-400">
+                                                        {category.services.length} hizmet
+                                                    </span>
+                                                </div>
+                                                {category.description && (
+                                                    <p className="text-xs text-gray-400 mt-0.5">{category.description}</p>
+                                                )}
+                                            </div>
                                         </div>
-                                        {!category.isActive && <span className="px-2 py-0.5 bg-gray-200 text-gray-700 text-xs rounded-full font-medium border border-gray-300">Pasif</span>}
+
+                                        <div className="flex items-center gap-1 shrink-0">
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setSelectedCategory(category); setIsEditCategoryModalOpen(true); }}
+                                                className="p-1.5 text-gray-400 hover:text-primary-600 transition-colors rounded-lg hover:bg-primary-50"
+                                                title="Kategoriyi Düzenle"
+                                            >
+                                                <Edit className="h-4 w-4" />
+                                            </button>
+                                            <button
+                                                onClick={(e) => { e.stopPropagation(); setSelectedCategory(category); setIsDeleteCategoryModalOpen(true); }}
+                                                className="p-1.5 text-gray-400 hover:text-red-600 transition-colors rounded-lg hover:bg-red-50"
+                                                title="Kategoriyi Sil"
+                                            >
+                                                <Trash2 className="h-4 w-4" />
+                                            </button>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="ml-1 hidden sm:flex"
+                                                onClick={(e) => { e.stopPropagation(); setSelectedCategoryId(category.id); setIsServiceModalOpen(true); }}
+                                            >
+                                                <Plus className="h-3 w-3 mr-1" />
+                                                Hizmet Ekle
+                                            </Button>
+                                            <div className="ml-2 p-1 bg-gray-100 rounded-full text-gray-400">
+                                                {isOpen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                            </div>
+                                        </div>
                                     </div>
-                                    <div className="flex items-center space-x-2">
-                                        <button
-                                            onClick={() => { setSelectedCategory(category); setIsEditCategoryModalOpen(true); }}
-                                            className="p-1.5 text-gray-400 hover:text-primary-600 transition-colors"
-                                            title="Kategoriyi Düzenle"
-                                        >
-                                            <Edit className="h-4 w-4" />
-                                        </button>
-                                        <button
-                                            onClick={() => { setSelectedCategory(category); setIsDeleteCategoryModalOpen(true); }}
-                                            className="p-1.5 text-gray-400 hover:text-red-600 transition-colors"
-                                            title="Kategoriyi Sil"
-                                        >
-                                            <Trash2 className="h-4 w-4" />
-                                        </button>
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="ml-2"
-                                            onClick={() => {
-                                                setSelectedCategoryId(category.id);
-                                                setIsServiceModalOpen(true);
-                                            }}
-                                        >
-                                            <Plus className="h-3 w-3 mr-1" />
-                                            Hizmet Ekle
-                                        </Button>
-                                    </div>
-                                </div>
-                                <div className="divide-y divide-gray-100">
-                                    {category.services.length === 0 ? (
-                                        <div className="p-4 text-center text-sm text-gray-400">Bu kategoride hizmet bulunmuyor</div>
-                                    ) : (
-                                        category.services.map((service) => (
-                                            <div key={service.id} className="p-4 flex justify-between items-center hover:bg-gray-50 transition-colors">
-                                                <div className="flex items-center">
-                                                    <Tag className="h-4 w-4 text-primary-400 mr-3" />
-                                                    <div>
-                                                        <p className={`font-medium ${service.isActive ? 'text-gray-900' : 'text-gray-400 line-through'}`}>{service.name}</p>
-                                                        <div className="flex items-center text-xs text-gray-500 mt-1 space-x-3">
-                                                            <span className="flex items-center"><Clock className="h-3 w-3 mr-1" /> {service.duration} dk</span>
-                                                            <span className={`flex items-center font-semibold ${service.isActive ? 'text-green-600' : 'text-gray-400'}`}><DollarSign className="h-3 w-3" /> {service.price}</span>
-                                                            {!service.isActive && <span className="text-gray-500 font-semibold">(Pasif)</span>}
+
+                                    {/* Mobilde "Hizmet Ekle" butonu – sadece açıkken göster */}
+                                    {isOpen && (
+                                        <div className="sm:hidden px-5 pb-3 border-b border-gray-100">
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="w-full"
+                                                onClick={() => { setSelectedCategoryId(category.id); setIsServiceModalOpen(true); }}
+                                            >
+                                                <Plus className="h-3 w-3 mr-1" />
+                                                Hizmet Ekle
+                                            </Button>
+                                        </div>
+                                    )}
+
+                                    {/* Hizmet listesi */}
+                                    {isOpen && (
+                                        <div className="divide-y divide-gray-100 border-t border-gray-100 animate-in fade-in slide-in-from-top-2 duration-200">
+                                            {category.services.length === 0 ? (
+                                                <div className="py-8 text-center text-sm text-gray-400 bg-gray-50/50">
+                                                    Bu kategoride henüz hizmet bulunmuyor.
+                                                </div>
+                                            ) : (
+                                                category.services.map((service) => (
+                                                    <div key={service.id} className="px-5 sm:px-6 py-3.5 flex justify-between items-center hover:bg-gray-50 transition-colors">
+                                                        <div className="flex items-center gap-3">
+                                                            <div className={`w-2 h-2 rounded-full shrink-0 ${service.isActive ? 'bg-green-400' : 'bg-gray-300'}`} />
+                                                            <div>
+                                                                <p className={`font-medium text-sm ${service.isActive ? 'text-gray-900' : 'text-gray-400 line-through'}`}>
+                                                                    {service.name}
+                                                                </p>
+                                                                <div className="flex items-center text-xs text-gray-500 mt-0.5 gap-3 flex-wrap">
+                                                                    <span className="flex items-center gap-1">
+                                                                        <Clock className="h-3 w-3" /> {service.duration} dk
+                                                                    </span>
+                                                                    <span className={`flex items-center gap-0.5 font-semibold ${service.isActive ? 'text-green-600' : 'text-gray-400'}`}>
+                                                                        <DollarSign className="h-3 w-3" />{service.price} ₺
+                                                                    </span>
+                                                                    {!service.isActive && (
+                                                                        <span className="text-gray-400">(Pasif)</span>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="flex gap-1 shrink-0">
+                                                            <button
+                                                                onClick={() => { setSelectedService(service); setIsEditServiceModalOpen(true); }}
+                                                                className="p-1.5 text-gray-400 hover:text-primary-600 transition-colors rounded-lg hover:bg-primary-50"
+                                                                title="Hizmeti Düzenle"
+                                                            >
+                                                                <Edit className="h-4 w-4" />
+                                                            </button>
+                                                            <button
+                                                                onClick={() => { setSelectedService(service); setIsDeleteServiceModalOpen(true); }}
+                                                                className="p-1.5 text-gray-400 hover:text-red-600 transition-colors rounded-lg hover:bg-red-50"
+                                                                title="Hizmeti Sil"
+                                                            >
+                                                                <Trash2 className="h-4 w-4" />
+                                                            </button>
                                                         </div>
                                                     </div>
-                                                </div>
-                                                <div className="flex space-x-1">
-                                                    <button
-                                                        onClick={() => { setSelectedService(service); setIsEditServiceModalOpen(true); }}
-                                                        className="p-1.5 text-gray-400 hover:text-primary-600 transition-colors"
-                                                        title="Hizmeti Düzenle"
-                                                    >
-                                                        <Edit className="h-4 w-4" />
-                                                    </button>
-                                                    <button
-                                                        onClick={() => { setSelectedService(service); setIsDeleteServiceModalOpen(true); }}
-                                                        className="p-1.5 text-gray-400 hover:text-red-600 transition-colors"
-                                                        title="Hizmeti Sil"
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ))
+                                                ))
+                                            )}
+                                        </div>
                                     )}
                                 </div>
-                            </div>
-                        ))
+                            );
+                        })
                     )
                 ) : (
                     <div className="space-y-6">
