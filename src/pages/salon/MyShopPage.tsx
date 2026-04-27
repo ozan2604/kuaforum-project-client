@@ -35,6 +35,7 @@ interface ShopFormData {
     genderPreference: TargetGender;
     openTime?: string;
     closeTime?: string;
+    bookingDaysAhead?: number;
 }
 
 // Tracks the last successfully saved state per section — prevents cross-section contamination
@@ -54,6 +55,7 @@ interface ShopSnapshot {
     longitude?: number;
     openTime?: string;
     closeTime?: string;
+    bookingDaysAhead?: number;
 }
 
 type ShopUpdatePayload = {
@@ -72,6 +74,7 @@ type ShopUpdatePayload = {
     longitude?: number;
     openTime?: string;
     closeTime?: string;
+    bookingDaysAhead?: number;
 };
 
 interface ChangeItem {
@@ -206,6 +209,7 @@ export const MyShopPage: React.FC = () => {
                     genderPreference: shop.genderPreference?.toString() as any,
                     openTime: shop.openTime || '',
                     closeTime: shop.closeTime || '',
+                    bookingDaysAhead: shop.bookingDaysAhead ?? 30,
                 });
 
                 setSelectedCategories(shop.categories ?? []);
@@ -227,6 +231,7 @@ export const MyShopPage: React.FC = () => {
                     longitude: shop.longitude,
                     openTime: shop.openTime || '',
                     closeTime: shop.closeTime || '',
+                    bookingDaysAhead: shop.bookingDaysAhead ?? 30,
                 });
 
                 if (shop.city) {
@@ -306,6 +311,7 @@ export const MyShopPage: React.FC = () => {
         if (section === 'hours') {
             check('Açılış Saati', snap.openTime, payload.openTime);
             check('Kapanış Saati', snap.closeTime, payload.closeTime);
+            check('Randevu Alma Süresi', String(snap.bookingDaysAhead ?? 30) + ' gün', String(payload.bookingDaysAhead ?? 30) + ' gün');
         }
 
         return items;
@@ -356,6 +362,7 @@ export const MyShopPage: React.FC = () => {
                 : savedSnapshot.longitude,
             openTime: section === 'hours' ? values.openTime : savedSnapshot.openTime,
             closeTime: section === 'hours' ? values.closeTime : savedSnapshot.closeTime,
+            bookingDaysAhead: section === 'hours' ? (Number(values.bookingDaysAhead) || 30) : (savedSnapshot.bookingDaysAhead ?? 30),
         };
 
         const changes = buildChanges(section, payload);
@@ -390,7 +397,7 @@ export const MyShopPage: React.FC = () => {
                 if (section === 'location') {
                     return { ...prev, address: payload.address, city: payload.city, district: payload.district, neighborhood: payload.neighborhood, street: payload.street, buildingNumber: payload.buildingNumber, latitude: payload.latitude, longitude: payload.longitude };
                 }
-                return { ...prev, openTime: payload.openTime, closeTime: payload.closeTime };
+                return { ...prev, openTime: payload.openTime, closeTime: payload.closeTime, bookingDaysAhead: payload.bookingDaysAhead };
             });
 
             toast.success('Dükkan detayları başarıyla güncellendi');
@@ -937,6 +944,20 @@ export const MyShopPage: React.FC = () => {
                                         className="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 focus:border-primary-500 outline-none transition-all text-sm"
                                     />
                                 </div>
+                            </div>
+                            <div className="max-w-xs">
+                                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                                    Randevu Alma Süresi (Gün)
+                                </label>
+                                <p className="text-xs text-gray-400 mb-2">Müşteriler bugünden kaç gün sonrasına kadar randevu alabilir?</p>
+                                <input
+                                    type="number"
+                                    min={1}
+                                    max={365}
+                                    {...register('bookingDaysAhead', { valueAsNumber: true })}
+                                    className="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 focus:border-primary-500 outline-none transition-all text-sm"
+                                    placeholder="30"
+                                />
                             </div>
                             <div className="flex justify-end">
                                 <Button type="button" onClick={() => handleSaveSection('hours')} isLoading={loading}>

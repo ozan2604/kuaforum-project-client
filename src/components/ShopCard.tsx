@@ -82,16 +82,18 @@ export const ShopCard: React.FC<ShopCardProps> = ({ shop, initialIsFavorite = fa
                     onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1560066984-12186d30b435?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'; }}
                 />
 
-                {/* Favori Butonu */}
+                {/* Favori Butonu - Navbar stili */}
                 <button
                     onClick={handleFavoriteClick}
                     disabled={isLoading}
-                    className={`absolute top-2 sm:top-3 right-2 sm:right-3 z-20 p-1.5 sm:p-2 rounded-full shadow-md backdrop-blur-sm transition-all duration-300 hover:scale-110 active:scale-95 ${isFavorite
-                        ? 'bg-secondary-500 text-white border border-secondary-400'
-                        : 'bg-white/85 text-gray-400 hover:text-secondary-500 border border-white/40'
-                        }`}
+                    title={isFavorite ? 'Favorilerden çıkar' : 'Favorilere ekle'}
+                    className={`absolute top-2 sm:top-3 right-2 sm:right-3 z-20 flex items-center gap-1.5 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-full border shadow-md backdrop-blur-sm transition-all duration-200 hover:scale-105 active:scale-95 ${
+                        isFavorite
+                            ? 'bg-red-50 text-red-600 border-red-200'
+                            : 'bg-white/90 text-gray-700 border-white/60 hover:bg-white'
+                    }`}
                 >
-                    <Heart className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${isFavorite ? 'fill-current' : ''}`} />
+                    <Heart className={`h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-500 ${isFavorite ? 'fill-current' : ''}`} />
                 </button>
 
                 {/* Kategori Etiketi */}

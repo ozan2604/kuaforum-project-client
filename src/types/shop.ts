@@ -80,6 +80,7 @@ export interface Shop {
     categories: number[];
     genderPreference: TargetGender;
     isAutoProcessEnabled: boolean;
+    bookingDaysAhead?: number;
     openTime?: string;
     closeTime?: string;
     closureDates?: ShopClosureDateDto[];

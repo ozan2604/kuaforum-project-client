@@ -4,9 +4,10 @@ import { shopService } from '../api/shop.service';
 import { serviceManagementService } from '../api/service.service';
 import { employeeService } from '../api/employee.service';
 import type { Shop } from '../types/shop';
+import { ShopCategoryLabels, ShopCategory, TargetGenderLabels } from '../types/shop';
 import type { ServiceCategoryDto, ShopServiceDto } from '../types/service';
 import type { PublicEmployeeScheduleDto } from '../types/employee';
-import { MapPin, Star, Clock, Calendar, ChevronLeft, ChevronDown, Heart, Grid, Info, Image, MessageCircle, Users } from 'lucide-react';
+import { MapPin, Star, Clock, Calendar, ChevronDown, Heart, Grid, Info, Image, MessageCircle, Users, Undo2, Phone, User, ExternalLink, CheckCircle } from 'lucide-react';
 import { Button } from '../components/Button';
 import { toast } from 'react-hot-toast';
 import { BookingModal } from '../components/BookingModal';
@@ -42,10 +43,7 @@ export const ShopDetailsPage: React.FC = () => {
     const [employeeSchedules, setEmployeeSchedules] = useState<PublicEmployeeScheduleDto[]>([]);
     const [selectedScheduleEmployeeId, setSelectedScheduleEmployeeId] = useState<string>('');
 
-    // Accordion States for Nested UI (Categories -> Services -> Employees)
     const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
-    const [expandedServices, setExpandedServices] = useState<Record<string, boolean>>({});
-    const [expandedEmployees, setExpandedEmployees] = useState<Record<string, boolean>>({});
 
     const toggleAccordion = (setter: React.Dispatch<React.SetStateAction<Record<string, boolean>>>, id: string) => {
         setter(prev => ({ ...prev, [id]: !prev[id] }));
@@ -99,6 +97,9 @@ export const ShopDetailsPage: React.FC = () => {
                 ]);
                 setShop(shopData);
                 setCategories(servicesData);
+                const initExpanded: Record<string, boolean> = {};
+                servicesData.forEach(cat => { initExpanded[cat.id] = true; });
+                setExpandedCategories(initExpanded);
                 setEmployeeSchedules(schedulesData);
                 if (schedulesData.length > 0) setSelectedScheduleEmployeeId(schedulesData[0].employeeId);
 
@@ -195,74 +196,154 @@ export const ShopDetailsPage: React.FC = () => {
 
     if (!shop) return null;
 
+    // --- Çalışma Saatleri Mantığı ---
+    const getTodayStatus = () => {
+        let open = shop.openTime;
+        let close = shop.closeTime;
+
+        if (!open && shop.weeklySchedule) {
+            const todayNum = new Date().getDay();
+            const todaySchedule = shop.weeklySchedule.find(s => s.dayOfWeek === todayNum);
+            if (todaySchedule && !todaySchedule.isClosed) {
+                open = todaySchedule.openingTime || undefined;
+                close = todaySchedule.closingTime || undefined;
+            }
+        }
+
+        if (!open || !close) return null;
+
+        const now = new Date();
+        const [oh, om] = open.split(':').map(Number);
+        const [ch, cm] = close.split(':').map(Number);
+        const cur = now.getHours() * 60 + now.getMinutes();
+        const isOpen = cur >= (oh * 60 + om) && cur < (ch * 60 + cm);
+
+        return { open, close, isOpen };
+    };
+
+    const status = getTodayStatus();
+
     return (
-        <div className="min-h-screen bg-gray-50 pb-12 font-sans">
+        <div className="min-h-screen bg-gray-50 pb-16 font-sans">
             {/* Hero Section */}
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mt-6">
-                <div className="relative h-[45vh] min-h-[400px] w-full rounded-3xl overflow-hidden shadow-2xl group">
+            <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 mt-4 sm:mt-6">
+
+                {/* ── Kart Üstü: Premium İsim + Meta Bilgiler ── */}
+                <div className="mb-4 sm:mb-5">
+
+                    {/* İsim + Telefon Satırı */}
+                    <div className="flex items-start justify-between gap-3 flex-wrap mb-3 sm:mb-3.5">
+
+                        {/* İsim — Oval Pill Card */}
+                        <div className="flex items-center gap-2.5 sm:gap-3 px-3 sm:px-5 py-2 sm:py-3 bg-white border border-gray-200 rounded-2xl shadow-sm">
+                            <h1 className="text-lg sm:text-2xl lg:text-3xl font-black text-primary-700 tracking-tight leading-none">
+                                {shop.name}
+                            </h1>
+                        </div>
+
+                        {/* Telefon Butonu */}
+                        {shop.phoneNumber && (
+                            <a
+                                href={`tel:${shop.phoneNumber}`}
+                                className="group flex items-center gap-2 px-3 sm:px-5 py-2 sm:py-2.5 bg-white border border-gray-200 rounded-2xl shadow-sm hover:shadow-lg hover:border-primary-400 hover:bg-primary-50 transition-all duration-200 text-gray-700 hover:text-primary-700 shrink-0"
+                            >
+                                <div className="flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 bg-primary-100 group-hover:bg-primary-200 rounded-xl transition-colors shrink-0">
+                                    <svg className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary-600" fill="none" stroke="currentColor" strokeWidth={2.2} viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                                    </svg>
+                                </div>
+                                <div className="flex flex-col leading-tight">
+                                    <span className="text-[10px] sm:text-[11px] text-gray-400 font-medium uppercase tracking-wider">Ara</span>
+                                    <span className="text-xs sm:text-sm font-bold">{shop.phoneNumber}</span>
+                                </div>
+                            </a>
+                        )}
+                    </div>
+                </div>
+
+                {/* ── Hero Kart (Fotoğraf) ── */}
+                <div className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl group" style={{height: 'clamp(240px, 42vw, 500px)'}}>
+                    {/* Fotoğraf */}
                     <div className="absolute inset-0">
                         <img
-                            src={shop.coverImagePath ? getImageUrl(shop.coverImagePath) : `https://source.unsplash.com/random/1920x1080/?salon,${shop.id}`}
+                            src={shop.coverImagePath ? getImageUrl(shop.coverImagePath) : 'https://images.unsplash.com/photo-1521590832896-bc17251e32ed?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80'}
                             alt={shop.name}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000 ease-in-out"
                             onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1521590832896-bc17251e32ed?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80'; }}
                         />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-90"></div>
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
                     </div>
 
-                    <div className="absolute top-6 left-6 z-20">
-                        <Button
-                            variant="secondary"
-                            size="sm"
+                    {/* Üst Bar: Geri (Curved Arrow) + Favori */}
+                    <div className="absolute top-3 sm:top-6 left-3 sm:left-6 right-3 sm:right-6 z-20 flex items-center justify-between">
+                        {/* Geri Butonu - Paylaşılan görsele uygun kavisli ok */}
+                        <button
                             onClick={() => navigate('/')}
-                            className="bg-white/90 hover:bg-white text-gray-900 border-0 shadow-md backdrop-blur-sm"
+                            className="flex items-center justify-center p-2 sm:p-3.5 bg-white/95 hover:bg-white rounded-full shadow-xl backdrop-blur-md transition-all duration-200 hover:scale-110 active:scale-90 border border-white/60 group"
+                            title="Anasayfa"
                         >
-                            <ChevronLeft className="h-4 w-4 mr-1" />
-                            Back to Home
-                        </Button>
+                            <Undo2 className="h-5 w-5 sm:h-7 sm:w-7 text-rose-600 group-hover:rotate-[-10deg] transition-transform" />
+                        </button>
+
+                        {/* Favori - Navbar ile aynı stil but daha büyük */}
+                        <button
+                            onClick={handleToggleFavorite}
+                            disabled={favLoading}
+                            title={isFavorite ? 'Favorilerden çıkar' : 'Favorilere ekle'}
+                            className={`flex items-center gap-2 px-3 sm:px-5 py-1.5 sm:py-3.5 rounded-full border text-sm sm:text-lg font-bold shadow-xl backdrop-blur-md transition-all duration-200 hover:scale-105 active:scale-95 ${
+                                isFavorite
+                                    ? 'bg-rose-50 text-rose-600 border-rose-200'
+                                    : 'bg-white/95 text-gray-700 border-white/60 hover:bg-white'
+                            }`}
+                        >
+                            <Heart className={`h-4 w-4 sm:h-6 sm:w-6 text-rose-500 drop-shadow-[0_0_8px_rgba(244,63,94,0.4)] ${isFavorite ? 'fill-current' : ''}`} />
+                        </button>
                     </div>
 
-                    <div className="absolute bottom-0 left-0 right-0 p-8 sm:p-10 z-20">
-                        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-                            <div className="space-y-3">
-                                <h1 className="text-4xl md:text-5xl font-extrabold text-white tracking-tight drop-shadow-xl">
-                                    {shop.name}
-                                </h1>
-                                <div className="flex flex-wrap items-center gap-4 text-white/95 text-lg font-medium">
-                                    <span className="flex items-center drop-shadow-md bg-black/20 px-3 py-1 rounded-full backdrop-blur-sm border border-white/10">
-                                        <MapPin className="h-4 w-4 mr-2 text-secondary-300" />
-                                        {shop.district}, {shop.city}
-                                    </span>
-                                    <span className="flex items-center drop-shadow-md bg-black/20 px-3 py-1 rounded-full backdrop-blur-sm border border-white/10">
-                                        <Star className="h-4 w-4 mr-2 fill-yellow-400 text-yellow-400" />
-                                        <span className="font-bold mr-1">{shop.averageRating?.toFixed(1) || 'New'}</span>
-                                        <span className="text-white/90">({shop.reviewCount} Reviews)</span>
-                                    </span>
-                                </div>
+                    {/* Alt: Bilgiler + CTA */}
+                    <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-6 lg:p-8 z-20">
+                        <div className="flex flex-col gap-3 sm:gap-4">
+                            {/* Üst Sıra: Konum + Puan */}
+                            <div className="flex flex-wrap items-center gap-2">
+                                <span className="flex items-center gap-1.5 text-white/95 text-[10px] sm:text-sm font-medium bg-black/40 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full backdrop-blur-md border border-white/10">
+                                    <MapPin className="h-3 w-3 sm:h-4 sm:w-4 text-rose-300 shrink-0" />
+                                    {shop.district}, {shop.city}
+                                </span>
+                                <span className="flex items-center gap-1.5 text-white/95 text-[10px] sm:text-sm font-medium bg-black/40 px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full backdrop-blur-md border border-white/10">
+                                    <Star className="h-3 w-3 sm:h-4 sm:w-4 fill-yellow-400 text-yellow-400" />
+                                    <span className="font-bold">{shop.averageRating?.toFixed(1) || 'Yeni'}</span>
+                                    <span className="text-white/75">({shop.reviewCount})</span>
+                                </span>
                             </div>
 
-                            <div className="flex items-center gap-4">
-                                <button
-                                    onClick={handleToggleFavorite}
-                                    disabled={favLoading}
-                                    className={`p-3 rounded-full transition-all duration-300 backdrop-blur-md shadow-lg border border-white/10 ${isFavorite
-                                        ? 'bg-secondary-500 text-white hover:bg-secondary-600'
-                                        : 'bg-white/20 text-white hover:bg-white/30'
-                                        }`}
-                                >
-                                    <Heart className={`h-6 w-6 ${isFavorite ? 'fill-current' : ''}`} />
-                                </button>
+                            {/* Alt Sıra: Çalışma Saati & CTA Butonu (Orantılı ve Aynı Hizada) */}
+                            <div className="flex items-center justify-between gap-3">
+                                {/* Çalışma Saati - Orantılı Boyut */}
+                                {status && (
+                                    <div className={`flex items-center gap-2 sm:gap-3 text-xs sm:text-base font-bold px-4 sm:px-6 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl backdrop-blur-md border shadow-xl ${
+                                        status.isOpen
+                                            ? 'bg-green-500/40 text-white border-green-400/50'
+                                            : 'bg-black/50 text-white/95 border-white/20'
+                                    }`}>
+                                        <span className={`w-2 h-2 sm:w-3 sm:h-3 rounded-full shrink-0 ${status.isOpen ? 'bg-green-400 animate-pulse' : 'bg-red-500'}`} />
+                                        <div className="flex flex-row items-center gap-1.5 sm:gap-2 leading-none whitespace-nowrap">
+                                            <span className="font-black">{status.isOpen ? 'AÇIK' : 'KAPALI'}</span>
+                                            <span className="opacity-80 font-bold text-[10px] sm:text-sm">{status.open}–{status.close}</span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* CTA Butonu - Orantılı Boyut */}
                                 <Button
-                                    size="lg"
                                     variant="secondary"
-                                    className="shadow-xl shadow-secondary-900/20 text-white border-0 px-8 py-4 text-lg font-bold"
+                                    className="shadow-xl shadow-secondary-900/30 text-white border-0 px-4 sm:px-8 py-2.5 sm:py-3.5 text-xs sm:text-base font-bold rounded-xl sm:rounded-2xl transition-transform active:scale-95 flex items-center justify-center shrink-0"
                                     onClick={() => {
                                         setSelectedService(null);
                                         setIsBookingModalOpen(true);
                                     }}
                                 >
-                                    <Calendar className="h-5 w-5 mr-2" />
-                                    Hemen Randevu Al
+                                    <Calendar className="h-4 w-4 sm:h-5 sm:w-5 mr-1.5 sm:mr-2 shrink-0" />
+                                    <span className="whitespace-nowrap">Randevu Al</span>
                                 </Button>
                             </div>
                         </div>
@@ -270,186 +351,180 @@ export const ShopDetailsPage: React.FC = () => {
                 </div>
             </div>
 
-            <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 mt-12">
+            {/* ── Kart Altı: Kategoriler ── */}
+            <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 mt-3 sm:mt-4">
+                {shop.categories && shop.categories.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-2">
+                        {shop.categories.map((catId, idx) => {
+                            const bgs = [
+                                'bg-violet-50 border-violet-200',
+                                'bg-rose-50 border-rose-200',
+                                'bg-amber-50 border-amber-200',
+                                'bg-emerald-50 border-emerald-200',
+                                'bg-sky-50 border-sky-200',
+                                'bg-fuchsia-50 border-fuchsia-200',
+                            ];
+                            const bg = bgs[idx % bgs.length];
+                            return (
+                                <span
+                                    key={catId}
+                                    className={`inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-semibold border text-gray-700 ${bg} shadow-sm`}
+                                >
+                                    <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
+                                    {ShopCategoryLabels[catId as ShopCategory] ?? 'Diğer'}
+                                </span>
+                            );
+                        })}
+                    </div>
+                )}
+            </div>
+
+            <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 mt-6 sm:mt-10">
                 <div>
                     {/* Content with Tabs */}
-                    <div className="space-y-8">
-                        <div className="flex overflow-x-auto gap-2 pb-2 -mx-4 px-4 sm:mx-0 sm:px-0 scrollbar-hide">
-                            {(['services', 'about', 'gallery', 'reviews', 'hours'] as const).map((tab) => {
-                                const icons = {
-                                    services: Grid,
-                                    about: Info,
-                                    gallery: Image,
-                                    reviews: MessageCircle,
-                                    hours: Clock
-                                };
-                                const Icon = icons[tab];
-                                const labels = {
-                                    services: 'Hizmetler',
-                                    about: 'Hakkında',
-                                    gallery: 'Galeri',
-                                    reviews: 'Değerlendirmeler',
-                                    hours: 'Çalışma Saatleri'
-                                };
-
-                                return (
-                                    <button
-                                        key={tab}
-                                        onClick={() => setActiveTab(tab)}
-                                        className={`flex-shrink-0 flex items-center gap-2 px-4 py-2.5 rounded-full font-medium text-sm transition-all duration-200 border whitespace-nowrap ${activeTab === tab
-                                            ? 'bg-white border-primary-600 text-primary-600 shadow-sm ring-1 ring-primary-600'
-                                            : 'bg-gray-100 border-transparent text-gray-600 hover:bg-gray-200'
+                    <div className="space-y-5">
+                        {/* Sticky Tab Bar */}
+                        <div className="sticky top-[80px] z-30 py-2.5">
+                            <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-1.5 flex overflow-x-auto gap-1 scrollbar-hide">
+                                {(['services', 'about', 'gallery', 'reviews', 'hours'] as const).map((tab) => {
+                                    const icons = {
+                                        services: Grid,
+                                        about: Info,
+                                        gallery: Image,
+                                        reviews: MessageCircle,
+                                        hours: Clock
+                                    };
+                                    const Icon = icons[tab];
+                                    const labels = {
+                                        services: 'Hizmetler',
+                                        about: 'Hakkında',
+                                        gallery: 'Galeri',
+                                        reviews: 'Yorumlar',
+                                        hours: 'Çalışma Saatleri'
+                                    };
+                                    return (
+                                        <button
+                                            key={tab}
+                                            onClick={() => setActiveTab(tab)}
+                                            className={`flex-1 min-w-fit flex items-center justify-center gap-1.5 px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl font-semibold text-[11px] sm:text-sm transition-all duration-200 whitespace-nowrap ${
+                                                activeTab === tab
+                                                    ? 'bg-primary-600 text-white shadow-md shadow-primary-500/25'
+                                                    : 'text-gray-500 hover:text-gray-800 hover:bg-gray-50'
                                             }`}
-                                    >
-                                        <Icon className={`w-4 h-4 ${activeTab === tab ? 'text-primary-600' : 'text-gray-500'}`} />
-                                        {labels[tab]}
-                                    </button>
-                                );
-                            })}
+                                        >
+                                            <Icon className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${activeTab === tab ? 'text-white' : 'text-gray-400'}`} />
+                                            <span>{labels[tab]}</span>
+                                        </button>
+                                    );
+                                })}
+                            </div>
                         </div>
 
                         <div className="min-h-[400px]">
                             {activeTab === 'services' && (
-                                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8 animate-fadeIn">
-                                    <div className="flex items-center justify-between mb-8 pb-4 border-b border-gray-100">
-                                        <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                                            Hizmetlerimiz
-                                        </h2>
+                                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden animate-fadeIn">
+                                    {/* Başlık */}
+                                    <div className="flex items-center justify-between px-5 sm:px-6 py-4 border-b border-gray-100">
+                                        <h2 className="text-lg sm:text-xl font-bold text-gray-900">Hizmetlerimiz</h2>
                                         <span className="px-3 py-1 bg-primary-50 text-primary-700 text-xs font-bold rounded-full border border-primary-100">
                                             {categories.reduce((acc, cat) => acc + cat.services.length, 0)} Hizmet
                                         </span>
                                     </div>
 
                                     {categories.length === 0 ? (
-                                        <div className="text-center py-12 bg-white rounded-xl border border-dashed border-gray-200">
-                                            <p className="text-gray-500 italic">Henüz hizmet listelenmemiş.</p>
+                                        <div className="text-center py-16">
+                                            <p className="text-gray-400 italic text-sm">Henüz hizmet listelenmemiş.</p>
                                         </div>
                                     ) : (
-                                        <div className="space-y-5">
+                                        <div className="divide-y divide-gray-100">
                                             {categories.map((cat) => (
-                                                <div key={cat.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                                                    {/* Category Header */}
+                                                <div key={cat.id}>
+                                                    {/* Kategori Başlığı */}
                                                     <button
                                                         onClick={() => toggleAccordion(setExpandedCategories, cat.id)}
-                                                        className="w-full px-6 py-4 bg-gray-50/50 hover:bg-gray-100/80 transition-colors flex justify-between items-center group text-left"
+                                                        className="w-full flex items-center justify-between px-5 sm:px-6 py-3.5 bg-gray-50/80 hover:bg-gray-100/60 transition-colors text-left"
                                                     >
                                                         <div className="flex items-center gap-3">
-                                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-colors ${expandedCategories[cat.id] ? 'bg-primary-100 text-primary-600' : 'bg-white border border-gray-200 text-gray-400 group-hover:text-primary-500 group-hover:border-primary-200'}`}>
-                                                                <ChevronDown className={`w-5 h-5 transition-transform duration-300 ${expandedCategories[cat.id] ? 'rotate-180' : ''}`} />
-                                                            </div>
-                                                            <h3 className="text-lg font-bold text-gray-900 group-hover:text-primary-700 transition-colors">{cat.name}</h3>
+                                                            <div className={`w-1.5 h-5 rounded-full shrink-0 transition-colors ${
+                                                                expandedCategories[cat.id] ? 'bg-primary-500' : 'bg-gray-300'
+                                                            }`} />
+                                                            <h3 className={`text-sm sm:text-[15px] font-bold transition-colors ${
+                                                                expandedCategories[cat.id] ? 'text-primary-700' : 'text-gray-700'
+                                                            }`}>{cat.name}</h3>
                                                         </div>
-                                                        <span className="text-xs font-semibold text-gray-500 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm">
-                                                            {cat.services.length} seçenek
-                                                        </span>
+                                                        <div className="flex items-center gap-2 shrink-0">
+                                                            <span className="text-[11px] font-semibold text-gray-400 bg-white px-2.5 py-0.5 rounded-full border border-gray-200">
+                                                                {cat.services.length} hizmet
+                                                            </span>
+                                                            <ChevronDown className={`w-4 h-4 text-gray-400 transition-transform duration-300 ${expandedCategories[cat.id] ? 'rotate-180 text-primary-500' : ''}`} />
+                                                        </div>
                                                     </button>
 
-                                                    {/* Services List (Level 1 Expanded) */}
-                                                    <div className={`transition-all duration-400 ease-in-out ${expandedCategories[cat.id] ? 'max-h-[8000px] opacity-100' : 'max-h-0 opacity-0 overflow-hidden'}`}>
-                                                        <div className="divide-y divide-gray-50 border-t border-gray-100 bg-white">
+                                                    {/* Hizmet Listesi */}
+                                                    <div className={`transition-all duration-300 ease-in-out overflow-hidden ${
+                                                        expandedCategories[cat.id] ? 'max-h-[8000px]' : 'max-h-0'
+                                                    }`}>
+                                                        <div className="divide-y divide-gray-50/80">
                                                             {cat.services.map((service) => (
-                                                                <div key={service.id} className="p-4 hover:bg-gray-50/30 transition-colors">
-                                                                    {/* Service Header */}
-                                                                    <div
-                                                                        className="flex flex-col md:flex-row md:items-center justify-between gap-4 cursor-pointer"
-                                                                        onClick={(e) => {
-                                                                            // Prevent triggering if clicked on exactly 'Seç' button
-                                                                            if ((e.target as HTMLElement).closest('button')?.textContent === 'Seç') return;
-                                                                            toggleAccordion(setExpandedServices, service.id);
-                                                                        }}
-                                                                    >
-                                                                        <div className="w-full md:w-1/2 min-w-0 flex flex-row items-center gap-3">
-                                                                            <button
-                                                                                className={`shrink-0 w-7 h-7 rounded flex items-center justify-center transition-colors ${expandedServices[service.id] ? 'bg-primary-50 text-primary-600' : 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}
-                                                                            >
-                                                                                <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${expandedServices[service.id] ? 'rotate-180' : ''}`} />
-                                                                            </button>
-                                                                            <div>
-                                                                                <div className="flex items-center gap-2 mb-0.5">
-                                                                                    <h4 className="font-bold text-gray-900 text-[15px]">{service.name}</h4>
-                                                                                    <span className="text-[11px] font-bold text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
-                                                                                        {service.duration} dk
-                                                                                    </span>
-                                                                                </div>
-                                                                                <p className="text-sm text-gray-500 mt-0.5 truncate pr-4">Hizmet ayrıntılarını ve kişileri gör</p>
+                                                                <div key={service.id} className="px-5 sm:px-6 py-4 hover:bg-gray-50/40 transition-colors">
+                                                                    {/* Hizmet üst satır */}
+                                                                    <div className="flex items-start gap-3">
+                                                                        <div className="flex-1 min-w-0">
+                                                                            <div className="flex items-center gap-2 flex-wrap">
+                                                                                <span className="font-semibold text-gray-900 text-sm sm:text-base leading-snug">{service.name}</span>
+                                                                                <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-semibold text-primary-700 bg-primary-50 border border-primary-200 px-2 py-0.5 rounded-full">
+                                                                                    <Clock className="w-3 h-3" />
+                                                                                    {service.duration} dk
+                                                                                </span>
                                                                             </div>
+                                                                            {service.description && (
+                                                                                <p className="text-xs text-gray-400 mt-1 leading-relaxed line-clamp-2">{service.description}</p>
+                                                                            )}
                                                                         </div>
-
-                                                                        <div className="flex items-center justify-between md:justify-end gap-5 shrink-0 mt-3 md:mt-0 pl-10 md:pl-0">
-                                                                            <span className="font-extrabold text-gray-900 text-lg">₺{service.price}</span>
+                                                                        <div className="flex items-center gap-2.5 shrink-0 mt-0.5">
+                                                                            <span className="font-extrabold text-gray-900 text-base sm:text-lg leading-none">&#8378;{service.price}</span>
                                                                             <Button
                                                                                 size="sm"
-                                                                                onClick={(e) => { e.stopPropagation(); handleBookClick(service); }}
-                                                                                className="px-6 py-2 rounded-xl shadow-sm hover:shadow"
+                                                                                onClick={() => handleBookClick(service)}
+                                                                                className="px-3 sm:px-5 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold shadow-sm whitespace-nowrap"
                                                                             >
                                                                                 Seç
                                                                             </Button>
                                                                         </div>
                                                                     </div>
 
-                                                                    {/* Service Details & Employees (Level 2 Expanded) */}
-                                                                    <div className={`overflow-hidden transition-all duration-400 ease-in-out ${expandedServices[service.id] ? 'max-h-[3000px] opacity-100 mt-4' : 'max-h-0 opacity-0'}`}>
-                                                                        <div className="pl-10 pr-2 pb-2">
-                                                                            <p className="text-[13px] md:text-sm text-gray-600 mb-4 bg-gray-50 p-4 rounded-xl border border-gray-100 shadow-inner">
-                                                                                {service.description || `Profesyonel ${service.name.toLowerCase()} hizmeti. Bu işlem ortalama ${service.duration} dakika sürmektedir ve alanında uzman ekibimiz tarafından özenle uygulanır. Randevu alarak size özel saati ayırtabilirsiniz.`}
-                                                                            </p>
-
-                                                                            {service.employees && service.employees.length > 0 && (
-                                                                                <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
-                                                                                    {/* Employees Header */}
-                                                                                    <button
-                                                                                        onClick={(e) => { e.stopPropagation(); toggleAccordion(setExpandedEmployees, service.id); }}
-                                                                                        className="w-full flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors group"
-                                                                                    >
-                                                                                        <span className="text-[13px] md:text-sm font-bold text-gray-800 flex items-center gap-2">
-                                                                                            <span className={`w-2 h-2 rounded-full transition-colors ${expandedEmployees[service.id] ? 'bg-primary-500' : 'bg-gray-300 group-hover:bg-primary-400'}`}></span>
-                                                                                            Hizmeti Veren Kişiler
-                                                                                        </span>
-                                                                                        <div className="flex items-center gap-3">
-                                                                                            <span className="text-[11px] font-bold text-gray-500 bg-gray-100 px-2.5 py-1 rounded-md">{service.employees.length} Kişi</span>
-                                                                                            <ChevronDown className={`w-4 h-4 transition-transform duration-300 ${expandedEmployees[service.id] ? 'rotate-180 text-primary-500' : 'text-gray-400'}`} />
-                                                                                        </div>
-                                                                                    </button>
-
-                                                                                    {/* Employees List (Level 3 Expanded) */}
-                                                                                    <div className={`transition-all duration-400 ease-in-out ${expandedEmployees[service.id] ? 'max-h-[1000px] opacity-100' : 'max-h-0 opacity-0'}`}>
-                                                                                        <div className="p-4 border-t border-gray-200 bg-gray-50/50 flex flex-wrap gap-3">
-                                                                                            {service.employees.map((emp) => (
-                                                                                                <div
-                                                                                                    key={emp.id}
-                                                                                                    className="flex items-center gap-3 bg-white border border-gray-200 rounded-2xl pl-2 pr-5 py-2 shadow-sm hover:border-primary-300 transition-colors"
-                                                                                                >
-                                                                                                    <div className="h-10 w-10 rounded-xl bg-gray-100 flex items-center justify-center text-xs font-bold text-gray-500 overflow-hidden shrink-0">
-                                                                                                        {emp.imageUrl ? (
-                                                                                                            <img src={emp.imageUrl} alt={emp.firstName} className="h-full w-full object-cover" />
-                                                                                                        ) : (
-                                                                                                            <span className={emp.averageRating > 0 ? "text-yellow-600" : ""}>
-                                                                                                                {emp.averageRating > 0 ? emp.averageRating.toFixed(1) : "-"}
-                                                                                                            </span>
-                                                                                                        )}
-                                                                                                    </div>
-                                                                                                    <div className="flex flex-col justify-center">
-                                                                                                        <span className="text-sm font-bold text-gray-900 leading-tight">
-                                                                                                            {emp.firstName} {emp.lastName}
-                                                                                                        </span>
-                                                                                                        <span className="text-[11px] font-bold text-gray-500 flex items-center gap-1 leading-tight mt-1">
-                                                                                                            Uzman Personel
-                                                                                                            {emp.averageRating > 0 && emp.imageUrl && (
-                                                                                                                <span className="text-yellow-600 flex items-center bg-yellow-50 px-1 rounded ml-1">
-                                                                                                                    ★ {emp.averageRating.toFixed(1)}
-                                                                                                                </span>
-                                                                                                            )}
-                                                                                                        </span>
-                                                                                                    </div>
-                                                                                                </div>
-                                                                                            ))}
-                                                                                        </div>
+                                                                    {/* Çalışan chips — her zaman görünür */}
+                                                                    {service.employees && service.employees.length > 0 && (
+                                                                        <div className="mt-3 flex flex-wrap gap-2">
+                                                                            {service.employees.map((emp) => (
+                                                                                <div
+                                                                                    key={emp.id}
+                                                                                    className="flex items-center gap-2 bg-white border border-gray-200 rounded-full pl-0.5 pr-3 py-0.5 shadow-sm hover:border-primary-200 hover:shadow transition-all cursor-default"
+                                                                                >
+                                                                                    <div className="h-9 w-9 rounded-full bg-primary-100 flex items-center justify-center overflow-hidden shrink-0 ring-2 ring-white shadow-sm">
+                                                                                        {emp.imageUrl ? (
+                                                                                            <img src={getImageUrl(emp.imageUrl)} alt={emp.firstName} className="h-full w-full object-cover" />
+                                                                                        ) : (
+                                                                                            <span className="text-[10px] font-bold text-primary-700">
+                                                                                                {emp.firstName?.[0]}{emp.lastName?.[0]}
+                                                                                            </span>
+                                                                                        )}
+                                                                                    </div>
+                                                                                    <div className="flex items-center gap-1.5">
+                                                                                        <p className="text-[11px] font-semibold text-gray-800 leading-none">{emp.firstName} {emp.lastName}</p>
+                                                                                        {emp.averageRating > 0 ? (
+                                                                                            <div className="flex items-center gap-0.5">
+                                                                                                <Star className="w-2.5 h-2.5 fill-yellow-400 text-yellow-400" />
+                                                                                                <span className="text-[10px] text-yellow-600 font-semibold leading-none">{emp.averageRating.toFixed(1)}</span>
+                                                                                            </div>
+                                                                                        ) : (
+                                                                                            <span className="text-[10px] text-gray-400 leading-none">Yeni</span>
+                                                                                        )}
                                                                                     </div>
                                                                                 </div>
-                                                                            )}
+                                                                            ))}
                                                                         </div>
-                                                                    </div>
-
+                                                                    )}
                                                                 </div>
                                                             ))}
                                                         </div>
@@ -462,21 +537,168 @@ export const ShopDetailsPage: React.FC = () => {
                             )}
 
                             {activeTab === 'about' && (
-                                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 animate-fadeIn">
-                                    <h2 className="text-2xl font-bold text-gray-900 mb-6">Hakkımızda</h2>
-                                    <p className="text-gray-600 leading-loose text-lg">
-                                        {shop.description || 'Hoş geldiniz. En iyi hizmeti sunmak için buradayız.'}
-                                    </p>
+                                <div className="animate-fadeIn space-y-4">
+                                    {/* Açıklama */}
+                                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8">
+                                        <h2 className="text-lg sm:text-xl font-bold text-gray-900 mb-3">Hakkımızda</h2>
+                                        <p className="text-gray-600 leading-relaxed text-sm sm:text-base">
+                                            {shop.description || 'Henüz bir açıklama eklenmemiş.'}
+                                        </p>
+                                    </div>
 
-                                    <div className="mt-8 grid grid-cols-2 gap-4">
-                                        <div className="p-4 bg-gray-50 rounded-xl">
-                                            <p className="text-sm text-gray-500 mb-1">Konum</p>
-                                            <p className="font-medium text-gray-900">{shop.address}</p>
-                                            <p className="text-sm text-gray-600">{shop.district}, {shop.city}</p>
+                                    {/* Bilgi Kartları */}
+                                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {/* Konum */}
+                                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <div className="w-8 h-8 rounded-lg bg-rose-50 flex items-center justify-center shrink-0">
+                                                    <MapPin className="w-4 h-4 text-rose-500" />
+                                                </div>
+                                                <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Konum</span>
+                                            </div>
+                                            <p className="font-semibold text-gray-900 text-sm leading-snug">{shop.address}</p>
+                                            <p className="text-xs text-gray-500 mt-1">{shop.district} / {shop.city}</p>
+                                            {shop.latitude && shop.longitude && (
+                                                <a
+                                                    href={`https://www.google.com/maps?q=${shop.latitude},${shop.longitude}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="inline-flex items-center gap-1.5 mt-3 text-xs font-semibold text-primary-600 hover:text-primary-700 transition-colors"
+                                                >
+                                                    <ExternalLink className="w-3.5 h-3.5" />
+                                                    Haritada Gör
+                                                </a>
+                                            )}
                                         </div>
-                                        <div className="p-4 bg-gray-50 rounded-xl">
-                                            <p className="text-sm text-gray-500 mb-1">İletişim</p>
-                                            <p className="font-medium text-gray-900">{shop.phoneNumber}</p>
+
+                                        {/* İletişim */}
+                                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <div className="w-8 h-8 rounded-lg bg-green-50 flex items-center justify-center shrink-0">
+                                                    <Phone className="w-4 h-4 text-green-500" />
+                                                </div>
+                                                <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">İletişim</span>
+                                            </div>
+                                            <a href={`tel:${shop.phoneNumber}`} className="font-semibold text-gray-900 text-sm hover:text-primary-600 transition-colors">
+                                                {shop.phoneNumber}
+                                            </a>
+                                            {shop.ownerEmail && (
+                                                <a href={`mailto:${shop.ownerEmail}`} className="block text-xs text-gray-500 mt-1.5 hover:text-primary-600 transition-colors truncate">
+                                                    {shop.ownerEmail}
+                                                </a>
+                                            )}
+                                        </div>
+
+                                        {/* Değerlendirme */}
+                                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <div className="w-8 h-8 rounded-lg bg-yellow-50 flex items-center justify-center shrink-0">
+                                                    <Star className="w-4 h-4 text-yellow-500" />
+                                                </div>
+                                                <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Değerlendirme</span>
+                                            </div>
+                                            <div className="flex items-center gap-3">
+                                                <span className="text-3xl font-black text-gray-900 leading-none">{shop.averageRating?.toFixed(1) || '—'}</span>
+                                                <div>
+                                                    <div className="flex gap-0.5">
+                                                        {[1,2,3,4,5].map(s => (
+                                                            <Star key={s} className={`w-3.5 h-3.5 ${s <= Math.round(shop.averageRating || 0) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-200'}`} />
+                                                        ))}
+                                                    </div>
+                                                    <p className="text-xs text-gray-500 mt-0.5">{shop.reviewCount} yorum</p>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        {/* Hedef Kitle */}
+                                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                                            <div className="flex items-center gap-2 mb-3">
+                                                <div className="w-8 h-8 rounded-lg bg-violet-50 flex items-center justify-center shrink-0">
+                                                    <Users className="w-4 h-4 text-violet-500" />
+                                                </div>
+                                                <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Hedef Kitle</span>
+                                            </div>
+                                            <p className="font-semibold text-gray-900 text-sm">{TargetGenderLabels[shop.genderPreference]}</p>
+                                        </div>
+
+                                        {/* Salon Sahibi */}
+                                        {shop.ownerName && (
+                                            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
+                                                        <User className="w-4 h-4 text-amber-500" />
+                                                    </div>
+                                                    <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Salon Sahibi</span>
+                                                </div>
+                                                <p className="font-semibold text-gray-900 text-sm">{shop.ownerName}</p>
+                                            </div>
+                                        )}
+
+                                        {/* Katılım Tarihi */}
+                                        {shop.createdAt && (
+                                            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <div className="w-8 h-8 rounded-lg bg-sky-50 flex items-center justify-center shrink-0">
+                                                        <Calendar className="w-4 h-4 text-sky-500" />
+                                                    </div>
+                                                    <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Katılım Tarihi</span>
+                                                </div>
+                                                <p className="font-semibold text-gray-900 text-sm">
+                                                    {new Date(shop.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Kategoriler */}
+                                    {shop.categories && shop.categories.length > 0 && (
+                                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6">
+                                            <div className="flex items-center gap-2 mb-4">
+                                                <div className="w-8 h-8 rounded-lg bg-fuchsia-50 flex items-center justify-center shrink-0">
+                                                    <Grid className="w-4 h-4 text-fuchsia-500" />
+                                                </div>
+                                                <span className="text-sm font-bold text-gray-800">Hizmet Kategorileri</span>
+                                            </div>
+                                            <div className="flex flex-wrap gap-2">
+                                                {shop.categories.map((catId, idx) => {
+                                                    const bgs = [
+                                                        'bg-violet-50 border-violet-200 text-violet-700',
+                                                        'bg-rose-50 border-rose-200 text-rose-700',
+                                                        'bg-amber-50 border-amber-200 text-amber-700',
+                                                        'bg-emerald-50 border-emerald-200 text-emerald-700',
+                                                        'bg-sky-50 border-sky-200 text-sky-700',
+                                                        'bg-fuchsia-50 border-fuchsia-200 text-fuchsia-700',
+                                                    ];
+                                                    return (
+                                                        <span key={catId} className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold border ${bgs[idx % bgs.length]}`}>
+                                                            {ShopCategoryLabels[catId as ShopCategory] ?? 'Diğer'}
+                                                        </span>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Randevu Onay Tipi */}
+                                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6">
+                                        <div className="flex items-center gap-3">
+                                            <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${shop.isAutoProcessEnabled ? 'bg-green-50' : 'bg-amber-50'}`}>
+                                                {shop.isAutoProcessEnabled
+                                                    ? <CheckCircle className="w-5 h-5 text-green-500" />
+                                                    : <Clock className="w-5 h-5 text-amber-500" />
+                                                }
+                                            </div>
+                                            <div>
+                                                <p className="font-semibold text-gray-900 text-sm">
+                                                    {shop.isAutoProcessEnabled ? 'Otomatik Onaylı Randevu' : 'Manuel Onaylı Randevu'}
+                                                </p>
+                                                <p className="text-xs text-gray-500 mt-0.5">
+                                                    {shop.isAutoProcessEnabled
+                                                        ? 'Randevunuz anında onaylanır, salon sahibinin ek onayına gerek yoktur.'
+                                                        : 'Randevunuz salon sahibi tarafından onaylandıktan sonra kesinleşir.'
+                                                    }
+                                                </p>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -607,47 +829,49 @@ export const ShopDetailsPage: React.FC = () => {
                         )}
 
                         {activeTab === 'reviews' && (
-                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-8 animate-fadeIn">
-                                <div className="flex items-center justify-between mb-8">
-                                    <div>
-                                        <h2 className="text-2xl font-bold text-gray-900">Değerlendirmeler</h2>
-                                        <p className="text-gray-500 mt-1">Müşteri deneyimleri ve puanlar</p>
-                                    </div>
-                                    <div className="flex items-center gap-3 bg-yellow-50 px-5 py-3 rounded-2xl border border-yellow-100">
-                                        <div className="text-3xl font-bold text-yellow-700">{shop.averageRating?.toFixed(1) || '0.0'}</div>
-                                        <div className="flex flex-col">
-                                            <div className="flex">
+                            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 animate-fadeIn">
+                                {/* Header */}
+                                <div className="flex flex-wrap items-center justify-between gap-3 px-5 sm:px-8 py-5 border-b border-gray-100">
+                                    <h2 className="text-lg sm:text-xl font-bold text-gray-900">Yorumlar</h2>
+                                    <div className="flex items-center gap-3 bg-yellow-50 px-4 py-2.5 rounded-2xl border border-yellow-100">
+                                        <span className="text-2xl sm:text-3xl font-black text-yellow-700 leading-none">
+                                            {shop.averageRating?.toFixed(1) || '0.0'}
+                                        </span>
+                                        <div className="flex flex-col gap-0.5">
+                                            <div className="flex gap-0.5">
                                                 {[1, 2, 3, 4, 5].map((star) => (
                                                     <Star
                                                         key={star}
-                                                        className={`h-4 w-4 ${star <= (shop.averageRating || 0) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-300'}`}
+                                                        className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${star <= Math.round(shop.averageRating || 0) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-200'}`}
                                                     />
                                                 ))}
                                             </div>
-                                            <span className="text-xs text-yellow-700/70 font-medium">{shop.reviewCount} yorum</span>
+                                            <span className="text-[11px] text-yellow-700/70 font-semibold">{shop.reviewCount} yorum</span>
                                         </div>
                                     </div>
                                 </div>
 
-                                {reviewableAppointment && !editingReview && (
-                                    <div className="mb-8 p-6 bg-primary-50 rounded-xl border border-primary-100 flex items-center justify-between">
-                                        <div>
-                                            <h4 className="font-bold text-primary-900">Son hizmetini değerlendir</h4>
-                                            <p className="text-sm text-primary-700 mt-1">
-                                                {reviewableAppointment.employeeName} ile {new Date(reviewableAppointment.startTime).toLocaleDateString('tr-TR')} tarihindeki randevun nasıldı?
-                                            </p>
+                                <div className="px-5 sm:px-8 py-5 sm:py-6 space-y-5">
+                                    {reviewableAppointment && !editingReview && (
+                                        <div className="p-4 sm:p-5 bg-primary-50 rounded-xl border border-primary-100 flex flex-wrap items-center justify-between gap-3">
+                                            <div>
+                                                <h4 className="font-bold text-primary-900 text-sm sm:text-base">Son hizmetini değerlendir</h4>
+                                                <p className="text-xs sm:text-sm text-primary-700 mt-1">
+                                                    {reviewableAppointment.employeeName} ile {new Date(reviewableAppointment.startTime).toLocaleDateString('tr-TR')} tarihindeki randevun nasıldı?
+                                                </p>
+                                            </div>
+                                            <Button onClick={() => setIsReviewModalOpen(true)} className="shrink-0">
+                                                Değerlendir
+                                            </Button>
                                         </div>
-                                        <Button onClick={() => setIsReviewModalOpen(true)}>
-                                            Hizmeti Değerlendir
-                                        </Button>
-                                    </div>
-                                )}
+                                    )}
 
-                                <ReviewsList
-                                    shopId={shop.id}
-                                    onEdit={handleEditReview}
-                                    refreshTrigger={reviewsRefreshTrigger}
-                                />
+                                    <ReviewsList
+                                        shopId={shop.id}
+                                        onEdit={handleEditReview}
+                                        refreshTrigger={reviewsRefreshTrigger}
+                                    />
+                                </div>
                             </div>
                         )}
                     </div>
@@ -661,6 +885,7 @@ export const ShopDetailsPage: React.FC = () => {
                     isOpen={isBookingModalOpen}
                     onClose={() => setIsBookingModalOpen(false)}
                     shopId={shop.id}
+                    bookingDaysAhead={shop.bookingDaysAhead ?? 30}
                     initialServiceId={selectedService?.id}
                     initialServiceName={selectedService?.name}
                     initialServiceDuration={selectedService?.duration}

@@ -10,6 +10,7 @@ export interface Employee {
     averageRating: number;
     reviewCount: number;
     serviceIds?: string[];
+    imageUrl?: string;
 }
 
 export interface CreateEmployeeDto {
