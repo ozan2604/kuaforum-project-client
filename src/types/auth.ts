@@ -44,5 +44,5 @@ export interface User {
     lastName: string;
     phoneNumber?: string;
     profileImageUrl?: string;
-    role: string; // 'Admin' | 'SalonOwner' | 'Customer'
+    role: string | string[]; // 'Admin' | 'SalonOwner' | 'Employee' | 'Customer' — array when multiple roles
 }

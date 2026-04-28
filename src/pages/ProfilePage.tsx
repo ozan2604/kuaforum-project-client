@@ -6,7 +6,7 @@ import { authService } from '../api/auth.service';
 import type { AppointmentDto } from '../types/appointment';
 
 import { Button } from '../components/Button';
-import { Calendar, User, LogOut, CheckCircle, Clock, XCircle, AlertCircle, Trash2, MapPin, Lock, Plus, Heart, ChevronRight, Briefcase, MessageSquare, Camera, Edit2 } from 'lucide-react';
+import { Calendar, User, LogOut, CheckCircle, Clock, XCircle, AlertCircle, Trash2, MapPin, Lock, Plus, Heart, ChevronRight, Briefcase, MessageSquare, Camera, Edit2, Store } from 'lucide-react';
 import { favoriteService } from '../services/favorite.service';
 import { ShopCard } from '../components/ShopCard';
 import type { Shop } from '../types/shop';
@@ -52,18 +52,30 @@ export const ProfilePage: React.FC = () => {
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const activeTab = (searchParams.get('tab') as TabType | null);
-    const [openSection, setOpenSection] = useState<TabType | null>(activeTab || 'appointments');
+    const [openSection, setOpenSection] = useState<TabType | null>(activeTab || null);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [reviewToDelete, setReviewToDelete] = useState<string | null>(null);
     const [appointmentToCancel, setAppointmentToCancel] = useState<string | null>(null);
     const [cancelReason, setCancelReason] = useState('');
+    const [openGroups, setOpenGroups] = useState<Set<string>>(new Set(['pending', 'upcoming', 'past']));
 
     const toggle = (id: TabType) => {
         const next = openSection === id ? null : id;
         setOpenSection(next);
         if (next) setSearchParams({ tab: next }); else setSearchParams({});
     };
+
+    const toggleGroup = (group: string) => setOpenGroups(prev => {
+        const next = new Set(prev);
+        if (next.has(group)) next.delete(group); else next.add(group);
+        return next;
+    });
+
+    const hasRole = (r: string) => Array.isArray(user?.role) ? user!.role.includes(r) : user?.role === r;
+    const isSalonRelated = hasRole('SalonOwner') || hasRole('Employee');
+    const salonPanelPath = hasRole('SalonOwner') ? '/salon-panel' : '/salon-panel/employee-appointments';
+    const roleLabel = hasRole('SalonOwner') ? 'İşletme Sahibi' : hasRole('Employee') ? 'Personel' : 'Müşteri';
 
     // Form State
     const [appointments, setAppointments] = useState<AppointmentDto[]>([]);
@@ -281,15 +293,26 @@ export const ProfilePage: React.FC = () => {
                             
                             <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
                                 <div className="px-4 py-1.5 bg-gray-900 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-md">
-                                    {user?.role === 'SalonOwner' ? 'İşletme Sahibi' : user?.role === 'Employee' ? 'Personel' : 'Müşteri'}
+                                    {roleLabel}
                                 </div>
-                                <div className="px-4 py-1.5 bg-white text-green-600 rounded-full text-[10px] font-black uppercase tracking-widest border-2 border-green-500 shadow-sm flex items-center gap-2">
-                                    <span className="relative flex h-2 w-2">
-                                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                                        <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
-                                    </span>
-                                    Aktif Profil
-                                </div>
+                                {isSalonRelated ? (
+                                    <button
+                                        onClick={() => navigate(salonPanelPath)}
+                                        className="flex items-center gap-1.5 px-4 py-1.5 bg-primary-50 hover:bg-primary-100 text-primary-700 text-[10px] font-black uppercase tracking-widest rounded-full border border-primary-200 transition-colors"
+                                    >
+                                        <Store className="h-3 w-3" />
+                                        Salonuma Git
+                                        <ChevronRight className="h-3 w-3" />
+                                    </button>
+                                ) : (
+                                    <div className="px-4 py-1.5 bg-white text-green-600 rounded-full text-[10px] font-black uppercase tracking-widest border-2 border-green-500 shadow-sm flex items-center gap-2">
+                                        <span className="relative flex h-2 w-2">
+                                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                            <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                                        </span>
+                                        Aktif Profil
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -318,22 +341,58 @@ export const ProfilePage: React.FC = () => {
 
                                 {/* ── APPOINTMENTS ── */}
                                 {section.id === 'appointments' && (
-                                    <div className="space-y-4">
+                                    <div className="space-y-3">
+                                        {appointments.length === 0 && (
+                                            <p className="text-sm text-gray-400 text-center py-6">Henüz randevunuz bulunmuyor.</p>
+                                        )}
                                         {pendingApps.length > 0 && (
-                                            <div>
-                                                <p className="text-xs font-semibold text-yellow-700 uppercase tracking-wider mb-2">Onay Bekliyor</p>
-                                                <div className="space-y-2">{pendingApps.map(app => <AppCard key={app.id} app={app} badge={getStatusBadge(app.status)} onCancel={() => setAppointmentToCancel(app.id)} />)}</div>
+                                            <div className="border border-yellow-200 rounded-xl overflow-hidden">
+                                                <button onClick={() => toggleGroup('pending')} className="w-full flex items-center justify-between px-4 py-3 bg-yellow-50 hover:bg-yellow-100 transition-colors">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-xs font-bold text-yellow-700 uppercase tracking-wider">Onay Bekliyor</span>
+                                                        <span className="text-xs bg-yellow-200 text-yellow-800 rounded-full px-2 py-0.5 font-semibold">{pendingApps.length}</span>
+                                                    </div>
+                                                    <ChevronRight className={`h-4 w-4 text-yellow-600 transition-transform duration-200 ${openGroups.has('pending') ? 'rotate-90' : ''}`} />
+                                                </button>
+                                                {openGroups.has('pending') && (
+                                                    <div className="p-2 space-y-2">
+                                                        {pendingApps.map(app => <AppCard key={app.id} app={app} badge={getStatusBadge(app.status)} onCancel={() => setAppointmentToCancel(app.id)} />)}
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
                                         {upcomingApps.length > 0 && (
-                                            <div>
-                                                <p className="text-xs font-semibold text-green-700 uppercase tracking-wider mb-2">Gelecek</p>
-                                                <div className="space-y-2">{upcomingApps.map(app => <AppCard key={app.id} app={app} badge={getStatusBadge(app.status)} onCancel={() => setAppointmentToCancel(app.id)} onReview={!app.hasReview && app.status === 2 ? () => { setSelectedAppointment(app); setIsReviewModalOpen(true); } : undefined} />)}</div>
+                                            <div className="border border-green-200 rounded-xl overflow-hidden">
+                                                <button onClick={() => toggleGroup('upcoming')} className="w-full flex items-center justify-between px-4 py-3 bg-green-50 hover:bg-green-100 transition-colors">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-xs font-bold text-green-700 uppercase tracking-wider">Gelecek</span>
+                                                        <span className="text-xs bg-green-200 text-green-800 rounded-full px-2 py-0.5 font-semibold">{upcomingApps.length}</span>
+                                                    </div>
+                                                    <ChevronRight className={`h-4 w-4 text-green-600 transition-transform duration-200 ${openGroups.has('upcoming') ? 'rotate-90' : ''}`} />
+                                                </button>
+                                                {openGroups.has('upcoming') && (
+                                                    <div className="p-2 space-y-2">
+                                                        {upcomingApps.map(app => <AppCard key={app.id} app={app} badge={getStatusBadge(app.status)} onCancel={() => setAppointmentToCancel(app.id)} onReview={!app.hasReview && app.status === 2 ? () => { setSelectedAppointment(app); setIsReviewModalOpen(true); } : undefined} />)}
+                                                    </div>
+                                                )}
                                             </div>
                                         )}
-                                        <div>
-                                            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Geçmiş</p>
-                                            {pastApps.length > 0 ? <div className="space-y-2">{pastApps.map(app => <AppCard key={app.id} app={app} badge={getStatusBadge(app.status)} onReview={!app.hasReview && app.status === 2 ? () => { setSelectedAppointment(app); setIsReviewModalOpen(true); } : undefined} />)}</div> : <p className="text-sm text-gray-400 text-center py-4">Geçmiş randevu bulunmuyor.</p>}
+                                        <div className="border border-gray-200 rounded-xl overflow-hidden">
+                                            <button onClick={() => toggleGroup('past')} className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">Geçmiş</span>
+                                                    {pastApps.length > 0 && <span className="text-xs bg-gray-200 text-gray-700 rounded-full px-2 py-0.5 font-semibold">{pastApps.length}</span>}
+                                                </div>
+                                                <ChevronRight className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${openGroups.has('past') ? 'rotate-90' : ''}`} />
+                                            </button>
+                                            {openGroups.has('past') && (
+                                                <div className="p-2 space-y-2">
+                                                    {pastApps.length > 0
+                                                        ? pastApps.map(app => <AppCard key={app.id} app={app} badge={getStatusBadge(app.status)} onReview={!app.hasReview && app.status === 2 ? () => { setSelectedAppointment(app); setIsReviewModalOpen(true); } : undefined} />)
+                                                        : <p className="text-sm text-gray-400 text-center py-4">Geçmiş randevu bulunmuyor.</p>
+                                                    }
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 )}
@@ -447,11 +506,14 @@ export const ProfilePage: React.FC = () => {
                     </div>
                 ))}
 
-                {/* Employee Panel Link */}
-                {user?.role === 'Employee' && (
+                {/* Salon / Employee Panel Link */}
+                {isSalonRelated && (
                     <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                        <button onClick={() => navigate('/employee-panel/appointments')} className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors">
-                            <div className="flex items-center gap-3"><Briefcase className="h-5 w-5 text-gray-500" /><span className="font-medium text-sm text-gray-800">Personel Paneli</span></div>
+                        <button
+                            onClick={() => navigate(salonPanelPath)}
+                            className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
+                        >
+                            <div className="flex items-center gap-3"><Store className="h-5 w-5 text-gray-500" /><span className="font-medium text-sm text-gray-800">Salonuma Git</span></div>
                             <ChevronRight className="h-4 w-4 text-gray-400" />
                         </button>
                     </div>
@@ -562,40 +624,60 @@ export const ProfilePage: React.FC = () => {
 };
 
 const AppCard: React.FC<{ app: AppointmentDto; badge: React.ReactNode; onReview?: () => void; onCancel?: () => void }> = ({ app, badge, onReview, onCancel }) => {
+    const [isOpen, setIsOpen] = useState(false);
     const isCancelDisabled = (new Date(app.startTime).getTime() - new Date().getTime()) < 2 * 60 * 60 * 1000;
-    
+
     return (
-        <div className="border border-gray-200 rounded-lg p-3 hover:bg-gray-50 transition-colors">
-            <div className="flex flex-col sm:flex-row justify-between gap-2">
+        <div className="border border-gray-200 rounded-lg overflow-hidden">
+            <button
+                onClick={() => setIsOpen(!isOpen)}
+                className="w-full flex items-center gap-3 px-3 py-3 hover:bg-gray-50 transition-colors text-left"
+            >
                 <div className="flex-1 min-w-0">
                     <p className="font-semibold text-sm text-gray-900 truncate">{app.shopName}</p>
-                    <p className="text-xs text-gray-600">{app.serviceName} — {app.employeeName}</p>
-                    <div className="flex flex-wrap gap-2 mt-1 text-xs text-gray-400">
+                    <div className="flex flex-wrap gap-2 mt-0.5 text-xs text-gray-400">
                         <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{format(new Date(app.startTime), 'd MMM yyyy', { locale: tr })}</span>
                         <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{format(new Date(app.startTime), 'HH:mm')}</span>
                     </div>
                 </div>
-                <div className="flex sm:flex-col items-center sm:items-end justify-between gap-2 flex-shrink-0">
+                <div className="flex items-center gap-2 flex-shrink-0">
                     {badge}
-                    <span className="font-bold text-sm text-gray-900">₺{app.price}</span>
-                    <div className="flex gap-2">
-                        {onCancel && (
-                            <div title={isCancelDisabled ? "Randevuya 2 saatten az kaldığı için iptal edilemez." : ""}>
-                                <Button 
-                                    size="sm" 
-                                    variant="outline" 
-                                    onClick={onCancel} 
-                                    disabled={isCancelDisabled}
-                                    className="text-xs text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                                >
-                                    İptal Et
-                                </Button>
-                            </div>
-                        )}
-                        {onReview && <Button size="sm" variant="outline" onClick={onReview} className="text-xs">Değerlendir</Button>}
-                    </div>
+                    <ChevronRight className={`h-4 w-4 text-gray-400 transition-transform duration-200 flex-shrink-0 ${isOpen ? 'rotate-90' : ''}`} />
                 </div>
-            </div>
+            </button>
+            {isOpen && (
+                <div className="border-t border-gray-100 px-3 py-3 bg-gray-50/50 space-y-3">
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <p className="text-sm font-medium text-gray-800">{app.serviceName}</p>
+                            <p className="text-xs text-gray-500 mt-0.5">{app.employeeName} • {app.duration} dk</p>
+                        </div>
+                        <span className="font-bold text-sm text-gray-900">₺{app.price}</span>
+                    </div>
+                    {(onCancel || onReview) && (
+                        <div className="flex gap-2 pt-1">
+                            {onCancel && (
+                                <div title={isCancelDisabled ? "Randevuya 2 saatten az kaldığı için iptal edilemez." : ""}>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={e => { e.stopPropagation(); onCancel(); }}
+                                        disabled={isCancelDisabled}
+                                        className="text-xs text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                    >
+                                        İptal Et
+                                    </Button>
+                                </div>
+                            )}
+                            {onReview && (
+                                <Button size="sm" variant="outline" onClick={e => { e.stopPropagation(); onReview(); }} className="text-xs">
+                                    Değerlendir
+                                </Button>
+                            )}
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 };

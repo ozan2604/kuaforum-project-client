@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { X, User, Clock, Check, ChevronRight, ChevronLeft, Scissors, Star, Plus, Minus } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { X, User, Clock, Check, ChevronRight, ChevronLeft, Scissors, Star, Plus, Minus, AlertCircle } from 'lucide-react';
 import { Button } from './Button';
 import { employeeService } from '../api/employee.service';
 import { appointmentService } from '../api/appointment.service';
@@ -48,6 +48,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     const [currentStep, setCurrentStep] = useState<Step>('personnel');
     const [selectedServices, setSelectedServices] = useState<ShopServiceDto[]>([]);
     const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
+    const [bookingSuccess, setBookingSuccess] = useState<{ employeeName: string; date: string; time: string; totalPrice: number } | null>(null);
+    const [bookingError, setBookingError] = useState<string | null>(null);
 
     const getTodayLocal = () => new Date().toLocaleDateString('en-CA');
     const [selectedDate, setSelectedDate] = useState(getTodayLocal());
@@ -55,15 +57,75 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     const [note, setNote] = useState('');
     const [availability, setAvailability] = useState<import('../types/appointment').EmployeeAvailabilityDto | null>(null);
 
-    const dayScrollRef = useCallback((node: HTMLDivElement | null) => {
-        if (!node) return;
+    const scrollRef = useRef<HTMLDivElement>(null);
+    useEffect(() => {
+        const el = scrollRef.current;
+        if (!el || currentStep !== 'datetime') return;
+
+        let isDown = false;
+        let startX: number;
+        let sLeft: number;
+        let moved = false;
+
         const onWheel = (e: WheelEvent) => {
             if (e.deltaY === 0) return;
             e.preventDefault();
-            node.scrollLeft += e.deltaY;
+            el.scrollLeft += e.deltaY;
         };
-        node.addEventListener('wheel', onWheel, { passive: false });
-    }, []);
+
+        const onMouseDown = (e: MouseEvent) => {
+            isDown = true;
+            moved = false;
+            el.style.cursor = 'grabbing';
+            startX = e.pageX - el.offsetLeft;
+            sLeft = el.scrollLeft;
+        };
+
+        const onMouseLeave = () => {
+            isDown = false;
+            el.style.cursor = 'grab';
+        };
+
+        const onMouseUp = () => {
+            isDown = false;
+            el.style.cursor = 'grab';
+        };
+
+        const onMouseMove = (e: MouseEvent) => {
+            if (!isDown) return;
+            const x = e.pageX - el.offsetLeft;
+            const walk = (x - startX) * 2;
+            if (Math.abs(x - startX) > 5) moved = true;
+            if (moved) {
+                e.preventDefault();
+                el.scrollLeft = sLeft - walk;
+            }
+        };
+
+        const onClick = (e: MouseEvent) => {
+            if (moved) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+        };
+
+        el.addEventListener('wheel', onWheel, { passive: false });
+        el.addEventListener('mousedown', onMouseDown);
+        el.addEventListener('mouseleave', onMouseLeave);
+        el.addEventListener('mouseup', onMouseUp);
+        el.addEventListener('mousemove', onMouseMove);
+        el.addEventListener('click', onClick, true);
+        el.style.cursor = 'grab';
+
+        return () => {
+            el.removeEventListener('wheel', onWheel);
+            el.removeEventListener('mousedown', onMouseDown);
+            el.removeEventListener('mouseleave', onMouseLeave);
+            el.removeEventListener('mouseup', onMouseUp);
+            el.removeEventListener('mousemove', onMouseMove);
+            el.removeEventListener('click', onClick, true);
+        };
+    }, [currentStep]);
 
     useEffect(() => {
         if (!isOpen || !shopId) return;
@@ -73,6 +135,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         setSelectedTime('');
         setNote('');
         setAvailability(null);
+        setBookingSuccess(null);
+        setBookingError(null);
 
         if (initialServiceId) {
             setSelectedServices([{
@@ -185,10 +249,19 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 startTime: new Date(`${selectedDate}T${selectedTime}:00`).toISOString(),
                 note,
             });
-            toast.success('Randevu başarıyla oluşturuldu!');
-            onClose();
+            setBookingSuccess({
+                employeeName: selectedEmployee ? `${selectedEmployee.firstName} ${selectedEmployee.lastName}` : '',
+                date: format(new Date(selectedDate + 'T12:00:00'), 'd MMMM yyyy, EEEE', { locale: tr }),
+                time: `${selectedTime} – ${format(addMinutes(new Date(`${selectedDate}T${selectedTime}:00`), totalDuration), 'HH:mm')}`,
+                totalPrice,
+            });
         } catch (error: any) {
-            toast.error(error.response?.data?.Message || 'Randevu oluşturulamadı.');
+            const msg = error.response?.data?.Message
+                || error.response?.data?.message
+                || (typeof error.response?.data === 'string' ? error.response.data : null)
+                || error.message
+                || 'Randevu oluşturulamadı. Lütfen tekrar deneyin.';
+            setBookingError(msg);
         } finally {
             setSubmitting(false);
         }
@@ -247,18 +320,24 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </div>
 
                 {/* Stepper */}
-                <div className="px-5 pt-4 pb-3 border-b border-gray-100 shrink-0">
+                <div className="px-4 pt-4 pb-3 border-b border-gray-100 shrink-0">
                     <div className="flex items-center justify-between relative">
-                        <div className="absolute top-4 left-0 right-0 h-0.5 bg-gray-200 z-0" />
-                        <div
-                            className="absolute top-4 left-0 h-0.5 bg-primary-500 z-0 transition-all duration-500"
-                            style={{ width: `${(currentStepIndex / (STEPS.length - 1)) * 100}%` }}
-                        />
+                        <div className="absolute top-4 left-4 right-4 h-0.5 z-0">
+                            <div className="absolute inset-0 bg-gray-200" />
+                            <div
+                                className="absolute left-0 top-0 h-full bg-primary-500 transition-all duration-500"
+                                style={{ width: `${(currentStepIndex / (STEPS.length - 1)) * 100}%` }}
+                            />
+                        </div>
                         {STEPS.map((step, i) => {
                             const isActive = step.id === currentStep;
                             const isDone = i < currentStepIndex;
+                            const isFirst = i === 0;
+                            const isLast = i === STEPS.length - 1;
                             return (
-                                <div key={step.id} className="flex flex-col items-center gap-1.5 z-10">
+                                <div key={step.id} className={`flex flex-col gap-1.5 z-10 ${
+                                    isFirst ? 'items-start' : isLast ? 'items-end' : 'items-center'
+                                }`}>
                                     <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold border-2 transition-all duration-300 ${
                                         isDone ? 'bg-primary-500 border-primary-500 text-white' :
                                         isActive ? 'bg-white border-primary-500 text-primary-600 shadow-md' :
@@ -277,6 +356,76 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto">
+
+                    {/* ── BAŞARI EKRANI ── */}
+                    {bookingSuccess && (
+                        <div className="flex flex-col items-center justify-center py-12 px-6 text-center space-y-6">
+                            <div className="w-24 h-24 bg-green-100 rounded-full flex items-center justify-center shadow-inner">
+                                <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center shadow-md">
+                                    <Check className="w-9 h-9 text-white stroke-[3]" />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <h3 className="text-2xl font-black text-gray-900">Randevunuz Alındı!</h3>
+                                <p className="text-gray-500 text-sm">Randevunuz başarıyla oluşturuldu. Sizi bekliyoruz!</p>
+                            </div>
+                            <div className="w-full bg-gray-50 rounded-2xl border border-gray-100 divide-y divide-gray-100 text-sm">
+                                <div className="px-4 py-3 flex justify-between items-center">
+                                    <span className="text-gray-500">Personel</span>
+                                    <span className="font-semibold text-gray-900">{bookingSuccess.employeeName}</span>
+                                </div>
+                                <div className="px-4 py-3 flex justify-between items-center">
+                                    <span className="text-gray-500">Tarih</span>
+                                    <span className="font-semibold text-gray-900">{bookingSuccess.date}</span>
+                                </div>
+                                <div className="px-4 py-3 flex justify-between items-center">
+                                    <span className="text-gray-500">Saat</span>
+                                    <span className="font-semibold text-gray-900">{bookingSuccess.time}</span>
+                                </div>
+                                <div className="px-4 py-3 flex justify-between items-center">
+                                    <span className="text-gray-500 font-semibold">Toplam</span>
+                                    <span className="font-black text-lg text-primary-700">₺{bookingSuccess.totalPrice}</span>
+                                </div>
+                            </div>
+                            <button
+                                onClick={onClose}
+                                className="w-full py-3 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl transition-colors"
+                            >
+                                Tamam
+                            </button>
+                        </div>
+                    )}
+
+                    {/* ── HATA EKRANI ── */}
+                    {bookingError && (
+                        <div className="flex flex-col items-center justify-center py-12 px-6 text-center space-y-6">
+                            <div className="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center shadow-inner">
+                                <div className="w-16 h-16 bg-red-500 rounded-full flex items-center justify-center shadow-md">
+                                    <AlertCircle className="w-9 h-9 text-white" />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <h3 className="text-2xl font-black text-gray-900">Randevu Alınamadı</h3>
+                                <p className="text-gray-500 text-sm leading-relaxed">{bookingError}</p>
+                            </div>
+                            <div className="w-full flex flex-col gap-3">
+                                <button
+                                    onClick={() => setBookingError(null)}
+                                    className="w-full py-3 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl transition-colors"
+                                >
+                                    Tekrar Dene
+                                </button>
+                                <button
+                                    onClick={onClose}
+                                    className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-colors"
+                                >
+                                    Kapat
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {!bookingSuccess && !bookingError && (<>
 
                     {/* ── PERSONEL ── */}
                     {currentStep === 'personnel' && (
@@ -458,7 +607,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                             {/* Yatay gün seçici */}
                             <div>
                                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Tarih Seçin</p>
-                                <div ref={dayScrollRef} className="flex gap-2 overflow-x-auto scrollbar-hide pb-1">
+                                <div ref={scrollRef} className="flex gap-2 overflow-x-auto scrollbar-hide pb-1 select-none">
                                     {availableDays.map(dateStr => {
                                         const d = new Date(dateStr + 'T12:00:00');
                                         const isSelected = selectedDate === dateStr;
@@ -609,9 +758,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                             </div>
                         </div>
                     )}
+                    </>)}
                 </div>
 
                 {/* Footer */}
+                {!bookingSuccess && !bookingError && (
                 <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between gap-3 shrink-0 bg-white rounded-b-2xl">
                     {currentStep !== 'personnel' ? (
                         <Button
@@ -642,6 +793,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                         </Button>
                     )}
                 </div>
+                )}
             </div>
         </div>
     );
