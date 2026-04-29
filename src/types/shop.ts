@@ -107,4 +107,5 @@ export interface CreateShopDto {
     genderPreference: TargetGender;
     openTime?: string;
     closeTime?: string;
+    bookingDaysAhead?: number;
 }

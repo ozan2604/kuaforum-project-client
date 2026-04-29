@@ -7,7 +7,7 @@ import { serviceManagementService } from '../../api/service.service';
 import type { Employee, CreateEmployeeDto } from '../../types/employee';
 import type { ServiceCategoryDto } from '../../types/service';
 import { toast } from 'react-hot-toast';
-import { Plus, Users, Phone, User as UserIcon, Scissors, Clock, Trash2, Edit, RotateCcw } from 'lucide-react';
+import { Plus, Users, Phone, User as UserIcon, Scissors, Clock, Trash2, Edit, RotateCcw, CheckCircle, Copy } from 'lucide-react';
 import type { UpdateEmployeeOwnerDto } from '../../types/employee';
 
 const DAYS = [
@@ -32,6 +32,8 @@ export const EmployeesPage: React.FC = () => {
     const [isServicesModalOpen, setIsServicesModalOpen] = useState(false);
     const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
     const [availableServices, setAvailableServices] = useState<ServiceCategoryDto[]>([]);
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    const [createdEmployeeInfo, setCreatedEmployeeInfo] = useState<{ name: string, phone: string, password?: string, isNewUser: boolean } | null>(null);
     
     const [activeTab, setActiveTab] = useState<'active' | 'deleted'>('active');
     
@@ -158,8 +160,21 @@ export const EmployeesPage: React.FC = () => {
             setIsSubmitting(true);
             try {
                 const result = await employeeService.addEmployee(data);
-                toast.success(result.message, { duration: 6000 });
-                setIsAddModalOpen(false);
+                
+                if (result.temporaryPassword) {
+                    setCreatedEmployeeInfo({
+                        name: `${data.firstName} ${data.lastName}`,
+                        phone: data.phoneNumber,
+                        password: result.temporaryPassword,
+                        isNewUser: result.isNewUser
+                    });
+                    setShowSuccessModal(true);
+                    setIsAddModalOpen(false);
+                } else {
+                    toast.success(result.message, { duration: 6000 });
+                    setIsAddModalOpen(false);
+                }
+                
                 reset();
                 loadEmployees();
             } catch (error: any) {
@@ -551,6 +566,65 @@ export const EmployeesPage: React.FC = () => {
                         <div className="flex justify-end space-x-2 mt-6 pt-4 border-t border-gray-100">
                             <Button variant="outline" onClick={() => setIsServicesModalOpen(false)}>İptal</Button>
                             <Button onClick={handleAssignServices}>Atamaları Kaydet</Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+            {/* Add Employee Success Modal */}
+            {showSuccessModal && createdEmployeeInfo && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-[60]">
+                    <div className="bg-white rounded-2xl p-8 w-full max-w-md shadow-2xl animate-in zoom-in-95 duration-300">
+                        <div className="flex flex-col items-center text-center">
+                            <div className="h-16 w-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
+                                <CheckCircle className="h-10 w-10" />
+                            </div>
+                            <h2 className="text-2xl font-bold text-gray-900 mb-2">Çalışan Eklendi!</h2>
+                            <p className="text-gray-500 mb-6">
+                                <span className="font-semibold text-gray-900">{createdEmployeeInfo.name}</span> başarıyla sisteme kaydedildi.
+                            </p>
+
+                            {createdEmployeeInfo.password ? (
+                                <div className="w-full space-y-4 bg-gray-50 p-4 rounded-xl border border-gray-100 mb-6">
+                                    <div className="text-left">
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Giriş Telefonu</label>
+                                        <div className="flex justify-between items-center bg-white border border-gray-200 rounded-lg px-3 py-2">
+                                            <span className="text-sm font-mono text-gray-700">{createdEmployeeInfo.phone}</span>
+                                            <button 
+                                                onClick={() => { navigator.clipboard.writeText(createdEmployeeInfo.phone); toast.success('Telefon kopyalandı'); }}
+                                                className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-primary-600 transition-colors"
+                                            >
+                                                <Copy className="h-4 w-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div className="text-left">
+                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Geçici Şifre</label>
+                                        <div className="flex justify-between items-center bg-white border border-gray-200 rounded-lg px-3 py-2">
+                                            <span className="text-sm font-mono font-bold text-primary-600">{createdEmployeeInfo.password}</span>
+                                            <button 
+                                                onClick={() => { navigator.clipboard.writeText(createdEmployeeInfo.password!); toast.success('Şifre kopyalandı'); }}
+                                                className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-primary-600 transition-colors"
+                                            >
+                                                <Copy className="h-4 w-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <p className="text-[11px] text-amber-600 font-medium text-center">
+                                        Lütfen bu şifreyi çalışanınıza iletin. İlk girişte şifresini değiştirmesi önerilir.
+                                    </p>
+                                </div>
+                            ) : (
+                                <p className="text-sm text-blue-600 bg-blue-50 p-3 rounded-lg mb-6">
+                                    Bu kullanıcı zaten sistemde kayıtlı olduğu için mevcut şifresiyle giriş yapabilir.
+                                </p>
+                            )}
+
+                            <Button 
+                                className="w-full py-3 text-base font-bold shadow-lg shadow-primary-200" 
+                                onClick={() => { setShowSuccessModal(false); setCreatedEmployeeInfo(null); }}
+                            >
+                                Tamam
+                            </Button>
                         </div>
                     </div>
                 </div>

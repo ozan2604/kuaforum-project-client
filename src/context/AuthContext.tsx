@@ -26,8 +26,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const storedUser = getUser();
 
         if (token && storedUser) {
-            setUserState(storedUser);
-            setIsAuthenticated(true);
+            try {
+                const decoded: any = jwtDecode(token);
+                const isExpired = decoded.exp && decoded.exp * 1000 < Date.now();
+                if (isExpired) {
+                    clearAuth();
+                } else {
+                    setUserState(storedUser);
+                    setIsAuthenticated(true);
+                }
+            } catch {
+                clearAuth();
+            }
         }
         setIsLoading(false);
     }, []);
