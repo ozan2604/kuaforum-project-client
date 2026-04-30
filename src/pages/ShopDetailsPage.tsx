@@ -9,6 +9,7 @@ import type { ServiceCategoryDto, ShopServiceDto } from '../types/service';
 import type { PublicEmployeeScheduleDto } from '../types/employee';
 import { MapPin, Star, Clock, Calendar, ChevronDown, Heart, Grid, Info, Image, MessageCircle, Users, Undo2, Phone, User, ExternalLink, CheckCircle } from 'lucide-react';
 import { Button } from '../components/Button';
+import { LoadingSpinner } from '../components/LoadingSpinner';
 import { toast } from 'react-hot-toast';
 import { BookingModal } from '../components/BookingModal';
 import { useAuth } from '../context/AuthContext';
@@ -186,13 +187,7 @@ export const ShopDetailsPage: React.FC = () => {
         return `http://localhost:5000${path}`;
     };
 
-    if (loading) {
-        return (
-            <div className="flex justify-center items-center min-h-screen bg-gray-50">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-            </div>
-        );
-    }
+    if (loading) return <LoadingSpinner fullPage />;
 
     if (!shop) return null;
 

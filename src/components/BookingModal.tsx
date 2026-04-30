@@ -7,6 +7,7 @@ import { serviceManagementService } from '../api/service.service';
 import type { Employee } from '../types/employee';
 import type { ServiceCategoryDto, ShopServiceDto } from '../types/service';
 import { toast } from 'react-hot-toast';
+import { getApiError } from '../utils/storage';
 import { format, addMinutes, setHours, setMinutes, addDays } from 'date-fns';
 import { tr } from 'date-fns/locale';
 
@@ -51,7 +52,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     const [bookingSuccess, setBookingSuccess] = useState<{ employeeName: string; date: string; time: string; totalPrice: number } | null>(null);
     const [bookingError, setBookingError] = useState<string | null>(null);
 
-    const getTodayLocal = () => new Date().toLocaleDateString('en-CA');
+    const getTodayLocal = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Istanbul' });
     const [selectedDate, setSelectedDate] = useState(getTodayLocal());
     const [selectedTime, setSelectedTime] = useState('');
     const [note, setNote] = useState('');
@@ -162,8 +163,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             ]);
             setEmployees(emps);
             setCategories(svcs);
-        } catch {
-            toast.error('Veriler yüklenemedi.');
+        } catch (err) {
+            toast.error(getApiError(err, 'Veriler yüklenemedi.'));
         } finally {
             setLoading(false);
         }
@@ -180,8 +181,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         try {
             const data = await appointmentService.getAvailability(selectedEmployeeId, selectedDate);
             setAvailability(data);
-        } catch {
-            toast.error('Müsaitlik durumu yüklenemedi.');
+        } catch (err) {
+            toast.error(getApiError(err, 'Müsaitlik durumu yüklenemedi.'));
         } finally {
             setLoading(false);
         }

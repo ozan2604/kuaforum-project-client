@@ -8,6 +8,8 @@ import type { Employee, CreateEmployeeDto } from '../../types/employee';
 import type { ServiceCategoryDto } from '../../types/service';
 import { toast } from 'react-hot-toast';
 import { Plus, Users, Phone, User as UserIcon, Scissors, Clock, Trash2, Edit, RotateCcw, CheckCircle, Copy } from 'lucide-react';
+import { LoadingSpinner } from '../../components/LoadingSpinner';
+import { EmptyState } from '../../components/EmptyState';
 import type { UpdateEmployeeOwnerDto } from '../../types/employee';
 
 const DAYS = [
@@ -293,13 +295,7 @@ export const EmployeesPage: React.FC = () => {
     const activeEmployees = employees.filter(e => !e.isDeleted);
     const deletedEmployees = employees.filter(e => e.isDeleted);
 
-    if (loading) {
-        return (
-            <div className="flex justify-center items-center h-64">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
-            </div>
-        );
-    }
+    if (loading) return <LoadingSpinner size="md" />;
 
     return (
         <div className="max-w-6xl mx-auto space-y-6">
@@ -389,9 +385,11 @@ export const EmployeesPage: React.FC = () => {
                 ))}
                 
                 {(activeTab === 'active' ? activeEmployees : deletedEmployees).length === 0 && (
-                    <div className="col-span-full text-center py-12 bg-white rounded-xl border border-dashed border-gray-200">
-                        <Users className="h-10 w-10 text-gray-300 mx-auto mb-3" />
-                        <p className="text-gray-500">{activeTab === 'active' ? 'Henüz çalışan eklenmemiş.' : 'Silinmiş çalışan bulunmuyor.'}</p>
+                    <div className="col-span-full">
+                        <EmptyState
+                            message={activeTab === 'active' ? 'Henüz çalışan eklenmemiş.' : 'Silinmiş çalışan bulunmuyor.'}
+                            icon={<Users className="h-12 w-12" />}
+                        />
                     </div>
                 )}
             </div>

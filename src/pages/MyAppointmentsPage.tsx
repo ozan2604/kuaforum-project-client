@@ -7,6 +7,8 @@ import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { Calendar, Clock, MapPin, User } from 'lucide-react';
 import { Button } from '../components/Button';
+import { LoadingSpinner } from '../components/LoadingSpinner';
+import { EmptyState } from '../components/EmptyState';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 
@@ -88,25 +90,19 @@ export const MyAppointmentsPage: React.FC = () => {
         return appointment.status === 2; // Completed
     };
 
-    if (loading) {
-        return (
-            <div className="flex justify-center items-center min-h-screen">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
-            </div>
-        );
-    }
+    if (loading) return <LoadingSpinner fullPage />;
 
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
             <h1 className="text-2xl font-bold text-gray-900 mb-8">Randevularım</h1>
 
             {appointments.length === 0 ? (
-                <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-gray-100">
-                    <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-4" />
-                    <h3 className="text-lg font-medium text-gray-900">Henüz randevunuz yok</h3>
-                    <p className="text-gray-500 mt-2 mb-6">Kuaför veya berber randevusu almak için hemen göz atın.</p>
-                    <Button onClick={() => navigate('/')}>Randevu Al</Button>
-                </div>
+                <EmptyState
+                    message="Henüz randevunuz yok"
+                    description="Kuaför veya berber randevusu almak için hemen göz atın."
+                    icon={<Calendar className="h-12 w-12" />}
+                    action={<Button onClick={() => navigate('/')}>Randevu Al</Button>}
+                />
             ) : (
                 <div className="grid gap-6">
                     {appointments.map((appointment) => (

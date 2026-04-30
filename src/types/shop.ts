@@ -72,6 +72,7 @@ export interface Shop {
     images?: { id: string; url: string }[];
     averageRating: number;
     reviewCount: number;
+    minServicePrice?: number;
     createdAt?: string;
     latitude?: number;
     longitude?: number;

@@ -30,6 +30,7 @@ import { ServicesPage } from './pages/salon/ServicesPage';
 import { EmployeesPage } from './pages/salon/EmployeesPage';
 
 import { EmployeeAppointmentsPage } from './pages/employee/EmployeeAppointmentsPage';
+import { EmployeeSchedulePage } from './pages/employee/EmployeeSchedulePage';
 
 function App() {
   return (
@@ -88,6 +89,7 @@ function App() {
         <Route element={<ProtectedRoute roles={['Employee']} />}>
           <Route element={<SalonOwnerLayout />}>
             <Route path="/salon-panel/employee-appointments" element={<EmployeeAppointmentsPage />} />
+            <Route path="/salon-panel/employee-schedule" element={<EmployeeSchedulePage />} />
           </Route>
         </Route>
 

@@ -7,6 +7,7 @@ import {
     Scissors,
     Users,
     Calendar,
+    Clock,
     Settings,
     LogOut,
     Menu,
@@ -44,13 +45,10 @@ export const SalonOwnerLayout: React.FC = () => {
     // Çalışan: aynı menü ama Randevular kendi sayfasına yönlenir.
     // Diğer linkler App.tsx'deki route'lar sayesinde UnauthorizedPage'e düşer.
     const employeeNavigation = [
-        { name: 'Anasayfa',   href: '/',                                 icon: Store },
-        { name: 'Dashboard',  href: '/salon-panel',                      icon: LayoutDashboard },
-        { name: 'Randevular', href: '/salon-panel/employee-appointments', icon: Calendar },
-        { name: 'Salonum',    href: '/salon-panel/shop',                  icon: Store },
-        { name: 'Hizmetler',  href: '/salon-panel/services',              icon: Scissors },
-        { name: 'Çalışanlar', href: '/salon-panel/employees',             icon: Users },
-        { name: 'Ayarlar',    href: '/salon-panel/settings',              icon: Settings },
+        { name: 'Anasayfa',          href: '/',                                  icon: Store },
+        { name: 'Dashboard',         href: '/salon-panel',                       icon: LayoutDashboard },
+        { name: 'Randevular',        href: '/salon-panel/employee-appointments',  icon: Calendar },
+        { name: 'Çalışma Saatlerim', href: '/salon-panel/employee-schedule',      icon: Clock },
     ];
 
     const navigation = isSalonOwner ? ownerNavigation : employeeNavigation;

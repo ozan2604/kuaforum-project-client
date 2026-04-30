@@ -99,6 +99,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
 
     const [activeTags, setActiveTags] = useState<string[]>([]);
     const [selectedCategory, setSelectedCategory] = useState<ShopCategory | null>(null);
+    const [minRating, setMinRating] = useState<number | null>(null);
     const [isLocationDropdownOpen, setIsLocationDropdownOpen] = useState(false);
     const [isMapModalOpen, setIsMapModalOpen] = useState(false);
 
@@ -202,7 +203,6 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
         const term = searchTerm.trim().toLowerCase();
         let results = [...shops];
 
-        // 1. Search term filter (only if term exists)
         if (term) {
             results = results.filter(shop => {
                 const nameMatch = shop.name?.toLowerCase().includes(term) ?? false;
@@ -213,7 +213,6 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
             });
         }
 
-        // 2. Category filter
         if (selectedCategory) {
             results = results.filter(shop => {
                 if (!shop.categories || !Array.isArray(shop.categories)) return false;
@@ -228,18 +227,24 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
             results = results.filter(shop => shop.genderPreference === TargetGender.Erkek || shop.genderPreference === TargetGender.Unisex);
         }
 
+        if (minRating !== null) {
+            results = results.filter(shop => (shop.averageRating || 0) >= minRating);
+        }
+
         if (activeTags.includes('rating')) {
             results.sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0));
-        }
-        if (activeTags.includes('reviews')) {
+        } else if (activeTags.includes('low-price')) {
+            results.sort((a, b) => (a.minServicePrice ?? Infinity) - (b.minServicePrice ?? Infinity));
+        } else if (activeTags.includes('high-price')) {
+            results.sort((a, b) => (b.minServicePrice ?? -Infinity) - (a.minServicePrice ?? -Infinity));
+        } else if (activeTags.includes('reviews')) {
             results.sort((a, b) => (b.reviewCount || 0) - (a.reviewCount || 0));
-        }
-        if (activeTags.includes('newest')) {
+        } else if (activeTags.includes('newest')) {
             results.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
         }
 
         setFilteredShops(results);
-    }, [searchTerm, shops, activeTags, selectedCategory]);
+    }, [searchTerm, shops, activeTags, selectedCategory, minRating]);
 
     useEffect(() => {
         if (navigator.geolocation) {
@@ -474,6 +479,13 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                                 className={`transition-colors py-3 border-b-2 shrink-0 text-[13px] md:text-sm ${activeTags.includes('rating') ? 'text-primary-700 border-primary-600 font-bold' : 'text-gray-600 hover:text-primary-700 border-transparent'}`}
                             >
                                 En Yüksek Puanlılar
+                            </button>
+                            <div className="w-px h-4 bg-gray-200 shrink-0 mx-0.5 md:mx-1"></div>
+                            <button
+                                onClick={() => setMinRating(prev => prev === 4 ? null : 4)}
+                                className={`transition-colors py-3 border-b-2 shrink-0 text-[13px] md:text-sm ${minRating === 4 ? 'text-primary-700 border-primary-600 font-bold' : 'text-gray-600 hover:text-primary-700 border-transparent'}`}
+                            >
+                                4★ ve Üzeri
                             </button>
                             <div className="w-px h-4 bg-gray-200 shrink-0 mx-0.5 md:mx-1"></div>
                             <button

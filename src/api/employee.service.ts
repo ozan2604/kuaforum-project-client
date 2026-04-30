@@ -67,5 +67,14 @@ export const employeeService = {
 
     updateProfile: async (data: UpdateEmployeeProfileDto): Promise<void> => {
         await api.put('/employee/me', data);
+    },
+
+    getMySchedule: async (): Promise<ScheduleDto[]> => {
+        const response = await api.get<ScheduleDto[]>('/employee/me/schedule');
+        return response.data;
+    },
+
+    updateMySchedule: async (data: UpdateScheduleDto): Promise<void> => {
+        await api.put('/employee/me/schedule', data);
     }
 };

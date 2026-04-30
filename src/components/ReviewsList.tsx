@@ -5,6 +5,7 @@ import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'react-hot-toast';
+import { getApiError } from '../utils/storage';
 import { ConfirmationModal } from './ConfirmationModal';
 
 const PAGE_SIZE = 20;
@@ -50,8 +51,8 @@ export const ReviewsList: React.FC<ReviewsListProps> = ({ shopId, onEdit, refres
             await reviewService.deleteReview(reviewToDelete);
             toast.success('Yorum silindi.');
             loadReviews();
-        } catch {
-            toast.error('Yorum silinemedi.');
+        } catch (err) {
+            toast.error(getApiError(err, 'Yorum silinemedi.'));
         } finally {
             setDeleteModalOpen(false);
             setReviewToDelete(null);

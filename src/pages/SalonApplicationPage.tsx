@@ -6,6 +6,7 @@ import { Clock, CheckCircle, XCircle, MapPin, Phone, Mail, Store, ChevronRight, 
 import { SearchableSelect } from '../components/SearchableSelect';
 import MapPicker from '../components/MapPicker';
 import { toast } from 'react-hot-toast';
+import { getApiError } from '../utils/storage';
 import { useNavigate } from 'react-router-dom';
 import { TargetGender, TargetGenderLabels, ShopCategory, ShopCategoryLabels } from '../types/shop';
 
@@ -155,8 +156,8 @@ export const SalonApplicationPage: React.FC = () => {
                         toast.error('Bu e-posta adresi sistemde kayıtlı bir kullanıcıya ait.');
                     return;
                 }
-            } catch {
-                toast.error('E-posta kontrolü sırasında bir hata oluştu.');
+            } catch (err) {
+                toast.error(getApiError(err, 'E-posta kontrolü sırasında bir hata oluştu.'));
                 return;
             } finally {
                 setIsCheckingEmail(false);
@@ -173,8 +174,8 @@ export const SalonApplicationPage: React.FC = () => {
             await salonApplicationService.apply(form);
             toast.success('Başvurunuz alındı! Onay bekleniyor.');
             loadSalonApplication();
-        } catch (error: any) {
-            toast.error(error?.response?.data?.message || 'Başvuru yapılamadı.');
+        } catch (err) {
+            toast.error(getApiError(err, 'Başvuru yapılamadı.'));
         }
     };
 

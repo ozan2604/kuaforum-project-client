@@ -14,6 +14,7 @@ import type { Review } from '../api/review.service';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { toast } from 'react-hot-toast';
+import { getApiError } from '../utils/storage';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { reviewService } from '../api/review.service';
 import { ReviewModal } from '../components/ReviewModal';
@@ -112,11 +113,11 @@ export const ProfilePage: React.FC = () => {
         else if (openSection === 'reviews') loadReviews();
     }, [openSection]);
 
-    const loadAppointments = async () => { try { setAppointments(await appointmentService.getMyAppointments()); } catch { toast.error('Randevular yüklenemedi.'); } };
+    const loadAppointments = async () => { try { setAppointments(await appointmentService.getMyAppointments()); } catch (err) { toast.error(getApiError(err, 'Randevular yüklenemedi.')); } };
 
-    const loadFavorites = async () => { setFavLoading(true); try { setFavorites(await favoriteService.getUserFavorites()); } catch { toast.error('Favoriler yüklenemedi.'); } finally { setFavLoading(false); } };
+    const loadFavorites = async () => { setFavLoading(true); try { setFavorites(await favoriteService.getUserFavorites()); } catch (err) { toast.error(getApiError(err, 'Favoriler yüklenemedi.')); } finally { setFavLoading(false); } };
 
-    const loadReviews = async () => { setReviewsLoading(true); try { setMyReviews(await reviewService.getMyReviews()); } catch { toast.error('Yorumlar yüklenemedi.'); } finally { setReviewsLoading(false); } };
+    const loadReviews = async () => { setReviewsLoading(true); try { setMyReviews(await reviewService.getMyReviews()); } catch (err) { toast.error(getApiError(err, 'Yorumlar yüklenemedi.')); } finally { setReviewsLoading(false); } };
 
     const handleUpdateProfile = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -139,8 +140,8 @@ export const ProfilePage: React.FC = () => {
             const { imageUrl } = await authService.updateProfileImage(file);
             updateAuthorization({ ...user!, profileImageUrl: imageUrl } as any);
             toast.success('Profil fotoğrafı güncellendi.');
-        } catch {
-            toast.error('Fotoğraf yüklenemedi.');
+        } catch (err) {
+            toast.error(getApiError(err, 'Fotoğraf yüklenemedi.'));
         } finally {
             setUploadingImage(false);
         }
@@ -151,8 +152,8 @@ export const ProfilePage: React.FC = () => {
             await authService.deleteProfileImage();
             updateAuthorization({ ...user!, profileImageUrl: undefined } as any);
             toast.success('Profil fotoğrafı silindi.');
-        } catch {
-            toast.error('Fotoğraf silinemedi.');
+        } catch (err) {
+            toast.error(getApiError(err, 'Fotoğraf silinemedi.'));
         }
     };
 
@@ -167,7 +168,7 @@ export const ProfilePage: React.FC = () => {
 
     const handleDeleteAccount = async () => {
         try { await authService.deleteAccount(); toast.success('Hesabınız silindi.'); logout(); navigate('/'); }
-        catch { toast.error('Hesap silinemedi.'); }
+        catch (err) { toast.error(getApiError(err, 'Hesap silinemedi.')); }
     };
 
     const handleReviewSubmit = async (rating: number, comment: string, newImages: File[], deletedImageUrls: string[]) => {
@@ -182,7 +183,7 @@ export const ProfilePage: React.FC = () => {
             if (openSection === 'reviews') loadReviews();
             if (openSection === 'appointments') loadAppointments();
         }
-        catch { toast.error('İşlem başarısız.'); }
+        catch (err) { toast.error(getApiError(err, 'İşlem başarısız.')); }
         finally { setSelectedReview(null); setSelectedAppointment(null); setIsReviewModalOpen(false); }
     };
 
@@ -196,8 +197,8 @@ export const ProfilePage: React.FC = () => {
             await reviewService.deleteReview(reviewToDelete);
             toast.success('Yorum silindi.');
             loadReviews();
-        } catch {
-            toast.error('Yorum silinemedi.');
+        } catch (err) {
+            toast.error(getApiError(err, 'Yorum silinemedi.'));
         } finally {
             setReviewToDelete(null);
         }

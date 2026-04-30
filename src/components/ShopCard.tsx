@@ -130,17 +130,20 @@ export const ShopCard: React.FC<ShopCardProps> = ({ shop, initialIsFavorite = fa
                 </p>
 
                 <div className="flex items-center justify-between pt-2 sm:pt-3 border-t border-gray-100 mt-auto">
-                    {openStatus === null ? null : openStatus ? (
-                        <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 bg-green-50 text-green-700 rounded-md">
-                            <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                            Açık
-                        </span>
-                    ) : (
-                        <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 bg-red-50 text-red-700 rounded-md">
-                            <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-red-500"></span>
-                            Kapalı
-                        </span>
-                    )}
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                        {openStatus === null ? null : openStatus ? (
+                            <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 bg-green-50 text-green-700 rounded-md">
+                                <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-green-500 animate-pulse"></span>
+                                Açık
+                            </span>
+                        ) : (
+                            <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 bg-red-50 text-red-700 rounded-md">
+                                <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-red-500"></span>
+                                Kapalı
+                            </span>
+                        )}
+
+                    </div>
                     <Button
                         size="sm"
                         variant="secondary"

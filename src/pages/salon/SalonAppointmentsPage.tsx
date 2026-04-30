@@ -8,6 +8,7 @@ import { serviceManagementService } from '../../api/service.service';
 import { type Appointment, AppointmentStatus } from '../../types/appointment';
 import type { Employee } from '../../types/employee';
 import { toast } from 'react-hot-toast';
+import { getApiError } from '../../utils/storage';
 import {
     Calendar, Clock, User, CheckCircle, XCircle, AlertCircle,
     Scissors, ChevronLeft, ChevronRight, Zap, ChevronDown, ChevronUp, Filter
@@ -97,8 +98,8 @@ export const SalonAppointmentsPage: React.FC = () => {
             setAppointments(result.items);
             setTotalCount(result.totalCount);
             setTotalPages(result.totalPages);
-        } catch {
-            toast.error('Randevular yüklenemedi');
+        } catch (err) {
+            toast.error(getApiError(err, 'Randevular yüklenemedi'));
         } finally {
             setLoading(false);
         }
@@ -159,7 +160,7 @@ export const SalonAppointmentsPage: React.FC = () => {
             await shopService.updateAutoProcess(shopId, newState);
             setIsAutoProcessEnabled(newState);
             toast.success(`Otomatik işlemler ${newState ? 'aktif' : 'pasif'} hale getirildi.`);
-        } catch { toast.error('Ayarlar güncellenemedi.'); }
+        } catch (err) { toast.error(getApiError(err, 'Ayarlar güncellenemedi.')); }
     };
 
     const requestStatusUpdate = (id: string, status: AppointmentStatus, label: string, actionText: string) =>
@@ -180,7 +181,7 @@ export const SalonAppointmentsPage: React.FC = () => {
                 setTotalPages(result.totalPages);
                 loadWeeklyAppointments(shop.id);
             }
-        } catch { toast.error('Durum güncellenemedi'); }
+        } catch (err) { toast.error(getApiError(err, 'Durum güncellenemedi')); }
         finally { setConfirmAction(null); }
     };
 

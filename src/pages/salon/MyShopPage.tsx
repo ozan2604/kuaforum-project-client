@@ -4,6 +4,7 @@ import { useForm } from 'react-hook-form';
 import { Button } from '../../components/Button';
 import { shopService } from '../../api/shop.service';
 import { toast } from 'react-hot-toast';
+import { getApiError } from '../../utils/storage';
 import {
     MapPin, Phone, Building2, Trash2, CalendarX, Clock,
     Camera, Store, ChevronDown, ChevronUp, ArrowRight, AlertTriangle
@@ -462,8 +463,8 @@ export const MyShopPage: React.FC = () => {
             toast.dismiss(toastId);
             toast.success('Kapak fotoğrafı güncellendi');
             setRefreshImages(prev => prev + 1);
-        } catch {
-            toast.error('Kapak fotoğrafı yüklenemedi');
+        } catch (err) {
+            toast.error(getApiError(err, 'Kapak fotoğrafı yüklenemedi'));
         }
     };
 
@@ -475,8 +476,8 @@ export const MyShopPage: React.FC = () => {
             toast.dismiss(toastId);
             toast.success('Galeri fotoğrafları yüklendi');
             setRefreshImages(prev => prev + 1);
-        } catch {
-            toast.error('Galeri fotoğrafları yüklenemedi');
+        } catch (err) {
+            toast.error(getApiError(err, 'Galeri fotoğrafları yüklenemedi'));
         }
     };
 
@@ -489,8 +490,8 @@ export const MyShopPage: React.FC = () => {
             toast.dismiss(toastId);
             toast.success('Fotoğraf silindi');
             setRefreshImages(prev => prev + 1);
-        } catch {
-            toast.error('Fotoğraf silinemedi');
+        } catch (err) {
+            toast.error(getApiError(err, 'Fotoğraf silinemedi'));
         }
     };
 

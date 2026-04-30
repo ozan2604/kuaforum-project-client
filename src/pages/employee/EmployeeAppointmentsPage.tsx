@@ -4,6 +4,7 @@ import { Button } from '../../components/Button';
 import { appointmentService } from '../../api/appointment.service';
 import { type Appointment, AppointmentStatus } from '../../types/appointment';
 import { toast } from 'react-hot-toast';
+import { getApiError } from '../../utils/storage';
 import {
     Calendar, Clock, CheckCircle, XCircle, AlertCircle,
     Scissors, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Filter
@@ -108,8 +109,8 @@ export const EmployeeAppointmentsPage: React.FC = () => {
             setAppointments(result.items);
             setTotalCount(result.totalCount);
             setTotalPages(result.totalPages);
-        } catch {
-            toast.error('Randevular yüklenemedi');
+        } catch (err) {
+            toast.error(getApiError(err, 'Randevular yüklenemedi'));
         } finally {
             setLoading(false);
         }
@@ -143,8 +144,8 @@ export const EmployeeAppointmentsPage: React.FC = () => {
             toast.success('Randevu durumu güncellendi');
             loadData();
             loadWeeklyAppointments();
-        } catch {
-            toast.error('Durum güncellenemedi');
+        } catch (err) {
+            toast.error(getApiError(err, 'Durum güncellenemedi'));
         } finally {
             setConfirmAction(null);
         }

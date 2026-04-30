@@ -1,3 +1,12 @@
+export const getApiError = (err: unknown, fallback = 'Bir hata oluştu.'): string => {
+    if (err && typeof err === 'object' && 'response' in err) {
+        const res = (err as any).response;
+        return res?.data?.message || res?.data?.Message || fallback;
+    }
+    if (err instanceof Error) return err.message;
+    return fallback;
+};
+
 const TOKEN_KEY = 'kuaforum_token';
 const USER_KEY = 'kuaforum_user';
 

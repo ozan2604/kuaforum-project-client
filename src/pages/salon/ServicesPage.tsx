@@ -6,6 +6,8 @@ import { serviceManagementService } from '../../api/service.service';
 import type { ServiceCategoryDto, CreateServiceDto, CreateCategoryDto } from '../../types/service';
 import { toast } from 'react-hot-toast';
 import { Plus, Scissors, Tag, Clock, DollarSign, Edit, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { LoadingSpinner } from '../../components/LoadingSpinner';
+import { EmptyState } from '../../components/EmptyState';
 import type { UpdateServiceCategoryDto, UpdateShopServiceDto } from '../../types/service';
 
 export const ServicesPage: React.FC = () => {
@@ -255,7 +257,7 @@ export const ServicesPage: React.FC = () => {
         }
     };
 
-    if (loading) return <div>Yükleniyor...</div>;
+    if (loading) return <LoadingSpinner />;
 
     const getSafeArray = (arr: any) => {
         if (Array.isArray(arr)) return arr;
@@ -312,10 +314,11 @@ export const ServicesPage: React.FC = () => {
             <div className="grid gap-6">
                 {activeTab === 'active' ? (
                     activeCategories.length === 0 ? (
-                        <div className="text-center py-12 bg-white rounded-xl border border-dashed border-gray-300">
-                            <p className="text-gray-500 mb-4">Henüz hizmet bulunmuyor. Bir kategori oluşturarak başlayın.</p>
-                            <Button onClick={() => setIsCategoryModalOpen(true)}>Kategori Oluştur</Button>
-                        </div>
+                        <EmptyState
+                            message="Henüz hizmet bulunmuyor"
+                            description="Bir kategori oluşturarak başlayın."
+                            action={<Button onClick={() => setIsCategoryModalOpen(true)}>Kategori Oluştur</Button>}
+                        />
                     ) : (
                         activeCategories.map((category) => {
                             const isOpen = !!openCategories[category.id];
