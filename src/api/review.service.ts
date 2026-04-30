@@ -114,5 +114,10 @@ export const reviewService = {
     getMyReviews: async () => {
         const response = await api.get<Review[]>('/Reviews/my-reviews');
         return response.data;
+    },
+
+    getMyShopReviews: async () => {
+        const response = await api.get<Review[]>('/Reviews/my-shop');
+        return response.data;
     }
 };

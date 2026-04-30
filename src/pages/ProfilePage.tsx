@@ -6,7 +6,7 @@ import { authService } from '../api/auth.service';
 import type { AppointmentDto } from '../types/appointment';
 
 import { Button } from '../components/Button';
-import { Calendar, User, LogOut, CheckCircle, Clock, XCircle, AlertCircle, Trash2, MapPin, Lock, Plus, Heart, ChevronRight, Briefcase, MessageSquare, Camera, Edit2, Store } from 'lucide-react';
+import { Calendar, User, LogOut, CheckCircle, Clock, XCircle, AlertCircle, Trash2, Lock, Heart, ChevronRight, MessageSquare, Camera, Edit2, Store } from 'lucide-react';
 import { favoriteService } from '../services/favorite.service';
 import { ShopCard } from '../components/ShopCard';
 import type { Shop } from '../types/shop';
@@ -48,6 +48,35 @@ const ConfirmModal: React.FC<{
         document.body
     );
 
+const ResultModal: React.FC<{
+    type: 'success' | 'error';
+    message: string;
+    onClose: () => void;
+}> = ({ type, message, onClose }) =>
+    createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6 text-center">
+                <div className={`mx-auto w-14 h-14 rounded-full flex items-center justify-center mb-4 ${type === 'success' ? 'bg-green-100' : 'bg-red-100'}`}>
+                    {type === 'success'
+                        ? <CheckCircle className="h-7 w-7 text-green-600" />
+                        : <XCircle className="h-7 w-7 text-red-600" />
+                    }
+                </div>
+                <h3 className={`text-lg font-bold mb-2 ${type === 'success' ? 'text-green-800' : 'text-red-800'}`}>
+                    {type === 'success' ? 'Başarılı' : 'Hata'}
+                </h3>
+                <p className="text-gray-600 text-sm mb-6 leading-relaxed">{message}</p>
+                <button
+                    onClick={onClose}
+                    className={`w-full px-4 py-2.5 text-sm font-semibold rounded-lg text-white transition-colors ${type === 'success' ? 'bg-green-600 hover:bg-green-700' : 'bg-red-600 hover:bg-red-700'}`}
+                >
+                    Tamam
+                </button>
+            </div>
+        </div>,
+        document.body
+    );
+
 export const ProfilePage: React.FC = () => {
     const { user, logout, updateAuthorization } = useAuth();
     const navigate = useNavigate();
@@ -56,6 +85,8 @@ export const ProfilePage: React.FC = () => {
     const [openSection, setOpenSection] = useState<TabType | null>(activeTab || null);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [resultModal, setResultModal] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+    const showResult = (type: 'success' | 'error', message: string) => setResultModal({ type, message });
     const [reviewToDelete, setReviewToDelete] = useState<string | null>(null);
     const [appointmentToCancel, setAppointmentToCancel] = useState<string | null>(null);
     const [cancelReason, setCancelReason] = useState('');
@@ -121,14 +152,14 @@ export const ProfilePage: React.FC = () => {
 
     const handleUpdateProfile = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (!/^05\d{9}$/.test(phoneNumber)) { toast.error('Telefon numarası 05XXXXXXXXX formatında olmalıdır.'); return; }
+        if (!/^05\d{9}$/.test(phoneNumber)) { showResult('error', 'Telefon numarası 05XXXXXXXXX formatında olmalıdır.'); return; }
         setUpdatingProfile(true);
-        try { 
-            const updatedUser = await authService.updateProfile({ firstName, lastName, phoneNumber, email }); 
-            updateAuthorization(updatedUser); 
-            toast.success('Profil güncellendi.'); 
+        try {
+            const updatedUser = await authService.updateProfile({ firstName, lastName, phoneNumber, email });
+            updateAuthorization(updatedUser);
+            showResult('success', 'Profil bilgileriniz başarıyla güncellendi.');
         }
-        catch (err: any) { toast.error(err.response?.data?.message || err.response?.data?.Message || 'Güncelleme başarısız.'); }
+        catch (err: any) { showResult('error', getApiError(err, 'Profil güncellenemedi.')); }
         finally { setUpdatingProfile(false); }
     };
 
@@ -139,9 +170,9 @@ export const ProfilePage: React.FC = () => {
         try {
             const { imageUrl } = await authService.updateProfileImage(file);
             updateAuthorization({ ...user!, profileImageUrl: imageUrl } as any);
-            toast.success('Profil fotoğrafı güncellendi.');
+            showResult('success', 'Profil fotoğrafınız başarıyla güncellendi.');
         } catch (err) {
-            toast.error(getApiError(err, 'Fotoğraf yüklenemedi.'));
+            showResult('error', getApiError(err, 'Fotoğraf yüklenemedi.'));
         } finally {
             setUploadingImage(false);
         }
@@ -151,9 +182,9 @@ export const ProfilePage: React.FC = () => {
         try {
             await authService.deleteProfileImage();
             updateAuthorization({ ...user!, profileImageUrl: undefined } as any);
-            toast.success('Profil fotoğrafı silindi.');
+            showResult('success', 'Profil fotoğrafınız silindi.');
         } catch (err) {
-            toast.error(getApiError(err, 'Fotoğraf silinemedi.'));
+            showResult('error', getApiError(err, 'Fotoğraf silinemedi.'));
         }
     };
 
@@ -161,29 +192,33 @@ export const ProfilePage: React.FC = () => {
 
     const handleChangePassword = async (e: React.FormEvent) => {
         e.preventDefault();
-        if (newPassword !== confirmPassword) { toast.error('Şifreler eşleşmiyor.'); return; }
-        try { await authService.changePassword({ currentPassword, newPassword, confirmPassword }); toast.success('Şifre değiştirildi.'); setCurrentPassword(''); setNewPassword(''); setConfirmPassword(''); }
-        catch (err: any) { const m = err.response?.data || err.message; toast.error(typeof m === 'string' ? m : 'Hata oluştu.'); }
+        if (newPassword !== confirmPassword) { showResult('error', 'Yeni şifreler birbiriyle eşleşmiyor.'); return; }
+        try {
+            await authService.changePassword({ currentPassword, newPassword, confirmPassword });
+            showResult('success', 'Şifreniz başarıyla değiştirildi.');
+            setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
+        }
+        catch (err: any) { showResult('error', getApiError(err, 'Şifre değiştirilemedi.')); }
     };
 
     const handleDeleteAccount = async () => {
-        try { await authService.deleteAccount(); toast.success('Hesabınız silindi.'); logout(); navigate('/'); }
-        catch (err) { toast.error(getApiError(err, 'Hesap silinemedi.')); }
+        try { await authService.deleteAccount(); logout(); navigate('/'); }
+        catch (err) { showResult('error', getApiError(err, 'Hesap silinemedi.')); }
     };
 
     const handleReviewSubmit = async (rating: number, comment: string, newImages: File[], deletedImageUrls: string[]) => {
-        try { 
+        try {
             if (selectedReview) {
                 await reviewService.updateReview(selectedReview.id, { id: selectedReview.id, rating, comment, newImages, deletedImageUrls });
-                toast.success('Değerlendirme güncellendi.');
+                showResult('success', 'Değerlendirmeniz başarıyla güncellendi.');
             } else if (selectedAppointment) {
-                await reviewService.addReview({ appointmentId: selectedAppointment.id, rating, comment, images: newImages }); 
-                toast.success('Değerlendirme gönderildi.');
+                await reviewService.addReview({ appointmentId: selectedAppointment.id, rating, comment, images: newImages });
+                showResult('success', 'Değerlendirmeniz başarıyla gönderildi.');
             }
             if (openSection === 'reviews') loadReviews();
             if (openSection === 'appointments') loadAppointments();
         }
-        catch (err) { toast.error(getApiError(err, 'İşlem başarısız.')); }
+        catch (err) { showResult('error', getApiError(err, 'Değerlendirme gönderilemedi.')); }
         finally { setSelectedReview(null); setSelectedAppointment(null); setIsReviewModalOpen(false); }
     };
 
@@ -195,10 +230,10 @@ export const ProfilePage: React.FC = () => {
         if (!reviewToDelete) return;
         try {
             await reviewService.deleteReview(reviewToDelete);
-            toast.success('Yorum silindi.');
             loadReviews();
+            showResult('success', 'Yorumunuz başarıyla silindi.');
         } catch (err) {
-            toast.error(getApiError(err, 'Yorum silinemedi.'));
+            showResult('error', getApiError(err, 'Yorum silinemedi.'));
         } finally {
             setReviewToDelete(null);
         }
@@ -208,10 +243,10 @@ export const ProfilePage: React.FC = () => {
         if (!appointmentToCancel) return;
         try {
             await appointmentService.cancelAppointment(appointmentToCancel, cancelReason);
-            toast.success('Randevu iptal edildi.');
             loadAppointments();
-        } catch (err: any) {
-            toast.error(err.response?.data?.message || err.response?.data?.Message || 'Randevu iptal edilemedi.');
+            showResult('success', 'Randevunuz başarıyla iptal edildi.');
+        } catch (err) {
+            showResult('error', getApiError(err, 'Randevu iptal edilemedi.'));
         } finally {
             setAppointmentToCancel(null);
             setCancelReason('');
@@ -278,17 +313,18 @@ export const ProfilePage: React.FC = () => {
                             <div className="space-y-1">
                                 <h1 className="text-3xl font-black text-gray-900 tracking-tight leading-tight">{fullName}</h1>
                                 
-                                <div className="flex flex-col items-center gap-1">
+                                <div className="flex flex-wrap items-center justify-center gap-2">
                                     {user?.phoneNumber && (
                                         <div className="inline-flex items-center gap-1.5 text-gray-600 font-bold text-sm bg-gray-50 px-3 py-1 rounded-full border border-gray-100">
                                             {user.phoneNumber}
                                         </div>
                                     )}
-                                    {user?.email && (
-                                        <p className="text-sm text-gray-400 font-medium">
-                                            {user.email}
-                                        </p>
-                                    )}
+                                    <div className="inline-flex items-center gap-1.5 text-sm bg-gray-50 px-3 py-1 rounded-full border border-gray-100">
+                                        {user?.email
+                                            ? <span className="text-gray-500 font-medium">{user.email}</span>
+                                            : <span className="text-gray-400 italic text-xs">Mail adresi yok</span>
+                                        }
+                                    </div>
                                 </div>
                             </div>
                             
@@ -550,6 +586,15 @@ export const ProfilePage: React.FC = () => {
                     confirmLabel="Evet, Hesabımı Sil"
                     onConfirm={() => { setShowDeleteConfirm(false); handleDeleteAccount(); }}
                     onCancel={() => setShowDeleteConfirm(false)}
+                />
+            )}
+
+            {/* Result Modal */}
+            {resultModal && (
+                <ResultModal
+                    type={resultModal.type}
+                    message={resultModal.message}
+                    onClose={() => setResultModal(null)}
                 />
             )}
 

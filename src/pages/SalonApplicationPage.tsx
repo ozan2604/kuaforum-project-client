@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { salonApplicationService } from '../api/salon-application.service';
 import { Button } from '../components/Button';
-import { Clock, CheckCircle, XCircle, MapPin, Phone, Mail, Store, ChevronRight, Loader2 } from 'lucide-react';
+import { Clock, CheckCircle, XCircle, MapPin, Phone, Mail, Store, ChevronRight, Loader2, ShieldCheck } from 'lucide-react';
 import { SearchableSelect } from '../components/SearchableSelect';
 import MapPicker from '../components/MapPicker';
 import { toast } from 'react-hot-toast';
@@ -205,7 +205,6 @@ export const SalonApplicationPage: React.FC = () => {
                         <p className="text-indigo-200 mt-2 text-sm">İşletmenizi platforma ekleyin, binlerce müşteriye ulaşın.</p>
                     </div>
                 </div>
-
                 {application ? (
                     /* Application Status Card */
                     <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
@@ -249,11 +248,49 @@ export const SalonApplicationPage: React.FC = () => {
                         </div>
                         {application.status === 1 && (
                             <div className="px-6 pb-6">
-                                <Button onClick={() => user?.role !== 'SalonOwner' ? (toast.success('Yeniden giriş yapmanız gerekiyor.'), logout(), navigate('/login')) : navigate('/salon-panel')} className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-semibold shadow-lg shadow-indigo-100">
-                                    {user?.role !== 'SalonOwner' ? 'Erişimi Aktifleştir' : 'Salon Paneline Git'}
+                                <Button 
+                                    onClick={() => navigate('/salon-panel')} 
+                                    className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-100 flex items-center justify-center gap-2"
+                                >
+                                    <Store className="h-5 w-5" />
+                                    Salonuma Git
                                 </Button>
                             </div>
                         )}
+                    </div>
+                ) : user?.role === 'SalonOwner' ? (
+                    /* Already a Salon Owner Card */
+                    <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden animate-in fade-in zoom-in-95 duration-500">
+                        <div className="p-8 text-center">
+                            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-indigo-100 text-indigo-600 mb-6">
+                                <ShieldCheck className="h-12 w-12" />
+                            </div>
+                            <h2 className="text-2xl font-bold text-gray-900 mb-3">Zaten Salon Sahibisiniz</h2>
+                            <p className="text-gray-600 mb-8 max-w-md mx-auto">
+                                Sisteme kayıtlı aktif bir salonunuz bulunmaktadır. Yeni bir salon başvurusu yapmanıza gerek yoktur. Mevcut salonunuzu yönetmek için panele geçiş yapabilirsiniz.
+                            </p>
+                            
+                            <div className="space-y-3">
+                                <Button 
+                                    onClick={() => navigate('/salon-panel')} 
+                                    className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-100 flex items-center justify-center gap-2"
+                                >
+                                    <Store className="h-5 w-5" />
+                                    Salon Paneline Git
+                                </Button>
+                                <button 
+                                    onClick={() => navigate('/')}
+                                    className="text-sm text-gray-500 hover:text-indigo-600 font-medium transition-colors"
+                                >
+                                    Ana Sayfaya Dön
+                                </button>
+                            </div>
+                        </div>
+                        <div className="bg-indigo-50 px-8 py-4 text-center">
+                            <p className="text-xs text-indigo-600 font-medium">
+                                Birden fazla salon yönetimi şu an için desteklenmemektedir.
+                            </p>
+                        </div>
                     </div>
                 ) : (
                     /* Application Form */

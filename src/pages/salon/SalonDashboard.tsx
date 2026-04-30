@@ -54,13 +54,12 @@ export const SalonDashboard: React.FC = () => {
     useEffect(() => {
         const loadDashboard = async () => {
             try {
-                const data = await shopService.getDashboardStats();
+                const [data, shopReviews] = await Promise.all([
+                    shopService.getDashboardStats(),
+                    reviewService.getMyShopReviews()
+                ]);
                 setStats(data);
-                
-                if (data?.shopId) {
-                    const shopReviews = await reviewService.getShopReviews(data.shopId);
-                    setReviews(shopReviews);
-                }
+                setReviews(shopReviews);
             } catch (error) {
                 console.error('Failed to load dashboard', error);
                 toast.error('İstatistikler yüklenemedi.');
