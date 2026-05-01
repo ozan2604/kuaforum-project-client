@@ -1,8 +1,43 @@
 import api from './axios';
 import type { AuthResponse, RegisterRequest, UpdateProfileRequest, ChangePasswordRequest } from '../types/auth';
 
+export interface SendOtpResponse {
+    message: string;
+    expiresInSeconds: number;
+}
+
+export interface SendLoginOtpRequest {
+    phoneNumber: string;
+    password: string;
+}
+
+export interface VerifyLoginOtpRequest {
+    phoneNumber: string;
+    password: string;
+    otpCode: string;
+}
+
+export interface SendRegisterOtpRequest {
+    firstName: string;
+    lastName: string;
+    phoneNumber: string;
+    password: string;
+    email?: string;
+    role?: string;
+}
+
+export interface VerifyRegisterOtpRequest {
+    firstName: string;
+    lastName: string;
+    phoneNumber: string;
+    password: string;
+    email?: string;
+    role?: string;
+    otpCode: string;
+}
 
 export const authService = {
+    // Mevcut (direkt) login/register — admin gibi özel durumlar için saklandı
     login: async (data: { identifier: string; password: string }): Promise<AuthResponse> => {
         const response = await api.post<AuthResponse>('/auth/login', data);
         return response.data;
@@ -10,6 +45,28 @@ export const authService = {
 
     register: async (data: RegisterRequest): Promise<AuthResponse> => {
         const response = await api.post<AuthResponse>('/auth/register', data);
+        return response.data;
+    },
+
+    // OTP: Login
+    sendLoginOtp: async (data: SendLoginOtpRequest): Promise<SendOtpResponse> => {
+        const response = await api.post<SendOtpResponse>('/auth/login/send-otp', data);
+        return response.data;
+    },
+
+    verifyLoginOtp: async (data: VerifyLoginOtpRequest): Promise<AuthResponse> => {
+        const response = await api.post<AuthResponse>('/auth/login/verify-otp', data);
+        return response.data;
+    },
+
+    // OTP: Register
+    sendRegisterOtp: async (data: SendRegisterOtpRequest): Promise<SendOtpResponse> => {
+        const response = await api.post<SendOtpResponse>('/auth/register/send-otp', data);
+        return response.data;
+    },
+
+    verifyRegisterOtp: async (data: VerifyRegisterOtpRequest): Promise<AuthResponse> => {
+        const response = await api.post<AuthResponse>('/auth/register/verify-otp', data);
         return response.data;
     },
 

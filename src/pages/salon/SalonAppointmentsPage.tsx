@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '../../components/Button';
 import { appointmentService } from '../../api/appointment.service';
@@ -15,45 +15,8 @@ import {
 } from 'lucide-react';
 import { format, addDays } from 'date-fns';
 import { tr } from 'date-fns/locale';
-
-const SLOT_HEIGHT = 52;
-const TIME_COL_PCT = 12;
-
-function timeToAbsoluteSlot(isoTime: string): number {
-    const d = new Date(isoTime);
-    return d.getHours() * 4 + Math.floor(d.getMinutes() / 15);
-}
-
-function computeAppointmentLayout(appointments: Appointment[]): Map<string, { col: number; totalCols: number }> {
-    const sorted = [...appointments].sort(
-        (a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
-    );
-    const columns: Appointment[][] = [];
-    const colMap = new Map<string, number>();
-
-    for (const app of sorted) {
-        let placed = false;
-        for (let c = 0; c < columns.length; c++) {
-            const last = columns[c][columns[c].length - 1];
-            if (new Date(last.endTime) <= new Date(app.startTime)) {
-                columns[c].push(app);
-                colMap.set(app.id, c);
-                placed = true;
-                break;
-            }
-        }
-        if (!placed) {
-            colMap.set(app.id, columns.length);
-            columns.push([app]);
-        }
-    }
-
-    const result = new Map<string, { col: number; totalCols: number }>();
-    for (const [id, col] of colMap) {
-        result.set(id, { col, totalCols: columns.length });
-    }
-    return result;
-}
+import { CustomSelect } from '../../components/CustomSelect';
+import { WeeklyCalendarCard } from '../../components/WeeklyCalendarCard';
 
 export const SalonAppointmentsPage: React.FC = () => {
     const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -77,12 +40,8 @@ export const SalonAppointmentsPage: React.FC = () => {
     const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
     const [weeklyAppointments, setWeeklyAppointments] = useState<Appointment[]>([]);
     const [weeklyLoading, setWeeklyLoading] = useState(false);
-    const [selectedWeekDay, setSelectedWeekDay] = useState(0);
 
-    // Accordion state — both start closed like dashboard
-    const [openCards, setOpenCards] = useState({ weeklyCalendar: false, management: false });
-    const toggleCard = (card: keyof typeof openCards) =>
-        setOpenCards(prev => ({ ...prev, [card]: !prev[card] }));
+    const [managementOpen, setManagementOpen] = useState(false);
 
     const loadData = async () => {
         setLoading(true);
@@ -134,25 +93,6 @@ export const SalonAppointmentsPage: React.FC = () => {
 
     useEffect(() => { if (shopId) loadWeeklyAppointments(shopId); }, [shopId]);
 
-    const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(new Date(), i)), []);
-
-    const dayAppointments = useMemo(() => {
-        const dayStr = format(weekDays[selectedWeekDay], 'yyyy-MM-dd');
-        return weeklyAppointments.filter(app => format(new Date(app.startTime), 'yyyy-MM-dd') === dayStr);
-    }, [weeklyAppointments, weekDays, selectedWeekDay]);
-
-    const { calendarStart, calendarEnd } = useMemo(() => {
-        if (dayAppointments.length === 0) return { calendarStart: 8 * 4, calendarEnd: 18 * 4 };
-        const starts = dayAppointments.map(a => timeToAbsoluteSlot(a.startTime));
-        const ends = dayAppointments.map(a => timeToAbsoluteSlot(a.endTime));
-        return {
-            calendarStart: Math.max(0, Math.min(...starts) - 4),
-            calendarEnd: Math.min(24 * 4, Math.max(...ends) + 4),
-        };
-    }, [dayAppointments]);
-
-    const appointmentLayout = useMemo(() => computeAppointmentLayout(dayAppointments), [dayAppointments]);
-
     const handleAutoProcessToggle = async () => {
         if (!shopId) return;
         const newState = !isAutoProcessEnabled;
@@ -196,17 +136,6 @@ export const SalonAppointmentsPage: React.FC = () => {
         }
     };
 
-    const getApptStyle = (status: AppointmentStatus) => {
-        switch (status) {
-            case AppointmentStatus.Pending:   return { bg: 'bg-amber-50 border-l-amber-400',  text: 'text-amber-900',  dot: 'bg-amber-400' };
-            case AppointmentStatus.Confirmed: return { bg: 'bg-blue-50 border-l-blue-400',    text: 'text-blue-900',   dot: 'bg-blue-400' };
-            case AppointmentStatus.Completed: return { bg: 'bg-emerald-50 border-l-emerald-400', text: 'text-emerald-900', dot: 'bg-emerald-400' };
-            case AppointmentStatus.Cancelled: return { bg: 'bg-gray-50 border-l-gray-300',    text: 'text-gray-600',   dot: 'bg-gray-300' };
-            case AppointmentStatus.Rejected:  return { bg: 'bg-red-50 border-l-red-400',      text: 'text-red-900',    dot: 'bg-red-400' };
-            default:                          return { bg: 'bg-gray-50 border-l-gray-300',    text: 'text-gray-600',   dot: 'bg-gray-300' };
-        }
-    };
-
     const tabs = [
         { label: 'Tümü', value: undefined },
         { label: 'Onay Bekliyor', value: AppointmentStatus.Pending },
@@ -214,20 +143,6 @@ export const SalonAppointmentsPage: React.FC = () => {
         { label: 'Tamamlandı', value: AppointmentStatus.Completed },
         { label: 'İptal', value: AppointmentStatus.Cancelled },
         { label: 'Reddedildi', value: AppointmentStatus.Rejected },
-    ];
-
-    const visibleSlotCount = calendarEnd - calendarStart;
-    const pendingCount = dayAppointments.filter(a => a.status === AppointmentStatus.Pending).length;
-    const totalDuration = dayAppointments.reduce((s, a) => s + a.duration, 0);
-    const totalRevenue = dayAppointments
-        .filter(a => a.status === AppointmentStatus.Completed)
-        .reduce((s, a) => s + a.price, 0);
-
-    const legend = [
-        { label: 'Onay Bekliyor', dot: 'bg-amber-400' },
-        { label: 'Onaylandı',     dot: 'bg-blue-400' },
-        { label: 'Tamamlandı',    dot: 'bg-emerald-400' },
-        { label: 'İptal / Red',   dot: 'bg-red-400' },
     ];
 
     return (
@@ -264,247 +179,17 @@ export const SalonAppointmentsPage: React.FC = () => {
                 </div>
             </div>
 
-            {/* ══════════════════════════════════════════
-                CARD 1 — Haftalık Randevu Takvimi
-            ══════════════════════════════════════════ */}
+            {/* ── Haftalık Takvim ── */}
+            <WeeklyCalendarCard
+                appointments={weeklyAppointments}
+                loading={weeklyLoading}
+                showEmployeeName
+            />
+
+            {/* ── Randevu Yönetimi ── */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-200">
-                {/* Card header */}
                 <div
-                    onClick={() => toggleCard('weeklyCalendar')}
-                    className="w-full p-5 sm:p-6 flex justify-between items-center hover:bg-gray-50 cursor-pointer transition-colors relative"
-                >
-                    <div className="flex items-center gap-3 pr-10">
-                        <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
-                            <Calendar className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <h2 className="text-lg font-bold text-gray-900">Haftalık Randevu Takvimi</h2>
-                            <p className="text-xs text-gray-500 mt-0.5">
-                                {format(weekDays[0], 'd MMM', { locale: tr })} – {format(weekDays[6], 'd MMM yyyy', { locale: tr })} • Günlük randevu görünümü
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Summary badges (visible when closed) */}
-                    {!openCards.weeklyCalendar && !weeklyLoading && (
-                        <div className="hidden sm:flex items-center gap-2 mr-10">
-                            <span className="text-xs bg-blue-50 text-blue-700 font-semibold px-2.5 py-1 rounded-full border border-blue-100">
-                                {weeklyAppointments.length} randevu
-                            </span>
-                            {weeklyAppointments.filter(a => a.status === AppointmentStatus.Pending).length > 0 && (
-                                <span className="text-xs bg-amber-50 text-amber-700 font-semibold px-2.5 py-1 rounded-full border border-amber-100 animate-pulse">
-                                    {weeklyAppointments.filter(a => a.status === AppointmentStatus.Pending).length} bekliyor
-                                </span>
-                            )}
-                        </div>
-                    )}
-                    {weeklyLoading && (
-                        <div className="mr-10 animate-spin rounded-full h-4 w-4 border-b-2 border-blue-500" />
-                    )}
-
-                    <div className="absolute right-5 sm:right-6 p-1 bg-gray-50 rounded-full text-gray-400">
-                        {openCards.weeklyCalendar ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                    </div>
-                </div>
-
-                {openCards.weeklyCalendar && (
-                    <div className="border-t border-gray-50 animate-in fade-in slide-in-from-top-4 duration-300">
-
-                        {/* Legend + day summary bar */}
-                        <div className="px-5 sm:px-6 py-3 bg-gray-50/80 border-b border-gray-100 flex flex-wrap items-center gap-x-6 gap-y-2">
-                            <div className="flex items-center gap-3 flex-wrap">
-                                {legend.map(l => (
-                                    <span key={l.label} className="flex items-center gap-1.5 text-xs text-gray-600">
-                                        <span className={`w-2.5 h-2.5 rounded-full ${l.dot}`} />
-                                        {l.label}
-                                    </span>
-                                ))}
-                            </div>
-                            {dayAppointments.length > 0 && (
-                                <div className="ml-auto flex items-center gap-4 text-xs text-gray-500">
-                                    <span><span className="font-semibold text-gray-800">{dayAppointments.length}</span> randevu</span>
-                                    {pendingCount > 0 && <span className="text-amber-600 font-semibold">{pendingCount} onay bekliyor</span>}
-                                    <span><span className="font-semibold text-gray-800">{totalDuration}</span> dk toplam</span>
-                                    {totalRevenue > 0 && <span className="text-emerald-600 font-semibold">₺{totalRevenue} tamamlandı</span>}
-                                </div>
-                            )}
-                        </div>
-
-                        {/* Day tabs */}
-                        <div className="flex border-b border-gray-100 overflow-x-auto bg-white">
-                            {weekDays.map((day, i) => {
-                                const count = weeklyAppointments.filter(
-                                    app => format(new Date(app.startTime), 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd')
-                                ).length;
-                                const hasPending = weeklyAppointments.some(
-                                    app => format(new Date(app.startTime), 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd')
-                                        && app.status === AppointmentStatus.Pending
-                                );
-                                const isSelected = selectedWeekDay === i;
-                                const isToday = i === 0;
-                                return (
-                                    <button
-                                        key={i}
-                                        onClick={() => setSelectedWeekDay(i)}
-                                        className={`relative flex-1 min-w-[80px] px-3 py-3.5 text-center transition-all border-b-2 ${
-                                            isSelected
-                                                ? 'border-blue-500 bg-blue-50'
-                                                : 'border-transparent hover:bg-gray-50'
-                                        }`}
-                                    >
-                                        {isToday && (
-                                            <span className="absolute top-1 left-1/2 -translate-x-1/2 text-[9px] font-bold uppercase tracking-widest text-blue-600 bg-blue-100 px-1.5 py-0.5 rounded-full leading-none">
-                                                Bugün
-                                            </span>
-                                        )}
-                                        <div className={`text-xs font-semibold uppercase tracking-wide mt-3 ${isSelected ? 'text-blue-600' : 'text-gray-400'}`}>
-                                            {format(day, 'EEE', { locale: tr })}
-                                        </div>
-                                        <div className={`text-2xl font-bold leading-tight ${isSelected ? 'text-blue-700' : 'text-gray-700'}`}>
-                                            {format(day, 'd')}
-                                        </div>
-                                        <div className={`text-xs ${isSelected ? 'text-blue-500' : 'text-gray-400'}`}>
-                                            {format(day, 'MMM', { locale: tr })}
-                                        </div>
-                                        {count > 0 ? (
-                                            <div className="mt-1.5 flex items-center justify-center gap-1">
-                                                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${isSelected ? 'bg-blue-200 text-blue-800' : 'bg-gray-100 text-gray-600'}`}>
-                                                    {count}
-                                                </span>
-                                                {hasPending && <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-pulse" />}
-                                            </div>
-                                        ) : (
-                                            <div className="mt-1.5 text-xs text-gray-300">—</div>
-                                        )}
-                                    </button>
-                                );
-                            })}
-                        </div>
-
-                        {/* Timeline */}
-                        <div className="overflow-y-auto bg-white" style={{ maxHeight: '460px' }}>
-                            {dayAppointments.length === 0 ? (
-                                <div className="py-16 text-center flex flex-col items-center gap-3">
-                                    <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
-                                        <Calendar className="h-8 w-8 text-gray-300" />
-                                    </div>
-                                    <div>
-                                        <p className="text-sm font-semibold text-gray-500">Bu gün için randevu yok</p>
-                                        <p className="text-xs text-gray-400 mt-1">
-                                            {format(weekDays[selectedWeekDay], 'd MMMM yyyy', { locale: tr })} tarihinde henüz randevu alınmamış.
-                                        </p>
-                                    </div>
-                                </div>
-                            ) : (
-                                <div className="relative" style={{ height: `${visibleSlotCount * SLOT_HEIGHT}px` }}>
-                                    {/* Grid lines & time labels */}
-                                    {Array.from({ length: visibleSlotCount }, (_, i) => {
-                                        const absoluteSlot = calendarStart + i;
-                                        const hour = Math.floor(absoluteSlot / 4);
-                                        const min = (absoluteSlot % 4) * 15;
-                                        const isHourMark = absoluteSlot % 4 === 0;
-                                        return (
-                                            <div
-                                                key={i}
-                                                className={`absolute left-0 right-0 ${isHourMark ? 'border-t border-gray-200' : 'border-t border-gray-100'}`}
-                                                style={{ top: `${i * SLOT_HEIGHT}px`, height: `${SLOT_HEIGHT}px` }}
-                                            >
-                                                <span
-                                                    className={`absolute left-2 top-1 text-xs tabular-nums select-none ${
-                                                        isHourMark
-                                                            ? 'font-bold text-gray-600'
-                                                            : 'text-gray-300 text-[10px]'
-                                                    }`}
-                                                >
-                                                    {`${String(hour).padStart(2, '0')}:${String(min).padStart(2, '0')}`}
-                                                </span>
-                                            </div>
-                                        );
-                                    })}
-
-                                    {/* Current-time indicator (only for today) */}
-                                    {selectedWeekDay === 0 && (() => {
-                                        const now = new Date();
-                                        const nowSlot = now.getHours() * 4 + now.getMinutes() / 15 - calendarStart;
-                                        if (nowSlot < 0 || nowSlot > visibleSlotCount) return null;
-                                        return (
-                                            <div
-                                                className="absolute left-0 right-0 z-10 flex items-center"
-                                                style={{ top: `${nowSlot * SLOT_HEIGHT}px` }}
-                                            >
-                                                <div className="w-2.5 h-2.5 rounded-full bg-red-500 ml-[10%] shrink-0 shadow" />
-                                                <div className="flex-1 h-px bg-red-400" />
-                                            </div>
-                                        );
-                                    })()}
-
-                                    {/* Appointment blocks */}
-                                    {dayAppointments.map(app => {
-                                        const startSlotRel = timeToAbsoluteSlot(app.startTime) - calendarStart;
-                                        const durationSlots = Math.max(1, Math.ceil(app.duration / 15));
-                                        const layout = appointmentLayout.get(app.id);
-                                        if (!layout || startSlotRel < 0) return null;
-
-                                        const { col, totalCols } = layout;
-                                        const usablePct = 100 - TIME_COL_PCT;
-                                        const leftPct = TIME_COL_PCT + (col / totalCols) * usablePct;
-                                        const widthPct = usablePct / totalCols - 0.4;
-
-                                        const top = startSlotRel * SLOT_HEIGHT;
-                                        const height = durationSlots * SLOT_HEIGHT - 3;
-                                        const style = getApptStyle(app.status);
-
-                                        return (
-                                            <div
-                                                key={app.id}
-                                                title={`${app.customerName} • ${app.serviceName} • ${app.employeeName} • ${format(new Date(app.startTime), 'HH:mm')}–${format(new Date(app.endTime), 'HH:mm')}`}
-                                                className={`absolute rounded-lg border-l-4 px-2 py-1.5 overflow-hidden shadow-sm ${style.bg} ${style.text}`}
-                                                style={{ top: `${top}px`, height: `${height}px`, left: `${leftPct}%`, width: `${widthPct}%` }}
-                                            >
-                                                {/* Time range — always shown */}
-                                                <div className="flex items-center gap-1 mb-0.5">
-                                                    <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${style.dot}`} />
-                                                    <span className="text-[10px] font-semibold tabular-nums opacity-80">
-                                                        {format(new Date(app.startTime), 'HH:mm')}–{format(new Date(app.endTime), 'HH:mm')}
-                                                    </span>
-                                                </div>
-                                                {/* Customer name */}
-                                                <div className="text-xs font-bold truncate leading-tight">{app.customerName}</div>
-                                                {/* Service */}
-                                                {height > 52 && (
-                                                    <div className="flex items-center gap-0.5 mt-0.5">
-                                                        <Scissors className="w-2.5 h-2.5 shrink-0 opacity-60" />
-                                                        <span className="text-[10px] truncate opacity-80">{app.serviceName}</span>
-                                                    </div>
-                                                )}
-                                                {/* Employee */}
-                                                {height > 72 && (
-                                                    <div className="flex items-center gap-0.5">
-                                                        <User className="w-2.5 h-2.5 shrink-0 opacity-60" />
-                                                        <span className="text-[10px] truncate opacity-70">{app.employeeName}</span>
-                                                    </div>
-                                                )}
-                                                {/* Price */}
-                                                {height > 96 && (
-                                                    <div className="text-[10px] opacity-60 mt-0.5">₺{app.price}</div>
-                                                )}
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                )}
-            </div>
-
-            {/* ══════════════════════════════════════════
-                CARD 2 — Randevu Yönetimi
-            ══════════════════════════════════════════ */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-200">
-                {/* Card header */}
-                <div
-                    onClick={() => toggleCard('management')}
+                    onClick={() => setManagementOpen(v => !v)}
                     className="w-full p-5 sm:p-6 flex justify-between items-center hover:bg-gray-50 cursor-pointer transition-colors relative"
                 >
                     <div className="flex items-center gap-3 pr-10">
@@ -517,7 +202,7 @@ export const SalonAppointmentsPage: React.FC = () => {
                         </div>
                     </div>
 
-                    {!openCards.management && !loading && totalCount > 0 && (
+                    {!managementOpen && !loading && totalCount > 0 && (
                         <div className="hidden sm:flex items-center gap-2 mr-10">
                             <span className="text-xs bg-indigo-50 text-indigo-700 font-semibold px-2.5 py-1 rounded-full border border-indigo-100">
                                 {totalCount} kayıt
@@ -526,11 +211,11 @@ export const SalonAppointmentsPage: React.FC = () => {
                     )}
 
                     <div className="absolute right-5 sm:right-6 p-1 bg-gray-50 rounded-full text-gray-400">
-                        {openCards.management ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                        {managementOpen ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
                     </div>
                 </div>
 
-                {openCards.management && (
+                {managementOpen && (
                     <div className="border-t border-gray-50 animate-in fade-in slide-in-from-top-4 duration-300">
 
                         {/* Filters */}
@@ -556,28 +241,20 @@ export const SalonAppointmentsPage: React.FC = () => {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">Personel</label>
-                                    <select
-                                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 text-sm appearance-none"
-                                        style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: `right 0.5rem center`, backgroundRepeat: `no-repeat`, backgroundSize: `1.5em 1.5em` }}
+                                    <CustomSelect
+                                        label="Personel"
+                                        options={[{ value: '', label: 'Tümü' }, ...employees.map(emp => ({ value: emp.id, label: `${emp.firstName} ${emp.lastName}` }))]}
                                         value={filterEmployeeId}
-                                        onChange={e => { setFilterEmployeeId(e.target.value); setPage(1); }}
-                                    >
-                                        <option value="">Tümü</option>
-                                        {employees.map(emp => <option key={emp.id} value={emp.id}>{emp.firstName} {emp.lastName}</option>)}
-                                    </select>
+                                        onChange={v => { setFilterEmployeeId(String(v)); setPage(1); }}
+                                    />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">Hizmet</label>
-                                    <select
-                                        className="w-full px-3 py-2 bg-gray-50 border border-gray-200 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 text-sm appearance-none"
-                                        style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: `right 0.5rem center`, backgroundRepeat: `no-repeat`, backgroundSize: `1.5em 1.5em` }}
+                                    <CustomSelect
+                                        label="Hizmet"
+                                        options={[{ value: '', label: 'Tümü' }, ...services.map(srv => ({ value: srv.id, label: srv.name }))]}
                                         value={filterServiceId}
-                                        onChange={e => { setFilterServiceId(e.target.value); setPage(1); }}
-                                    >
-                                        <option value="">Tümü</option>
-                                        {services.map(srv => <option key={srv.id} value={srv.id}>{srv.name}</option>)}
-                                    </select>
+                                        onChange={v => { setFilterServiceId(String(v)); setPage(1); }}
+                                    />
                                 </div>
                             </div>
                         </div>
@@ -621,14 +298,12 @@ export const SalonAppointmentsPage: React.FC = () => {
                                 <div className="px-5 sm:px-6 py-3 bg-gray-50/60 border-b border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3">
                                     <div className="flex items-center gap-2">
                                         <span className="text-sm text-gray-600">Sayfa Başına:</span>
-                                        <select
-                                            className="border-gray-200 bg-white rounded-lg text-sm p-1.5 shadow-sm appearance-none pr-7"
-                                            style={{ backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`, backgroundPosition: `right 0.25rem center`, backgroundRepeat: `no-repeat`, backgroundSize: `1.5em 1.5em` }}
+                                        <CustomSelect
+                                            size="compact"
+                                            options={[5, 10, 25, 50, 100].map(s => ({ value: s, label: String(s) }))}
                                             value={pageSize}
-                                            onChange={e => { setPageSize(Number(e.target.value)); setPage(1); }}
-                                        >
-                                            {[5, 10, 25, 50, 100].map(s => <option key={s} value={s}>{s}</option>)}
-                                        </select>
+                                            onChange={v => { setPageSize(Number(v)); setPage(1); }}
+                                        />
                                     </div>
                                     <div className="flex items-center gap-4">
                                         <p className="text-sm text-gray-600">

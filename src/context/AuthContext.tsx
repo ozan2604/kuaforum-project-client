@@ -12,6 +12,7 @@ interface AuthContextType {
     register: (data: RegisterRequest) => Promise<void>;
     logout: () => void;
     updateAuthorization: (response: any) => void;
+    completeAuth: (response: any) => string;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -151,8 +152,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    const completeAuth = (response: any): string => {
+        const token = response.token || response.Token;
+        if (!token) throw new Error('Token missing in response');
+
+        setToken(token);
+        if (response.refreshToken) setRefreshToken(response.refreshToken);
+
+        const decoded: any = jwtDecode(token);
+        const role = decoded['http://schemas.microsoft.com/ws/2008/06/identity/claims/role'] || decoded['role'];
+
+        const userData: User = {
+            id: response.id,
+            userName: response.userName,
+            email: response.email,
+            firstName: response.firstName,
+            lastName: response.lastName,
+            role,
+            phoneNumber: response.phoneNumber,
+            profileImageUrl: response.profileImageUrl
+        };
+        setUser(userData);
+        setUserState(userData);
+        setIsAuthenticated(true);
+        return role;
+    };
+
     return (
-        <AuthContext.Provider value={{ user, isAuthenticated, isLoading, login, register, logout, updateAuthorization }}>
+        <AuthContext.Provider value={{ user, isAuthenticated, isLoading, login, register, logout, updateAuthorization, completeAuth }}>
             {children}
         </AuthContext.Provider>
     );

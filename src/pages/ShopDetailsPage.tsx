@@ -19,6 +19,7 @@ import { ReviewModal } from '../components/ReviewModal';
 import { appointmentService } from '../api/appointment.service';
 import { reviewService } from '../api/review.service';
 import type { Appointment } from '../types/appointment';
+import { CustomSelect } from '../components/CustomSelect';
 
 export const ShopDetailsPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -749,17 +750,15 @@ export const ShopDetailsPage: React.FC = () => {
                                                 <Users className="w-4 h-4 text-gray-500" />
                                                 Personel Çalışma Takvimi
                                             </h3>
-                                            <select
+                                            <CustomSelect
+                                                size="compact"
+                                                options={employeeSchedules.map(emp => ({
+                                                    value: emp.employeeId,
+                                                    label: `${emp.firstName} ${emp.lastName}${emp.title ? ` — ${emp.title}` : ''}`,
+                                                }))}
                                                 value={selectedScheduleEmployeeId}
-                                                onChange={e => setSelectedScheduleEmployeeId(e.target.value)}
-                                                className="text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-300"
-                                            >
-                                                {employeeSchedules.map(emp => (
-                                                    <option key={emp.employeeId} value={emp.employeeId}>
-                                                        {emp.firstName} {emp.lastName}{emp.title ? ` — ${emp.title}` : ''}
-                                                    </option>
-                                                ))}
-                                            </select>
+                                                onChange={v => setSelectedScheduleEmployeeId(String(v))}
+                                            />
                                         </div>
                                         {(() => {
                                             const emp = employeeSchedules.find(e => e.employeeId === selectedScheduleEmployeeId);

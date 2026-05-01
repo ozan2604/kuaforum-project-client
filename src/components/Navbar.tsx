@@ -31,11 +31,18 @@ export const Navbar: React.FC = () => {
 
                     {/* Left: Logo */}
                     <div className="flex items-center shrink-0 gap-2 sm:gap-4">
-                        <Link to="/" className="flex-shrink-0 flex items-center gap-2">
-                            <div className="bg-primary-600 p-1.5 rounded-lg">
-                                <Scissors className="h-6 w-6 text-white" />
+                        <Link to="/" className="flex-shrink-0 flex items-center gap-3 group">
+                            <div className="relative">
+                                <img 
+                                    src="/logo.png" 
+                                    alt="Kuğulum Logo" 
+                                    className="h-12 w-12 rounded-full object-cover border-2 border-gray-100 shadow-sm group-hover:border-primary-400 transition-all duration-300 aspect-square" 
+                                />
+                                <div className="absolute inset-0 rounded-full bg-primary-500/5 group-hover:bg-transparent transition-colors" />
                             </div>
-                            <span className="font-bold text-xl text-gray-900 hidden sm:block">Kuaförüm</span>
+                            <span className="font-black text-2xl tracking-tighter bg-gradient-to-br from-gray-900 via-gray-800 to-gray-500 bg-clip-text text-transparent hidden sm:block italic">
+                                Kuğulum
+                            </span>
                         </Link>
                     </div>
 

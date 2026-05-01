@@ -1,4 +1,5 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { CookieBanner } from './components/CookieBanner';
 
 import { MainLayout } from './layouts/MainLayout';
 import { SalonOwnerLayout } from './layouts/SalonOwnerLayout';
@@ -17,6 +18,8 @@ import { SalonApplicationPage } from './pages/SalonApplicationPage';
 import { CreateShopPage } from './pages/CreateShopPage';
 import { MyAppointmentsPage } from './pages/MyAppointmentsPage';
 import { UnauthorizedPage } from './pages/UnauthorizedPage';
+import { LegalPage } from './pages/legal/LegalPage';
+import { LEGAL_TEXTS } from './constants/legal';
 
 import { AdminDashboard } from './pages/admin/AdminDashboard';
 import { SalonApplicationsPage } from './pages/admin/SalonApplicationsPage';
@@ -35,6 +38,7 @@ import { EmployeeSchedulePage } from './pages/employee/EmployeeSchedulePage';
 function App() {
   return (
     <>
+      <CookieBanner />
       <Routes>
 
         {/* ── Genel Sayfalar ── */}
@@ -45,6 +49,9 @@ function App() {
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/account" element={<ProfilePage />} />
           <Route path="/unauthorized" element={<UnauthorizedPage />} />
+          <Route path="/kvkk" element={<LegalPage title="KVKK Aydınlatma Metni" content={LEGAL_TEXTS.KVKK_DETAILS} />} />
+          <Route path="/gizlilik-politikasi" element={<LegalPage title="Gizlilik Politikası" content={LEGAL_TEXTS.PRIVACY_POLICY} />} />
+          <Route path="/cerez-politikasi" element={<LegalPage title="Çerez Politikası" content={LEGAL_TEXTS.COOKIE_POLICY} />} />
         </Route>
 
         {/* ── Auth ── */}

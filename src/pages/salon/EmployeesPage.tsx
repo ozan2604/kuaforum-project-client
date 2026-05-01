@@ -11,16 +11,8 @@ import { Plus, Users, Phone, User as UserIcon, Scissors, Clock, Trash2, Edit, Ro
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { EmptyState } from '../../components/EmptyState';
 import type { UpdateEmployeeOwnerDto } from '../../types/employee';
-
-const DAYS = [
-    { index: 1, name: 'Pazartesi' },
-    { index: 2, name: 'Salı' },
-    { index: 3, name: 'Çarşamba' },
-    { index: 4, name: 'Perşembe' },
-    { index: 5, name: 'Cuma' },
-    { index: 6, name: 'Cumartesi' },
-    { index: 0, name: 'Pazar' }
-];
+import { ScheduleEditor, SCHEDULE_DAYS } from '../../components/ScheduleEditor';
+import type { DaySchedule } from '../../components/ScheduleEditor';
 
 export const EmployeesPage: React.FC = () => {
     const [employees, setEmployees] = useState<Employee[]>([]);
@@ -113,23 +105,18 @@ export const EmployeesPage: React.FC = () => {
     };
 
     const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
-    const [schedule, setSchedule] = useState<any[]>([]);
+    const [schedule, setSchedule] = useState<DaySchedule[]>([]);
 
     const handleOpenScheduleModal = async (employee: Employee) => {
         setSelectedEmployee(employee);
         setIsScheduleModalOpen(true);
         try {
             const data = await employeeService.getSchedule(employee.id);
-            const fullSchedule = DAYS.map((d) => {
+            const fullSchedule = SCHEDULE_DAYS.map((d) => {
                 const existing = data.find((s: any) => s.dayOfWeek === d.index);
-                return existing || {
-                    dayOfWeek: d.index,
-                    isWorking: false,
-                    startTime: '09:00',
-                    endTime: '18:00',
-                    breakStartTime: '',
-                    breakEndTime: ''
-                };
+                return existing
+                    ? { dayOfWeek: d.index, isWorking: existing.isWorking, startTime: existing.startTime ?? '09:00', endTime: existing.endTime ?? '18:00', breakStartTime: existing.breakStartTime ?? '', breakEndTime: existing.breakEndTime ?? '' }
+                    : { dayOfWeek: d.index, isWorking: false, startTime: '09:00', endTime: '18:00', breakStartTime: '', breakEndTime: '' };
             });
             setSchedule(fullSchedule);
         } catch (error) {
@@ -146,12 +133,6 @@ export const EmployeesPage: React.FC = () => {
         } catch (error) {
             toast.error('Çalışma saatleri güncellenemedi');
         }
-    };
-
-    const updateDaySchedule = (index: number, field: string, value: any) => {
-        const newSchedule = [...schedule];
-        newSchedule[index] = { ...newSchedule[index], [field]: value };
-        setSchedule(newSchedule);
     };
 
     const AddEmployeeForm = () => {
@@ -453,72 +434,14 @@ export const EmployeesPage: React.FC = () => {
             {/* Schedule Modal */}
             {isScheduleModalOpen && selectedEmployee && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-                    <div className="bg-white rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-                        <h2 className="text-xl font-bold mb-4">{selectedEmployee.firstName} İçin Çalışma Saatleri</h2>
-
-                        <div className="space-y-4">
-                            {schedule.map((day, index) => (
-                                <div key={index} className="flex flex-col md:flex-row items-center gap-4 p-3 border rounded-lg bg-gray-50">
-                                    <div className="w-32 flex items-center">
-                                        <input
-                                            type="checkbox"
-                                            checked={day.isWorking}
-                                            onChange={(e) => updateDaySchedule(index, 'isWorking', e.target.checked)}
-                                            className="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded mr-2"
-                                        />
-                                        <span className="font-medium text-gray-900">{DAYS[index].name}</span>
-                                    </div>
-
-                                    {day.isWorking && (
-                                        <div className="flex-1 grid grid-cols-2 md:grid-cols-4 gap-2">
-                                            <div>
-                                                <label className="text-xs text-gray-500 block mb-1">Başlangıç</label>
-                                                <input
-                                                    type="time"
-                                                    value={day.startTime}
-                                                    onChange={(e) => updateDaySchedule(index, 'startTime', e.target.value)}
-                                                    className="w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="text-xs text-gray-500 block mb-1">Bitiş</label>
-                                                <input
-                                                    type="time"
-                                                    value={day.endTime}
-                                                    onChange={(e) => updateDaySchedule(index, 'endTime', e.target.value)}
-                                                    className="w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="text-xs text-gray-500 block mb-1">Mola Başlangıç</label>
-                                                <input
-                                                    type="time"
-                                                    value={day.breakStartTime || ''}
-                                                    onChange={(e) => updateDaySchedule(index, 'breakStartTime', e.target.value)}
-                                                    className="w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                                                />
-                                            </div>
-                                            <div>
-                                                <label className="text-xs text-gray-500 block mb-1">Mola Bitiş</label>
-                                                <input
-                                                    type="time"
-                                                    value={day.breakEndTime || ''}
-                                                    onChange={(e) => updateDaySchedule(index, 'breakEndTime', e.target.value)}
-                                                    className="w-full text-sm border-gray-300 rounded-md shadow-sm focus:border-primary-500 focus:ring-primary-500"
-                                                />
-                                            </div>
-                                        </div>
-                                    )}
-                                    {!day.isWorking && (
-                                        <div className="flex-1 text-sm text-gray-400 italic">
-                                            Çalışmıyor
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
+                    <div className="bg-white rounded-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <div className="px-6 pt-6 pb-4">
+                            <h2 className="text-xl font-bold text-gray-900">{selectedEmployee.firstName} İçin Çalışma Saatleri</h2>
                         </div>
-
-                        <div className="flex justify-end space-x-2 mt-6 pt-4 border-t border-gray-100">
+                        <div className="border-t border-gray-100">
+                            <ScheduleEditor schedule={schedule} onChange={setSchedule} />
+                        </div>
+                        <div className="flex justify-end gap-2 px-6 py-4 border-t border-gray-100">
                             <Button variant="outline" onClick={() => setIsScheduleModalOpen(false)}>İptal</Button>
                             <Button onClick={handleSaveSchedule}>Kaydet</Button>
                         </div>

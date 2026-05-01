@@ -7,7 +7,7 @@ import { SearchableSelect } from '../components/SearchableSelect';
 import MapPicker from '../components/MapPicker';
 import { toast } from 'react-hot-toast';
 import { getApiError } from '../utils/storage';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { TargetGender, TargetGenderLabels, ShopCategory, ShopCategoryLabels } from '../types/shop';
 
 const TURKIYE_API = 'https://turkiyeapi.dev/api/v1';
@@ -55,6 +55,8 @@ export const SalonApplicationPage: React.FC = () => {
     // Selected IDs for API chain
     const [selectedProvinceId, setSelectedProvinceId] = useState<number | null>(null);
     const [selectedDistrictId, setSelectedDistrictId] = useState<number | null>(null);
+
+    const [kvkkAccepted, setKvkkAccepted] = useState(false);
 
     useEffect(() => {
         loadSalonApplication();
@@ -138,6 +140,7 @@ export const SalonApplicationPage: React.FC = () => {
             if (!form.street.trim()) { toast.error('Sokak/Cadde zorunludur.'); return false; }
             if (!form.buildingNumber.trim()) { toast.error('Bina numarası zorunludur.'); return false; }
             if (!form.address.trim()) { toast.error('Açık adres zorunludur.'); return false; }
+            if (!kvkkAccepted) { toast.error('Devam etmek için KVKK Aydınlatma Metnini onaylamalısınız.'); return false; }
         }
         return true;
     };
@@ -451,6 +454,23 @@ export const SalonApplicationPage: React.FC = () => {
                                         neighborhood={form.neighborhood}
                                         street={form.street}
                                     />
+
+                                    {/* KVKK Onay */}
+                                    <div className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl border border-gray-100">
+                                        <input
+                                            id="kvkk"
+                                            type="checkbox"
+                                            checked={kvkkAccepted}
+                                            onChange={(e) => setKvkkAccepted(e.target.checked)}
+                                            className="mt-1 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+                                        />
+                                        <label htmlFor="kvkk" className="text-sm text-gray-600 cursor-pointer select-none">
+                                            <Link to="/kvkk" className="text-indigo-600 hover:underline font-semibold" target="_blank">
+                                                KVKK Aydınlatma Metnini
+                                            </Link>
+                                            {' '}okudum ve kişisel verilerimin işlenmesini, başvurumun değerlendirilmesi amacıyla kabul ediyorum.
+                                        </label>
+                                    </div>
                                 </div>
                             )}
 
