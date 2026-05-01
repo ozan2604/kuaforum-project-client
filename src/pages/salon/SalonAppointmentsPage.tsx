@@ -250,7 +250,7 @@ export const SalonAppointmentsPage: React.FC = () => {
                             Otomatik Onayla & Tamamla
                         </p>
                         <p className="text-xs text-gray-500 mt-0.5">
-                            {isAutoProcessEnabled ? 'Aktif: Saati gelince işlenir' : 'Pasif: Manuel yönetim'}
+                            {isAutoProcessEnabled ? 'Aktif: Yeni randevular onaylanır, saati gelince tamamlanır' : 'Pasif: Manuel yönetim'}
                         </p>
                     </div>
                     <button
@@ -748,11 +748,11 @@ export const SalonAppointmentsPage: React.FC = () => {
                                                                         <Button size="sm" variant="danger" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Rejected, 'Randevuyu Reddet', 'Bu randevuyu reddetmek istediğinize emin misiniz?')}>Reddet</Button>
                                                                     </>
                                                                 )}
+                                                                {appointment.status === AppointmentStatus.Confirmed && new Date(appointment.startTime) <= new Date() && (
+                                                                    <Button size="sm" variant="outline" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Completed, 'Randevuyu Tamamla', 'Bu randevunun tamamlandığını onaylıyor musunuz?')}>Tamamlandı</Button>
+                                                                )}
                                                                 {appointment.status === AppointmentStatus.Confirmed && (
-                                                                    <>
-                                                                        <Button size="sm" variant="outline" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Completed, 'Randevuyu Tamamla', 'Bu randevunun tamamlandığını onaylıyor musunuz?')}>Tamamlandı</Button>
-                                                                        <Button size="sm" variant="danger" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Cancelled, 'Randevuyu İptal Et', 'Bu randevuyu iptal etmek istediğinize emin misiniz?')}>İptal</Button>
-                                                                    </>
+                                                                    <Button size="sm" variant="danger" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Cancelled, 'Randevuyu İptal Et', 'Bu randevuyu iptal etmek istediğinize emin misiniz?')}>İptal</Button>
                                                                 )}
                                                             </div>
                                                         </td>
@@ -842,11 +842,11 @@ export const SalonAppointmentsPage: React.FC = () => {
                                                             <Button size="sm" variant="danger" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Rejected, 'Randevuyu Reddet', 'Bu randevuyu reddetmek istediğinize emin misiniz?')}>Reddet</Button>
                                                         </>
                                                     )}
+                                                    {appointment.status === AppointmentStatus.Confirmed && new Date(appointment.startTime) <= new Date() && (
+                                                        <Button size="sm" variant="outline" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Completed, 'Randevuyu Tamamla', 'Bu randevunun tamamlandığını onaylıyor musunuz?')}>Tamamlandı</Button>
+                                                    )}
                                                     {appointment.status === AppointmentStatus.Confirmed && (
-                                                        <>
-                                                            <Button size="sm" variant="outline" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Completed, 'Randevuyu Tamamla', 'Bu randevunun tamamlandığını onaylıyor musunuz?')}>Tamamlandı</Button>
-                                                            <Button size="sm" variant="danger" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Cancelled, 'Randevuyu İptal Et', 'Bu randevuyu iptal etmek istediğinize emin misiniz?')}>İptal</Button>
-                                                        </>
+                                                        <Button size="sm" variant="danger" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Cancelled, 'Randevuyu İptal Et', 'Bu randevuyu iptal etmek istediğinize emin misiniz?')}>İptal</Button>
                                                     )}
                                                 </div>
                                             </div>

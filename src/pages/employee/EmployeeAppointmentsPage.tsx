@@ -658,7 +658,7 @@ export const EmployeeAppointmentsPage: React.FC = () => {
                                                                         <Button size="sm" variant="danger" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Rejected, 'Randevuyu Reddet', 'Bu randevuyu reddetmek istediğinize emin misiniz?')}>Reddet</Button>
                                                                     </>
                                                                 )}
-                                                                {appointment.status === AppointmentStatus.Confirmed && (
+                                                                {appointment.status === AppointmentStatus.Confirmed && new Date(appointment.startTime) <= new Date() && (
                                                                     <Button size="sm" variant="outline" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Completed, 'Randevuyu Tamamla', 'Bu randevunun tamamlandığını onaylıyor musunuz?')}>Tamamlandı</Button>
                                                                 )}
                                                             </div>
@@ -748,7 +748,7 @@ export const EmployeeAppointmentsPage: React.FC = () => {
                                                             <Button size="sm" variant="danger" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Rejected, 'Randevuyu Reddet', 'Bu randevuyu reddetmek istediğinize emin misiniz?')}>Reddet</Button>
                                                         </>
                                                     )}
-                                                    {appointment.status === AppointmentStatus.Confirmed && (
+                                                    {appointment.status === AppointmentStatus.Confirmed && new Date(appointment.startTime) <= new Date() && (
                                                         <Button size="sm" variant="outline" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Completed, 'Randevuyu Tamamla', 'Bu randevunun tamamlandığını onaylıyor musunuz?')}>Tamamlandı</Button>
                                                     )}
                                                 </div>

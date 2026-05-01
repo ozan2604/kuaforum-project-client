@@ -144,7 +144,7 @@ export const MyAppointmentsPage: React.FC = () => {
                             <div className="flex flex-col items-end gap-3">
                                 {getStatusBadge(appointment.status)}
 
-                                {(appointment.status === 0 || appointment.status === 1) && (
+                                {(appointment.status === 0 || appointment.status === 1) && (new Date(appointment.startTime).getTime() - Date.now()) / 3600000 >= 2 && (
                                     <button
                                         className="text-sm text-red-600 hover:text-red-700 font-medium"
                                         onClick={() => handleCancelAppointment(appointment)}
