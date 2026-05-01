@@ -7,6 +7,7 @@ export interface AuthResponse {
     phoneNumber: string; // Added phoneNumber
     profileImageUrl?: string;
     token: string;
+    refreshToken: string;
 }
 
 export interface LoginRequest {

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import type { LoginRequest, RegisterRequest, User } from '../types/auth';
 import { authService } from '../api/auth.service';
-import { getToken, getUser, setToken, setUser, clearAuth } from '../utils/storage';
+import { getToken, getUser, setToken, setUser, setRefreshToken, clearAuth } from '../utils/storage';
 import { jwtDecode } from 'jwt-decode';
 
 interface AuthContextType {
@@ -53,6 +53,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 throw new Error('Token missing in response');
             }
             setToken(token);
+            if (response.refreshToken) setRefreshToken(response.refreshToken);
 
             // Decode token to get roles
             const decoded: any = jwtDecode(token);
@@ -88,6 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 throw new Error('Token missing in response');
             }
             setToken(token);
+            if (response.refreshToken) setRefreshToken(response.refreshToken);
 
             // Decode token to get roles
             const decoded: any = jwtDecode(token);
