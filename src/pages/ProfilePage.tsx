@@ -683,7 +683,7 @@ const AppCard: React.FC<{ app: AppointmentDto; badge: React.ReactNode; onReview?
                     <p className="font-semibold text-sm text-gray-900 truncate">{app.shopName}</p>
                     <div className="flex flex-wrap gap-2 mt-0.5 text-xs text-gray-400">
                         <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{format(new Date(app.startTime), 'd MMM yyyy', { locale: tr })}</span>
-                        <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{format(new Date(app.startTime), 'HH:mm')}</span>
+                        <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{format(new Date(app.startTime), 'HH:mm')} - {format(new Date(app.endTime), 'HH:mm')}</span>
                     </div>
                 </div>
                 <div className="flex items-center gap-2 flex-shrink-0">

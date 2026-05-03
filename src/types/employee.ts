@@ -80,3 +80,11 @@ export interface UpdateEmployeeProfileDto {
     lastName: string;
     title: string;
 }
+
+export interface EmployeeLeaveDate {
+    id: string;
+    shopEmployeeId: string;
+    employeeName: string;
+    leaveDate: string; // "yyyy-MM-dd"
+    reason?: string;
+}

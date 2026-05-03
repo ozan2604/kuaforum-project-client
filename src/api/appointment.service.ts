@@ -39,8 +39,8 @@ export const appointmentService = {
     },
 
     // Update status (Salon Owner)
-    updateStatus: async (id: string, status: AppointmentStatus): Promise<void> => {
-        const payload: UpdateAppointmentStatusDto = { status };
+    updateStatus: async (id: string, status: AppointmentStatus, reason?: string): Promise<void> => {
+        const payload: UpdateAppointmentStatusDto = { status, reason };
         await api.put(`/Appointment/${id}/status`, payload);
     },
 
@@ -85,9 +85,18 @@ export const appointmentService = {
 
     cancelAppointment: async (id: string, reason?: string): Promise<void> => {
         let url = `/Appointment/${id}`;
-        if (reason) {
-            url += `?reason=${encodeURIComponent(reason)}`;
-        }
+        if (reason) url += `?reason=${encodeURIComponent(reason)}`;
         await api.delete(url);
-    }
+    },
+
+    cancelGroup: async (groupId: string, reason?: string): Promise<void> => {
+        let url = `/Appointment/group/${groupId}`;
+        if (reason) url += `?reason=${encodeURIComponent(reason)}`;
+        await api.delete(url);
+    },
+
+    updateGroupStatus: async (groupId: string, status: AppointmentStatus, reason?: string): Promise<void> => {
+        const payload: UpdateAppointmentStatusDto = { status, reason };
+        await api.put(`/Appointment/group/${groupId}/status`, payload);
+    },
 };

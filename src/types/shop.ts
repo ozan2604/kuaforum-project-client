@@ -62,6 +62,9 @@ export interface Shop {
     address: string;
     city: string;
     district: string;
+    neighborhood?: string;
+    street?: string;
+    buildingNumber?: string;
     phoneNumber: string;
     rating: number;
     isOpen: boolean;
@@ -84,6 +87,7 @@ export interface Shop {
     bookingDaysAhead?: number;
     openTime?: string;
     closeTime?: string;
+    weeklyOffDays?: number[];
     closureDates?: ShopClosureDateDto[];
 }
 
@@ -109,4 +113,5 @@ export interface CreateShopDto {
     openTime?: string;
     closeTime?: string;
     bookingDaysAhead?: number;
+    weeklyOffDays?: number[];
 }

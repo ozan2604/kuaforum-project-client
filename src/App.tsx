@@ -1,4 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster, ToastBar, toast } from 'react-hot-toast';
+import { X } from 'lucide-react';
 import { CookieBanner } from './components/CookieBanner';
 
 import { MainLayout } from './layouts/MainLayout';
@@ -38,6 +40,29 @@ import { EmployeeSchedulePage } from './pages/employee/EmployeeSchedulePage';
 function App() {
   return (
     <>
+      <Toaster
+        position="top-right"
+        toastOptions={{ duration: 7500 }}
+        containerStyle={{ top: 20, right: 20 }}
+      >
+        {(t) => (
+          <ToastBar toast={t} style={{ padding: '14px 16px', maxWidth: 380, fontSize: '0.9rem' }}>
+            {({ icon, message }) => (
+              <div className="flex items-center gap-3 w-full">
+                <span className="shrink-0">{icon}</span>
+                <span className="flex-1 leading-snug">{message}</span>
+                <button
+                  onClick={() => toast.dismiss(t.id)}
+                  className="shrink-0 ml-1 text-gray-400 hover:text-gray-700 transition-colors self-center"
+                  aria-label="Kapat"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            )}
+          </ToastBar>
+        )}
+      </Toaster>
       <CookieBanner />
       <Routes>
 

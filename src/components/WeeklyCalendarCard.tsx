@@ -45,7 +45,6 @@ const LEGEND = [
     { label: 'Onay Bekliyor', dot: 'bg-amber-400' },
     { label: 'Onaylandı',     dot: 'bg-sky-400' },
     { label: 'Tamamlandı',    dot: 'bg-emerald-400' },
-    { label: 'İptal / Red',   dot: 'bg-red-400' },
 ];
 
 // ─── Component ──────────────────────────────────────────────────────────────
@@ -55,6 +54,8 @@ interface WeeklyCalendarCardProps {
     /** Salon view shows employee name inside each block */
     showEmployeeName?: boolean;
     defaultOpen?: boolean;
+    /** How many days to show (default 7) */
+    daysAhead?: number;
 }
 
 export const WeeklyCalendarCard: React.FC<WeeklyCalendarCardProps> = ({
@@ -62,16 +63,26 @@ export const WeeklyCalendarCard: React.FC<WeeklyCalendarCardProps> = ({
     loading,
     showEmployeeName = false,
     defaultOpen = false,
+    daysAhead = 7,
 }) => {
     const [open, setOpen]   = useState(defaultOpen);
     const [selDay, setDay]  = useState(0);
 
-    const weekDays = useMemo(() => Array.from({ length: 7 }, (_, i) => addDays(new Date(), i)), []);
+    const weekDays = useMemo(() => Array.from({ length: daysAhead }, (_, i) => addDays(new Date(), i)), [daysAhead]);
+
+    // İptal ve reddedilen randevuları takvimde göstermiyoruz — gereksiz yer kaplarlar
+    const activeAppointments = useMemo(() =>
+        appointments.filter(a =>
+            a.status !== AppointmentStatus.Cancelled &&
+            a.status !== AppointmentStatus.Rejected
+        ),
+        [appointments]
+    );
 
     const dayAppts = useMemo(() => {
         const str = format(weekDays[selDay], 'yyyy-MM-dd');
-        return appointments.filter(a => format(new Date(a.startTime), 'yyyy-MM-dd') === str);
-    }, [appointments, weekDays, selDay]);
+        return activeAppointments.filter(a => format(new Date(a.startTime), 'yyyy-MM-dd') === str);
+    }, [activeAppointments, weekDays, selDay]);
 
     const { calStart, calEnd } = useMemo(() => {
         if (!dayAppts.length) return { calStart: 8 * 4, calEnd: 18 * 4 };
@@ -86,10 +97,10 @@ export const WeeklyCalendarCard: React.FC<WeeklyCalendarCardProps> = ({
     const layoutMap  = useMemo(() => buildLayout(dayAppts), [dayAppts]);
     const slotCount  = calEnd - calStart;
 
-    const pending  = dayAppts.filter(a => a.status === AppointmentStatus.Pending).length;
-    const dur      = dayAppts.reduce((s, a) => s + a.duration, 0);
-    const rev      = dayAppts.filter(a => a.status === AppointmentStatus.Completed).reduce((s, a) => s + a.price, 0);
-    const wkPending = appointments.filter(a => a.status === AppointmentStatus.Pending).length;
+    const pending   = dayAppts.filter(a => a.status === AppointmentStatus.Pending).length;
+    const dur       = dayAppts.reduce((s, a) => s + a.duration, 0);
+    const rev       = dayAppts.filter(a => a.status === AppointmentStatus.Completed).reduce((s, a) => s + a.price, 0);
+    const wkPending = activeAppointments.filter(a => a.status === AppointmentStatus.Pending).length;
 
     return (
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
@@ -105,9 +116,9 @@ export const WeeklyCalendarCard: React.FC<WeeklyCalendarCardProps> = ({
                         <Calendar className="w-5 h-5" />
                     </div>
                     <div>
-                        <p className="text-base font-bold text-gray-900">Haftalık Takvim</p>
+                        <p className="text-base font-bold text-gray-900">{daysAhead === 7 ? 'Haftalık Takvim' : `${daysAhead} Günlük Takvim`}</p>
                         <p className="text-xs text-gray-400 mt-0.5">
-                            {format(weekDays[0], 'd MMM', { locale: tr })} – {format(weekDays[6], 'd MMM yyyy', { locale: tr })}
+                            {format(weekDays[0], 'd MMM', { locale: tr })} – {format(weekDays[weekDays.length - 1], 'd MMM yyyy', { locale: tr })}
                         </p>
                     </div>
                 </div>
@@ -161,8 +172,8 @@ export const WeeklyCalendarCard: React.FC<WeeklyCalendarCardProps> = ({
                     <div className="flex overflow-x-auto border-b border-gray-100 bg-white">
                         {weekDays.map((wd, i) => {
                             const dayStr    = format(wd, 'yyyy-MM-dd');
-                            const count     = appointments.filter(a => format(new Date(a.startTime), 'yyyy-MM-dd') === dayStr).length;
-                            const hasPend   = appointments.some(a => format(new Date(a.startTime), 'yyyy-MM-dd') === dayStr && a.status === AppointmentStatus.Pending);
+                            const count     = activeAppointments.filter(a => format(new Date(a.startTime), 'yyyy-MM-dd') === dayStr).length;
+                            const hasPend   = activeAppointments.some(a => format(new Date(a.startTime), 'yyyy-MM-dd') === dayStr && a.status === AppointmentStatus.Pending);
                             const isSel     = selDay === i;
                             const isToday   = i === 0;
 

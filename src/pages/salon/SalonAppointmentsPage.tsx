@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '../../components/Button';
 import { appointmentService } from '../../api/appointment.service';
@@ -11,120 +11,192 @@ import { toast } from 'react-hot-toast';
 import { getApiError } from '../../utils/storage';
 import {
     Calendar, Clock, User, CheckCircle, XCircle, AlertCircle,
-    Scissors, ChevronLeft, ChevronRight, Zap, ChevronDown, ChevronUp, Filter
+    Scissors, ChevronLeft, ChevronRight, Zap, ChevronDown, Filter, Phone, MessageSquare
 } from 'lucide-react';
 import { format, addDays } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { CustomSelect } from '../../components/CustomSelect';
 import { WeeklyCalendarCard } from '../../components/WeeklyCalendarCard';
 
+type MainTab = 'calendar' | 'management';
+
 export const SalonAppointmentsPage: React.FC = () => {
+    // ── Shop / shared ──────────────────────────────────────────────────────
+    const [shopId, setShopId] = useState<string | null>(null);
+    const [isAutoProcessEnabled, setIsAutoProcessEnabled] = useState(false);
+    const [bookingDaysAhead, setBookingDaysAhead] = useState(7);
+    const [employees, setEmployees] = useState<Employee[]>([]);
+    const [services, setServices] = useState<{ id: string; name: string }[]>([]);
+
+    // ── Main tab ───────────────────────────────────────────────────────────
+    const [activeMainTab, setActiveMainTab] = useState<MainTab>('calendar');
+    const [managementEnabled, setManagementEnabled] = useState(false);
+
+    // ── Calendar tab ───────────────────────────────────────────────────────
+    const [weeklyAppointments, setWeeklyAppointments] = useState<Appointment[]>([]);
+    const [weeklyLoading, setWeeklyLoading] = useState(false);
+    const [calendarEmployeeFilter, setCalendarEmployeeFilter] = useState('');
+
+    // ── Management tab ─────────────────────────────────────────────────────
     const [appointments, setAppointments] = useState<Appointment[]>([]);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [statusFilter, setStatusFilter] = useState<AppointmentStatus | undefined>(undefined);
     const [searchTerm, setSearchTerm] = useState('');
     const [filterDate, setFilterDate] = useState('');
     const [filterEmployeeId, setFilterEmployeeId] = useState('');
     const [filterServiceId, setFilterServiceId] = useState('');
-    const [employees, setEmployees] = useState<Employee[]>([]);
-    const [services, setServices] = useState<{ id: string; name: string }[]>([]);
-
     const [page, setPage] = useState(1);
     const [pageSize, setPageSize] = useState(10);
     const [totalCount, setTotalCount] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
-    const [isAutoProcessEnabled, setIsAutoProcessEnabled] = useState(false);
-    const [shopId, setShopId] = useState<string | null>(null);
-    const [confirmAction, setConfirmAction] = useState<{ id: string; status: AppointmentStatus; label: string; actionText: string } | null>(null);
-
     const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
-    const [weeklyAppointments, setWeeklyAppointments] = useState<Appointment[]>([]);
-    const [weeklyLoading, setWeeklyLoading] = useState(false);
+    const [confirmAction, setConfirmAction] = useState<{
+        appointmentId?: string;
+        groupId?: string;
+        isGroup: boolean;
+        status: AppointmentStatus;
+        label: string;
+        actionText: string;
+        reason: string;
+        firstStartTime?: string;
+    } | null>(null);
 
-    const [managementOpen, setManagementOpen] = useState(false);
-
-    const loadData = async () => {
-        setLoading(true);
-        try {
-            const shop = await shopService.getMyShop();
-            if (!shop) { toast.error('Salon bilgileri bulunamadı'); return; }
-            setShopId(shop.id);
-            setIsAutoProcessEnabled(shop.isAutoProcessEnabled || false);
-            const result = await appointmentService.getShopAppointments(
-                shop.id, page, pageSize, statusFilter, searchTerm,
-                filterDate || undefined, filterEmployeeId || undefined, filterServiceId || undefined
-            );
-            setAppointments(result.items);
-            setTotalCount(result.totalCount);
-            setTotalPages(result.totalPages);
-        } catch (err) {
-            toast.error(getApiError(err, 'Randevular yüklenemedi'));
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => { loadData(); }, [page, pageSize, statusFilter, searchTerm, filterDate, filterEmployeeId, filterServiceId]);
-
+    // ── Load shop info + employees + services on mount ─────────────────────
     useEffect(() => {
         (async () => {
             try {
-                const emps = await employeeService.getEmployees();
+                const [shop, emps, cats] = await Promise.all([
+                    shopService.getMyShop(),
+                    employeeService.getEmployees(),
+                    serviceManagementService.getShopServices(),
+                ]);
+                if (!shop) { toast.error('Salon bilgileri bulunamadı'); return; }
+                setShopId(shop.id);
+                setIsAutoProcessEnabled(shop.isAutoProcessEnabled || false);
+                setBookingDaysAhead(shop.bookingDaysAhead ?? 7);
                 setEmployees(emps);
-                const cats = await serviceManagementService.getShopServices();
                 setServices(cats.flatMap(c => c.services || []).map(s => ({ id: s.id, name: s.name })));
-            } catch { /* silent */ }
+            } catch (err) {
+                toast.error(getApiError(err, 'Sayfa yüklenemedi'));
+            }
         })();
     }, []);
 
-    const loadWeeklyAppointments = async (id: string) => {
+    // ── Calendar: load N days of appointments in parallel ─────────────────
+    const loadCalendarAppointments = async (id: string, days: number) => {
         setWeeklyLoading(true);
         try {
             const today = new Date();
             const results = await Promise.all(
-                Array.from({ length: 7 }, (_, i) =>
+                Array.from({ length: days }, (_, i) =>
                     appointmentService.getShopAppointments(id, 1, 200, undefined, undefined, format(addDays(today, i), 'yyyy-MM-dd'))
                 )
             );
             setWeeklyAppointments(results.flatMap(r => r.items));
-        } catch { /* non-critical */ }
+        } catch { toast.error('Takvim verileri yüklenemedi, lütfen sayfayı yenileyin.'); }
         finally { setWeeklyLoading(false); }
     };
 
-    useEffect(() => { if (shopId) loadWeeklyAppointments(shopId); }, [shopId]);
+    useEffect(() => {
+        if (shopId) loadCalendarAppointments(shopId, bookingDaysAhead);
+    }, [shopId, bookingDaysAhead]);
 
+    // Client-side employee filter for calendar (no extra request needed)
+    const calendarAppts = useMemo(() =>
+        calendarEmployeeFilter
+            ? weeklyAppointments.filter(a => a.shopEmployeeId === calendarEmployeeFilter)
+            : weeklyAppointments,
+        [weeklyAppointments, calendarEmployeeFilter]
+    );
+
+    // ── Management: lazy-load, only after first tab switch ─────────────────
+    useEffect(() => {
+        if (!managementEnabled || !shopId) return;
+        setLoading(true);
+        appointmentService.getShopAppointments(
+            shopId, page, pageSize, statusFilter, searchTerm,
+            filterDate || undefined, filterEmployeeId || undefined, filterServiceId || undefined
+        ).then(result => {
+            setAppointments(result.items);
+            setTotalCount(result.totalCount);
+            setTotalPages(result.totalPages);
+        }).catch(err => {
+            toast.error(getApiError(err, 'Randevular yüklenemedi'));
+        }).finally(() => {
+            setLoading(false);
+        });
+    }, [managementEnabled, shopId, page, pageSize, statusFilter, searchTerm, filterDate, filterEmployeeId, filterServiceId]);
+
+    const handleMainTabChange = (tab: MainTab) => {
+        setActiveMainTab(tab);
+        if (tab === 'management') setManagementEnabled(true);
+    };
+
+    // ── Auto process toggle ────────────────────────────────────────────────
     const handleAutoProcessToggle = async () => {
         if (!shopId) return;
         const newState = !isAutoProcessEnabled;
         try {
             await shopService.updateAutoProcess(shopId, newState);
             setIsAutoProcessEnabled(newState);
-            toast.success(`Otomatik işlemler ${newState ? 'aktif' : 'pasif'} hale getirildi.`);
-        } catch (err) { toast.error(getApiError(err, 'Ayarlar güncellenemedi.')); }
+            toast.success(newState
+                ? 'Otomatik onay & tamamlama aktif edildi. Yeni randevular otomatik onaylanacak.'
+                : 'Otomatik işlemler devre dışı bırakıldı. Randevular manuel yönetilecek.'
+            );
+        } catch (err) { toast.error(getApiError(err, 'Ayar kaydedilemedi, lütfen tekrar deneyin.')); }
     };
 
-    const requestStatusUpdate = (id: string, status: AppointmentStatus, label: string, actionText: string) =>
-        setConfirmAction({ id, status, label, actionText });
+    // ── Status update ──────────────────────────────────────────────────────
+    const requestSingleUpdate = (id: string, status: AppointmentStatus, label: string, actionText: string, firstStartTime?: string) =>
+        setConfirmAction({ appointmentId: id, isGroup: false, status, label, actionText, reason: '', firstStartTime });
 
-    const handleStatusUpdate = async (id: string, status: AppointmentStatus) => {
+    const requestGroupUpdate = (groupId: string, status: AppointmentStatus, label: string, actionText: string, firstStartTime?: string) =>
+        setConfirmAction({ groupId, isGroup: true, status, label, actionText, reason: '', firstStartTime });
+
+    const refreshManagement = async () => {
+        if (!shopId) return;
+        loadCalendarAppointments(shopId, bookingDaysAhead);
+        if (managementEnabled) {
+            const result = await appointmentService.getShopAppointments(
+                shopId, page, pageSize, statusFilter, searchTerm,
+                filterDate || undefined, filterEmployeeId || undefined, filterServiceId || undefined
+            );
+            setAppointments(result.items);
+            setTotalCount(result.totalCount);
+            setTotalPages(result.totalPages);
+        }
+    };
+
+    const handleStatusUpdate = async () => {
+        if (!confirmAction) return;
+        const needsReason = confirmAction.status === AppointmentStatus.Rejected || confirmAction.status === AppointmentStatus.Cancelled;
+        if (needsReason && !confirmAction.reason.trim()) {
+            toast.error(confirmAction.status === AppointmentStatus.Rejected
+                ? 'Red sebebi zorunludur — müşteri bu bilgiyi görecek.'
+                : 'İptal sebebi zorunludur — müşteri bu bilgiyi görecek.'
+            );
+            return;
+        }
+        const reason = needsReason ? confirmAction.reason.trim() || undefined : undefined;
+        const successMessages: Partial<Record<AppointmentStatus, string>> = {
+            [AppointmentStatus.Confirmed]:  confirmAction.isGroup ? 'Tüm randevular onaylandı.' : 'Randevu onaylandı.',
+            [AppointmentStatus.Completed]:  confirmAction.isGroup ? 'Tüm randevular tamamlandı olarak işaretlendi.' : 'Randevu tamamlandı olarak işaretlendi.',
+            [AppointmentStatus.Cancelled]:  confirmAction.isGroup ? 'Tüm randevular iptal edildi.' : 'Randevu iptal edildi.',
+            [AppointmentStatus.Rejected]:   confirmAction.isGroup ? 'Tüm randevular reddedildi.' : 'Randevu reddedildi.',
+        };
         try {
-            await appointmentService.updateStatus(id, status);
-            toast.success('Randevu durumu güncellendi');
-            const shop = await shopService.getMyShop();
-            if (shop) {
-                const result = await appointmentService.getShopAppointments(
-                    shop.id, page, pageSize, statusFilter, searchTerm,
-                    filterDate || undefined, filterEmployeeId || undefined, filterServiceId || undefined
-                );
-                setAppointments(result.items);
-                setTotalCount(result.totalCount);
-                setTotalPages(result.totalPages);
-                loadWeeklyAppointments(shop.id);
+            if (confirmAction.isGroup && confirmAction.groupId) {
+                await appointmentService.updateGroupStatus(confirmAction.groupId, confirmAction.status, reason);
+            } else if (confirmAction.appointmentId) {
+                await appointmentService.updateStatus(confirmAction.appointmentId, confirmAction.status, reason);
             }
-        } catch (err) { toast.error(getApiError(err, 'Durum güncellenemedi')); }
+            toast.success(successMessages[confirmAction.status] ?? 'Randevu güncellendi.');
+            await refreshManagement();
+        } catch (err) { toast.error(getApiError(err, 'İşlem gerçekleştirilemedi, lütfen tekrar deneyin.')); }
         finally { setConfirmAction(null); }
     };
 
+    // ── Status badge ───────────────────────────────────────────────────────
     const getStatusBadge = (status: AppointmentStatus) => {
         switch (status) {
             case AppointmentStatus.Pending:   return <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-semibold inline-flex items-center gap-1 shadow-sm"><AlertCircle className="w-3.5 h-3.5" /> Onay Bekliyor</span>;
@@ -136,7 +208,7 @@ export const SalonAppointmentsPage: React.FC = () => {
         }
     };
 
-    const tabs = [
+    const statusTabs = [
         { label: 'Tümü', value: undefined },
         { label: 'Onay Bekliyor', value: AppointmentStatus.Pending },
         { label: 'Onaylandı', value: AppointmentStatus.Confirmed },
@@ -145,6 +217,12 @@ export const SalonAppointmentsPage: React.FC = () => {
         { label: 'Reddedildi', value: AppointmentStatus.Rejected },
     ];
 
+    const employeeOptions = [
+        { value: '', label: 'Tüm Salon' },
+        ...employees.map(emp => ({ value: emp.id, label: `${emp.firstName} ${emp.lastName}` })),
+    ];
+
+    // ── Render ─────────────────────────────────────────────────────────────
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-4">
 
@@ -179,377 +257,409 @@ export const SalonAppointmentsPage: React.FC = () => {
                 </div>
             </div>
 
-            {/* ── Haftalık Takvim ── */}
-            <WeeklyCalendarCard
-                appointments={weeklyAppointments}
-                loading={weeklyLoading}
-                showEmployeeName
-            />
-
-            {/* ── Randevu Yönetimi ── */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-200">
-                <div
-                    onClick={() => setManagementOpen(v => !v)}
-                    className="w-full p-5 sm:p-6 flex justify-between items-center hover:bg-gray-50 cursor-pointer transition-colors relative"
-                >
-                    <div className="flex items-center gap-3 pr-10">
-                        <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
-                            <Filter className="w-6 h-6" />
-                        </div>
-                        <div>
-                            <h2 className="text-lg font-bold text-gray-900">Randevu Yönetimi</h2>
-                            <p className="text-xs text-gray-500 mt-0.5">Filtrele, ara ve randevu durumlarını güncelle</p>
-                        </div>
-                    </div>
-
-                    {!managementOpen && !loading && totalCount > 0 && (
-                        <div className="hidden sm:flex items-center gap-2 mr-10">
-                            <span className="text-xs bg-indigo-50 text-indigo-700 font-semibold px-2.5 py-1 rounded-full border border-indigo-100">
-                                {totalCount} kayıt
+            {/* ── Main Tab Bar ── */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
+                <div className="flex">
+                    <button
+                        onClick={() => handleMainTabChange('calendar')}
+                        className={`flex items-center gap-2 px-6 py-4 text-sm font-semibold border-b-2 transition-colors rounded-tl-2xl ${
+                            activeMainTab === 'calendar'
+                                ? 'border-primary-600 text-primary-700 bg-primary-50/40'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                        }`}
+                    >
+                        <Calendar className="w-4 h-4" />
+                        Randevu Takvimi
+                    </button>
+                    <button
+                        onClick={() => handleMainTabChange('management')}
+                        className={`flex items-center gap-2 px-6 py-4 text-sm font-semibold border-b-2 transition-colors ${
+                            activeMainTab === 'management'
+                                ? 'border-primary-600 text-primary-700 bg-primary-50/40'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                        }`}
+                    >
+                        <Filter className="w-4 h-4" />
+                        Randevu Yönetimi
+                        {managementEnabled && !loading && totalCount > 0 && (
+                            <span className="text-[10px] bg-indigo-100 text-indigo-700 font-bold px-1.5 py-0.5 rounded-full">
+                                {totalCount}
                             </span>
-                        </div>
-                    )}
-
-                    <div className="absolute right-5 sm:right-6 p-1 bg-gray-50 rounded-full text-gray-400">
-                        {managementOpen ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                    </div>
+                        )}
+                    </button>
                 </div>
+            </div>
 
-                {managementOpen && (
-                    <div className="border-t border-gray-50 animate-in fade-in slide-in-from-top-4 duration-300">
+            {/* ── Calendar Tab ── */}
+            {activeMainTab === 'calendar' && (
+                <div className="space-y-4">
+                    {/* Employee filter */}
+                    <div className="bg-white rounded-2xl shadow-sm border border-gray-100 px-5 py-4 flex items-end gap-4">
+                        <div className="w-64">
+                            <CustomSelect
+                                label="Personel"
+                                options={employeeOptions}
+                                value={calendarEmployeeFilter}
+                                onChange={v => setCalendarEmployeeFilter(String(v))}
+                            />
+                        </div>
+                        {calendarEmployeeFilter && (
+                            <button
+                                onClick={() => setCalendarEmployeeFilter('')}
+                                className="mb-0.5 text-xs text-gray-400 hover:text-gray-600 underline underline-offset-2"
+                            >
+                                Tüm salonu göster
+                            </button>
+                        )}
+                        <div className="ml-auto text-xs text-gray-400">
+                            {bookingDaysAhead} günlük takvim gösteriliyor
+                        </div>
+                    </div>
 
-                        {/* Filters */}
-                        <div className="px-5 sm:px-6 py-4">
-                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">Müşteri Ara</label>
-                                    <input
-                                        type="text"
-                                        placeholder="İsim ile ara..."
-                                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 text-sm bg-gray-50"
-                                        value={searchTerm}
-                                        onChange={e => { setSearchTerm(e.target.value); setPage(1); }}
-                                    />
-                                </div>
-                                <div>
-                                    <label className="block text-xs font-medium text-gray-700 mb-1">Tarih</label>
-                                    <input
-                                        type="date"
-                                        className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 text-sm bg-gray-50 appearance-none"
-                                        value={filterDate}
-                                        onChange={e => { setFilterDate(e.target.value); setPage(1); }}
-                                    />
-                                </div>
-                                <div>
-                                    <CustomSelect
-                                        label="Personel"
-                                        options={[{ value: '', label: 'Tümü' }, ...employees.map(emp => ({ value: emp.id, label: `${emp.firstName} ${emp.lastName}` }))]}
-                                        value={filterEmployeeId}
-                                        onChange={v => { setFilterEmployeeId(String(v)); setPage(1); }}
-                                    />
-                                </div>
-                                <div>
-                                    <CustomSelect
-                                        label="Hizmet"
-                                        options={[{ value: '', label: 'Tümü' }, ...services.map(srv => ({ value: srv.id, label: srv.name }))]}
-                                        value={filterServiceId}
-                                        onChange={v => { setFilterServiceId(String(v)); setPage(1); }}
-                                    />
-                                </div>
+                    {/* Calendar card */}
+                    <WeeklyCalendarCard
+                        appointments={calendarAppts}
+                        loading={weeklyLoading}
+                        showEmployeeName={!calendarEmployeeFilter}
+                        defaultOpen
+                        daysAhead={bookingDaysAhead}
+                    />
+                </div>
+            )}
+
+            {/* ── Management Tab ── */}
+            {activeMainTab === 'management' && (
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+
+                    {/* Filters */}
+                    <div className="px-5 sm:px-6 py-4 border-b border-gray-100">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                            <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Müşteri Ara</label>
+                                <input
+                                    type="text"
+                                    placeholder="İsim ile ara..."
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 text-sm bg-gray-50"
+                                    value={searchTerm}
+                                    onChange={e => { setSearchTerm(e.target.value); setPage(1); }}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-700 mb-1">Tarih</label>
+                                <input
+                                    type="date"
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 text-sm bg-gray-50 appearance-none"
+                                    value={filterDate}
+                                    onChange={e => { setFilterDate(e.target.value); setPage(1); }}
+                                />
+                            </div>
+                            <div>
+                                <CustomSelect
+                                    label="Personel"
+                                    options={[{ value: '', label: 'Tümü' }, ...employees.map(emp => ({ value: emp.id, label: `${emp.firstName} ${emp.lastName}` }))]}
+                                    value={filterEmployeeId}
+                                    onChange={v => { setFilterEmployeeId(String(v)); setPage(1); }}
+                                />
+                            </div>
+                            <div>
+                                <CustomSelect
+                                    label="Hizmet"
+                                    options={[{ value: '', label: 'Tümü' }, ...services.map(srv => ({ value: srv.id, label: srv.name }))]}
+                                    value={filterServiceId}
+                                    onChange={v => { setFilterServiceId(String(v)); setPage(1); }}
+                                />
                             </div>
                         </div>
+                    </div>
 
-                        {/* Status Tabs */}
-                        <div className="flex overflow-x-auto border-y border-gray-100 bg-gray-50/60">
-                            {tabs.map(tab => (
-                                <button
-                                    key={tab.label}
-                                    onClick={() => { setStatusFilter(tab.value); setPage(1); }}
-                                    className={`px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors duration-200 ${
-                                        statusFilter === tab.value
-                                            ? 'border-indigo-500 text-indigo-700 bg-white'
-                                            : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-white/70'
-                                    }`}
-                                >
-                                    {tab.label}
-                                </button>
-                            ))}
+                    {/* Status Tabs */}
+                    <div className="flex overflow-x-auto border-b border-gray-100 bg-gray-50/60">
+                        {statusTabs.map(tab => (
+                            <button
+                                key={tab.label}
+                                onClick={() => { setStatusFilter(tab.value); setPage(1); }}
+                                className={`px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-colors duration-200 ${
+                                    statusFilter === tab.value
+                                        ? 'border-indigo-500 text-indigo-700 bg-white'
+                                        : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-white/70'
+                                }`}
+                            >
+                                {tab.label}
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Table content */}
+                    {loading ? (
+                        <div className="py-14 text-center flex justify-center items-center gap-2 text-gray-400">
+                            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500" />
+                            Yükleniyor...
                         </div>
-
-                        {/* Table content */}
-                        {loading ? (
-                            <div className="py-14 text-center flex justify-center items-center gap-2 text-gray-400">
-                                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500" />
-                                Yükleniyor...
+                    ) : appointments.length === 0 ? (
+                        <div className="py-14 text-center flex flex-col items-center gap-3">
+                            <div className="bg-gray-100 p-4 rounded-full">
+                                <Calendar className="h-7 w-7 text-gray-400" />
                             </div>
-                        ) : appointments.length === 0 ? (
-                            <div className="py-14 text-center flex flex-col items-center gap-3">
-                                <div className="bg-gray-100 p-4 rounded-full">
-                                    <Calendar className="h-7 w-7 text-gray-400" />
+                            <div>
+                                <p className="font-medium text-gray-700">Randevu Bulunamadı</p>
+                                <p className="text-sm text-gray-400 mt-0.5">Bu filtrelere uygun randevu kaydı mevcut değil.</p>
+                            </div>
+                        </div>
+                    ) : (
+                        <>
+                            {/* Pagination bar */}
+                            <div className="px-5 sm:px-6 py-3 bg-gray-50/60 border-b border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3">
+                                <div className="flex items-center gap-2">
+                                    <span className="text-sm text-gray-600">Sayfa Başına:</span>
+                                    <CustomSelect
+                                        size="compact"
+                                        options={[5, 10, 25, 50, 100].map(s => ({ value: s, label: String(s) }))}
+                                        value={pageSize}
+                                        onChange={v => { setPageSize(Number(v)); setPage(1); }}
+                                    />
                                 </div>
-                                <div>
-                                    <p className="font-medium text-gray-700">Randevu Bulunamadı</p>
-                                    <p className="text-sm text-gray-400 mt-0.5">Bu filtrelere uygun randevu kaydı mevcut değil.</p>
+                                <div className="flex items-center gap-4">
+                                    <p className="text-sm text-gray-600">
+                                        Toplam <span className="font-semibold">{totalCount}</span> kayıttan{' '}
+                                        <span className="font-semibold">{(page - 1) * pageSize + 1}</span>–<span className="font-semibold">{Math.min(page * pageSize, totalCount)}</span>
+                                    </p>
+                                    <nav className="inline-flex rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+                                        <button
+                                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                                            disabled={page === 1}
+                                            className={`px-2.5 py-1.5 bg-white text-sm ${page === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-50'}`}
+                                        >
+                                            <ChevronLeft className="h-4 w-4" />
+                                        </button>
+                                        <div className="w-px bg-gray-200" />
+                                        <button
+                                            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                            disabled={page === totalPages}
+                                            className={`px-2.5 py-1.5 bg-white text-sm ${page === totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-50'}`}
+                                        >
+                                            <ChevronRight className="h-4 w-4" />
+                                        </button>
+                                    </nav>
                                 </div>
                             </div>
-                        ) : (
-                            <>
-                                {/* Pagination bar */}
-                                <div className="px-5 sm:px-6 py-3 bg-gray-50/60 border-b border-gray-100 flex flex-col sm:flex-row items-center justify-between gap-3">
-                                    <div className="flex items-center gap-2">
-                                        <span className="text-sm text-gray-600">Sayfa Başına:</span>
-                                        <CustomSelect
-                                            size="compact"
-                                            options={[5, 10, 25, 50, 100].map(s => ({ value: s, label: String(s) }))}
-                                            value={pageSize}
-                                            onChange={v => { setPageSize(Number(v)); setPage(1); }}
-                                        />
-                                    </div>
-                                    <div className="flex items-center gap-4">
-                                        <p className="text-sm text-gray-600">
-                                            Toplam <span className="font-semibold">{totalCount}</span> kayıttan {' '}
-                                            <span className="font-semibold">{(page - 1) * pageSize + 1}</span>–<span className="font-semibold">{Math.min(page * pageSize, totalCount)}</span>
-                                        </p>
-                                        <nav className="inline-flex rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-                                            <button
-                                                onClick={() => setPage(p => Math.max(1, p - 1))}
-                                                disabled={page === 1}
-                                                className={`px-2.5 py-1.5 bg-white text-sm ${page === 1 ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-50'}`}
-                                            >
-                                                <ChevronLeft className="h-4 w-4" />
-                                            </button>
-                                            <div className="w-px bg-gray-200" />
-                                            <button
-                                                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
-                                                disabled={page === totalPages}
-                                                className={`px-2.5 py-1.5 bg-white text-sm ${page === totalPages ? 'text-gray-300 cursor-not-allowed' : 'text-gray-600 hover:bg-gray-50'}`}
-                                            >
-                                                <ChevronRight className="h-4 w-4" />
-                                            </button>
-                                        </nav>
-                                    </div>
-                                </div>
 
-                                {/* Desktop Table */}
-                                <div className="hidden md:block overflow-x-auto">
-                                    <table className="min-w-full divide-y divide-gray-100">
-                                        <thead className="bg-gray-50/80">
-                                            <tr>
-                                                <th className="w-10 px-3 py-3" />
-                                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Müşteri</th>
-                                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Hizmet & Personel</th>
-                                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Tarih & Saat</th>
-                                                <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Durum</th>
-                                                <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">İşlemler</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody className="bg-white divide-y divide-gray-100">
-                                            {appointments.map(appointment => (
-                                                <React.Fragment key={appointment.id}>
-                                                    <tr className="hover:bg-gray-50/70 transition-colors">
-                                                        {/* Chevron */}
-                                                        <td className="px-3 py-4 text-center">
-                                                            <button
-                                                                onClick={() => setExpandedRowId(prev => prev === appointment.id ? null : appointment.id)}
-                                                                className="p-1 rounded-lg hover:bg-gray-200 transition-colors text-gray-400 hover:text-gray-600"
-                                                            >
-                                                                {expandedRowId === appointment.id
-                                                                    ? <ChevronUp className="h-4 w-4" />
-                                                                    : <ChevronDown className="h-4 w-4" />
-                                                                }
-                                                            </button>
-                                                        </td>
+                            {/* Unified Grouped Cards — varsayılan kapalı, başlığa tıklayınca açılır */}
+                            <div className="divide-y divide-gray-100">
+                                {(() => {
+                                    const groups = new Map<string, Appointment[]>();
+                                    appointments.forEach(apt => {
+                                        const key = apt.groupId ?? apt.id;
+                                        if (!groups.has(key)) groups.set(key, []);
+                                        groups.get(key)!.push(apt);
+                                    });
+                                    groups.forEach(g => g.sort((a, b) =>
+                                        new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+                                    ));
+                                    return [...groups.values()].map(group => {
+                                        const first = group[0];
+                                        const last  = group[group.length - 1];
+                                        const isMulti       = group.length > 1;
+                                        const totalPrice    = group.reduce((s, a) => s + a.price, 0);
+                                        const primaryStatus = first.status;
+                                        const gId           = first.groupId;
+                                        const cardKey       = gId ?? first.id;
+                                        const isExpanded    = expandedRowId === cardKey;
 
-                                                        {/* Customer */}
-                                                        <td className="px-6 py-4 whitespace-nowrap">
-                                                            <div className="flex items-center gap-3">
-                                                                <div className="h-9 w-9 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm flex-shrink-0">
-                                                                    {appointment.customerName.charAt(0).toUpperCase()}
-                                                                </div>
-                                                                <div>
-                                                                    <div className="text-sm font-semibold text-gray-900">{appointment.customerName}</div>
-                                                                    {appointment.note && (
-                                                                        <div className="text-xs text-gray-400 mt-0.5 max-w-[160px] truncate" title={appointment.note}>
-                                                                            📝 {appointment.note}
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        </td>
+                                            return (
+                                            <div key={cardKey} className="bg-white">
+                                                {/* ── Başlık — her zaman görünür, tıklanabilir ── */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setExpandedRowId(prev => prev === cardKey ? null : cardKey)}
+                                                    className="w-full px-4 sm:px-5 py-3.5 flex items-start gap-3 hover:bg-gray-50/70 transition-colors text-left"
+                                                >
+                                                    {/* Avatar */}
+                                                    <div className="h-9 w-9 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold shrink-0 text-sm mt-0.5">
+                                                        {first.customerName.charAt(0).toUpperCase()}
+                                                    </div>
 
-                                                        {/* Service & Employee */}
-                                                        <td className="px-6 py-4 whitespace-nowrap">
-                                                            <div className="text-sm text-gray-900 flex items-center gap-1">
-                                                                <Scissors className="h-3.5 w-3.5 text-gray-400" />
-                                                                {appointment.serviceName}
-                                                            </div>
-                                                            <div className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
-                                                                <User className="h-3.5 w-3.5 text-gray-400" />
-                                                                {appointment.employeeName}
-                                                            </div>
-                                                            <div className="text-xs text-gray-400 mt-0.5">
-                                                                {appointment.duration} dk • ₺{appointment.price}
-                                                            </div>
-                                                        </td>
-
-                                                        {/* Date & Time */}
-                                                        <td className="px-6 py-4 whitespace-nowrap">
-                                                            <div className="text-sm text-gray-900 flex items-center gap-1">
-                                                                <Calendar className="h-3.5 w-3.5 text-gray-400" />
-                                                                {format(new Date(appointment.startTime), 'd MMM yyyy', { locale: tr })}
-                                                            </div>
-                                                            <div className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
-                                                                <Clock className="h-3.5 w-3.5 text-gray-400" />
-                                                                {format(new Date(appointment.startTime), 'HH:mm', { locale: tr })}
-                                                            </div>
-                                                        </td>
-
-                                                        {/* Status */}
-                                                        <td className="px-6 py-4 whitespace-nowrap">
-                                                            {getStatusBadge(appointment.status)}
-                                                            {appointment.cancellationReason && (
-                                                                <div className="text-xs text-red-400 mt-1 max-w-[140px] truncate" title={appointment.cancellationReason}>
-                                                                    {appointment.cancellationReason}
-                                                                </div>
+                                                    {/* Orta: isim + meta bilgiler */}
+                                                    <div className="flex-1 min-w-0">
+                                                        {/* Satır 1: isim + hizmet sayısı + not ikonu */}
+                                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                                            <span className="font-semibold text-gray-900 text-sm">{first.customerName}</span>
+                                                            {isMulti && (
+                                                                <span className="text-[10px] font-bold bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full shrink-0">
+                                                                    {group.length} hizmet
+                                                                </span>
                                                             )}
-                                                        </td>
-
-                                                        {/* Actions */}
-                                                        <td className="px-6 py-4 whitespace-nowrap text-right">
-                                                            <div className="flex justify-end gap-2">
-                                                                {appointment.status === AppointmentStatus.Pending && (
-                                                                    <>
-                                                                        <Button size="sm" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Confirmed, 'Randevuyu Onayla', 'Bu randevuyu onaylamak istediğinize emin misiniz?')}>Onayla</Button>
-                                                                        <Button size="sm" variant="danger" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Rejected, 'Randevuyu Reddet', 'Bu randevuyu reddetmek istediğinize emin misiniz?')}>Reddet</Button>
-                                                                    </>
-                                                                )}
-                                                                {appointment.status === AppointmentStatus.Confirmed && new Date(appointment.startTime) <= new Date() && (
-                                                                    <Button size="sm" variant="outline" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Completed, 'Randevuyu Tamamla', 'Bu randevunun tamamlandığını onaylıyor musunuz?')}>Tamamlandı</Button>
-                                                                )}
-                                                                {appointment.status === AppointmentStatus.Confirmed && (
-                                                                    <Button size="sm" variant="danger" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Cancelled, 'Randevuyu İptal Et', 'Bu randevuyu iptal etmek istediğinize emin misiniz?')}>İptal</Button>
-                                                                )}
-                                                            </div>
-                                                        </td>
-                                                    </tr>
-
-                                                    {/* Expanded detail row */}
-                                                    {expandedRowId === appointment.id && (
-                                                        <tr className="bg-indigo-50/30">
-                                                            <td colSpan={6} className="px-10 py-4">
-                                                                <div className="flex flex-wrap gap-6 text-sm">
-                                                                    <div>
-                                                                        <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Bitiş Saati</span>
-                                                                        <span className="font-semibold text-gray-800">{format(new Date(appointment.endTime), 'HH:mm', { locale: tr })}</span>
-                                                                    </div>
-                                                                    {appointment.note && (
-                                                                        <div className="flex-1 min-w-[180px]">
-                                                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Müşteri Notu</span>
-                                                                            <span className="text-gray-700">{appointment.note}</span>
-                                                                        </div>
-                                                                    )}
-                                                                    {appointment.cancellationReason && (
-                                                                        <div className="flex-1 min-w-[180px]">
-                                                                            <span className="text-[10px] font-bold text-red-400 uppercase tracking-widest block mb-1">İptal / Red Sebebi</span>
-                                                                            <span className="text-red-700">{appointment.cancellationReason}</span>
-                                                                        </div>
-                                                                    )}
-                                                                    {appointment.groupId && (
-                                                                        <div>
-                                                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Grup ID</span>
-                                                                            <span className="text-gray-400 text-xs font-mono">{appointment.groupId}</span>
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            </td>
-                                                        </tr>
-                                                    )}
-                                                </React.Fragment>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-
-                                {/* Mobile Cards */}
-                                <div className="block md:hidden divide-y divide-gray-100">
-                                    {appointments.map(appointment => {
-                                        const isExpanded = expandedRowId === appointment.id;
-                                        return (
-                                            <div key={appointment.id} className="p-4 bg-white">
-                                                <div className="flex justify-between items-start mb-3">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold shrink-0">
-                                                            {appointment.customerName.charAt(0).toUpperCase()}
+                                                            {first.note && (
+                                                                <MessageSquare className="w-3 h-3 text-amber-400 shrink-0" />
+                                                            )}
                                                         </div>
-                                                        <div>
-                                                            <div className="font-semibold text-gray-900">{appointment.customerName}</div>
-                                                            <div className="text-xs text-gray-500">{format(new Date(appointment.startTime), 'd MMM yyyy HH:mm', { locale: tr })}</div>
+                                                        {/* Satır 2: tarih + saat + personel + telefon */}
+                                                        <div className="text-xs text-gray-400 flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1">
+                                                            <span className="flex items-center gap-1 shrink-0">
+                                                                <Calendar className="w-3 h-3" />
+                                                                {format(new Date(first.startTime), 'd MMM yyyy', { locale: tr })}
+                                                            </span>
+                                                            <span className="flex items-center gap-1 shrink-0">
+                                                                <Clock className="w-3 h-3" />
+                                                                {format(new Date(first.startTime), 'HH:mm')} – {format(new Date(last.endTime), 'HH:mm')}
+                                                            </span>
+                                                            <span className="flex items-center gap-1 shrink-0">
+                                                                <User className="w-3 h-3" />
+                                                                {first.employeeName}
+                                                            </span>
+                                                            {first.customerPhone && (
+                                                                <a
+                                                                    href={`tel:${first.customerPhone}`}
+                                                                    onClick={e => e.stopPropagation()}
+                                                                    className="flex items-center gap-1 shrink-0 text-indigo-500 hover:text-indigo-700 font-medium"
+                                                                >
+                                                                    <Phone className="w-3 h-3" />
+                                                                    {first.customerPhone}
+                                                                </a>
+                                                            )}
                                                         </div>
                                                     </div>
-                                                    {getStatusBadge(appointment.status)}
-                                                </div>
 
-                                                <div className="mb-3 bg-gray-50 rounded-xl p-3">
-                                                    <div className="text-sm font-semibold text-gray-800">{appointment.serviceName}</div>
-                                                    <div className="text-sm text-gray-500 mt-0.5">Personel: {appointment.employeeName}</div>
-                                                    <div className="text-sm text-gray-500">{appointment.duration} dk • ₺{appointment.price}</div>
-                                                </div>
-
-                                                <button
-                                                    onClick={() => setExpandedRowId(prev => prev === appointment.id ? null : appointment.id)}
-                                                    className="w-full flex items-center justify-center gap-1.5 py-1.5 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors mb-3 border border-gray-100"
-                                                >
-                                                    {isExpanded ? <><ChevronUp className="h-3.5 w-3.5" /> Kapat</> : <><ChevronDown className="h-3.5 w-3.5" /> Detayları Göster</>}
+                                                    {/* Sağ: durum + fiyat + chevron */}
+                                                    <div className="flex items-center gap-2 shrink-0 ml-auto">
+                                                        <div className="hidden sm:block">{getStatusBadge(primaryStatus)}</div>
+                                                        <span className="font-bold text-gray-900 text-sm whitespace-nowrap">₺{totalPrice}</span>
+                                                        <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform duration-200 shrink-0 ${isExpanded ? 'rotate-180' : ''}`} />
+                                                    </div>
                                                 </button>
 
+                                                {/* ── Açılan detay bölümü ── */}
                                                 {isExpanded && (
-                                                    <div className="mb-3 bg-indigo-50/40 rounded-xl p-3 space-y-2 text-sm border border-indigo-100/50">
-                                                        <div><span className="text-[10px] font-bold text-gray-400 uppercase">Bitiş: </span><span className="text-gray-700">{format(new Date(appointment.endTime), 'HH:mm', { locale: tr })}</span></div>
-                                                        {appointment.note && <div><span className="text-[10px] font-bold text-gray-400 uppercase">Not: </span><span className="text-gray-700">{appointment.note}</span></div>}
-                                                        {appointment.cancellationReason && <div><span className="text-[10px] font-bold text-red-400 uppercase">Sebep: </span><span className="text-red-700">{appointment.cancellationReason}</span></div>}
+                                                    <div className="px-4 sm:px-5 pb-4 border-t border-gray-100 bg-gray-50/40">
+                                                        <div className="pt-3 space-y-3">
+                                                            {/* Mobilde gizlenen durum badge'i */}
+                                                            <div className="sm:hidden">{getStatusBadge(primaryStatus)}</div>
+
+                                                            {/* Hizmet listesi */}
+                                                            <div className="bg-white rounded-xl border border-gray-100 divide-y divide-gray-50 overflow-hidden">
+                                                                {group.map(apt => (
+                                                                    <div key={apt.id} className="flex items-center gap-2 px-3 py-2.5">
+                                                                        <Scissors className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                                                                        <span className="text-sm text-gray-700 flex-1 min-w-0 truncate">{apt.serviceName}</span>
+                                                                        <span className="text-xs text-gray-500 shrink-0 whitespace-nowrap">{apt.duration}dk · ₺{apt.price}</span>
+                                                                        <div className="shrink-0">{getStatusBadge(apt.status)}</div>
+                                                                    </div>
+                                                                ))}
+                                                            </div>
+
+                                                            {/* Müşteri notu */}
+                                                            {first.note && (
+                                                                <div className="flex items-start gap-2 text-sm text-gray-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                                                                    <MessageSquare className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                                                                    <span>{first.note}</span>
+                                                                </div>
+                                                            )}
+
+                                                            {/* İptal/Red sebebi */}
+                                                            {first.cancellationReason && (
+                                                                <div className="flex items-start gap-2 text-sm text-red-700 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                                                                    <XCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+                                                                    <span>{first.cancellationReason}</span>
+                                                                </div>
+                                                            )}
+
+                                                            {/* Aksiyon butonları */}
+                                                            <div className="flex flex-wrap gap-2 pt-1">
+                                                                {primaryStatus === AppointmentStatus.Pending && (<>
+                                                                    <Button size="sm" onClick={() =>
+                                                                        isMulti && gId
+                                                                            ? requestGroupUpdate(gId, AppointmentStatus.Confirmed, 'Grubu Onayla', `${group.length} hizmetin tamamını onaylamak istediğinize emin misiniz?`, first.startTime)
+                                                                            : requestSingleUpdate(first.id, AppointmentStatus.Confirmed, 'Randevuyu Onayla', 'Bu randevuyu onaylamak istediğinize emin misiniz?', first.startTime)
+                                                                    }>{isMulti ? 'Tümünü Onayla' : 'Onayla'}</Button>
+                                                                    <Button size="sm" variant="danger" onClick={() =>
+                                                                        isMulti && gId
+                                                                            ? requestGroupUpdate(gId, AppointmentStatus.Rejected, 'Grubu Reddet', `${group.length} hizmet reddedilecek. Müşteriye gösterilecek sebebi girin.`, first.startTime)
+                                                                            : requestSingleUpdate(first.id, AppointmentStatus.Rejected, 'Randevuyu Reddet', 'Bu randevu reddedilecek. Müşteriye gösterilecek sebebi girin.', first.startTime)
+                                                                    }>{isMulti ? 'Tümünü Reddet' : 'Reddet'}</Button>
+                                                                </>)}
+                                                                {primaryStatus === AppointmentStatus.Confirmed && new Date(last.startTime) <= new Date() && (
+                                                                    <Button size="sm" variant="outline" onClick={() =>
+                                                                        isMulti && gId
+                                                                            ? requestGroupUpdate(gId, AppointmentStatus.Completed, 'Grubu Tamamla', `${group.length} hizmetin tamamını tamamlamak istediğinize emin misiniz?`, first.startTime)
+                                                                            : requestSingleUpdate(first.id, AppointmentStatus.Completed, 'Randevuyu Tamamla', 'Bu randevunun tamamlandığını onaylıyor musunuz?', first.startTime)
+                                                                    }>{isMulti ? 'Tümünü Tamamla' : 'Tamamlandı'}</Button>
+                                                                )}
+                                                                {primaryStatus === AppointmentStatus.Confirmed && (
+                                                                    <Button size="sm" variant="danger" onClick={() =>
+                                                                        isMulti && gId
+                                                                            ? requestGroupUpdate(gId, AppointmentStatus.Cancelled, 'Grubu İptal Et', `${group.length} hizmet iptal edilecek. İsterseniz müşteriye bir sebep bırakabilirsiniz.`, first.startTime)
+                                                                            : requestSingleUpdate(first.id, AppointmentStatus.Cancelled, 'Randevuyu İptal Et', 'Bu randevu iptal edilecek. İsterseniz müşteriye bir sebep bırakabilirsiniz.', first.startTime)
+                                                                    }>{isMulti ? 'Tümünü İptal Et' : 'İptal'}</Button>
+                                                                )}
+                                                            </div>
+                                                        </div>
                                                     </div>
                                                 )}
-
-                                                <div className="flex flex-wrap gap-2">
-                                                    {appointment.status === AppointmentStatus.Pending && (
-                                                        <>
-                                                            <Button size="sm" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Confirmed, 'Randevuyu Onayla', 'Bu randevuyu onaylamak istediğinize emin misiniz?')}>Onayla</Button>
-                                                            <Button size="sm" variant="danger" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Rejected, 'Randevuyu Reddet', 'Bu randevuyu reddetmek istediğinize emin misiniz?')}>Reddet</Button>
-                                                        </>
-                                                    )}
-                                                    {appointment.status === AppointmentStatus.Confirmed && new Date(appointment.startTime) <= new Date() && (
-                                                        <Button size="sm" variant="outline" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Completed, 'Randevuyu Tamamla', 'Bu randevunun tamamlandığını onaylıyor musunuz?')}>Tamamlandı</Button>
-                                                    )}
-                                                    {appointment.status === AppointmentStatus.Confirmed && (
-                                                        <Button size="sm" variant="danger" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Cancelled, 'Randevuyu İptal Et', 'Bu randevuyu iptal etmek istediğinize emin misiniz?')}>İptal</Button>
-                                                    )}
-                                                </div>
                                             </div>
                                         );
-                                    })}
-                                </div>
-                            </>
-                        )}
-                    </div>
-                )}
-            </div>
+                                    });
+                                })()}
+                            </div>
+                        </>
+                    )}
+                </div>
+            )}
 
             {/* Confirmation Modal */}
             {confirmAction && createPortal(
                 <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50">
-                    <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
-                        <h3 className="text-lg font-bold text-gray-900 mb-2">{confirmAction.label}</h3>
-                        <p className="text-gray-600 text-sm mb-6">{confirmAction.actionText}</p>
-                        <div className="flex gap-3 justify-end">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4">
+                        <h3 className="text-lg font-bold text-gray-900">{confirmAction.label}</h3>
+                        <p className="text-gray-600 text-sm">{confirmAction.actionText}</p>
+
+                        {/* Geç iptal uyarısı */}
+                        {(confirmAction.status === AppointmentStatus.Cancelled || confirmAction.status === AppointmentStatus.Rejected) &&
+                            confirmAction.firstStartTime &&
+                            (() => {
+                                const hoursLeft = (new Date(confirmAction.firstStartTime).getTime() - Date.now()) / 3600000;
+                                return hoursLeft >= 0 && hoursLeft < 24 ? (
+                                    <div className="flex items-start gap-2 bg-orange-50 border border-orange-200 text-orange-800 rounded-xl px-4 py-3 text-sm">
+                                        <AlertCircle className="w-4 h-4 mt-0.5 shrink-0 text-orange-500" />
+                                        <span>
+                                            <strong>Dikkat:</strong> Bu randevuya yaklaşık <strong>{Math.ceil(hoursLeft)} saat</strong> kaldı.
+                                            Geç iptal müşteriyi mağdur edebilir.
+                                        </span>
+                                    </div>
+                                ) : null;
+                            })()
+                        }
+
+                        {/* Sebep textarea */}
+                        {(confirmAction.status === AppointmentStatus.Cancelled || confirmAction.status === AppointmentStatus.Rejected) && (
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                    {confirmAction.status === AppointmentStatus.Rejected
+                                        ? 'Red sebebi (zorunlu — müşteriye gösterilir)'
+                                        : 'İptal sebebi (zorunlu — müşteriye gösterilir)'}
+                                </label>
+                                <textarea
+                                    rows={3}
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 resize-none"
+                                    placeholder={confirmAction.status === AppointmentStatus.Rejected
+                                        ? 'Örn: Personelimiz bu gün müsait değil.'
+                                        : 'Örn: Beklenmedik bir durum nedeniyle iptal edildi.'}
+                                    value={confirmAction.reason}
+                                    onChange={e => setConfirmAction(prev => prev ? { ...prev, reason: e.target.value } : null)}
+                                />
+                            </div>
+                        )}
+
+                        <div className="flex gap-3 justify-end pt-1">
                             <button onClick={() => setConfirmAction(null)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl">Vazgeç</button>
                             <button
-                                onClick={() => handleStatusUpdate(confirmAction.id, confirmAction.status)}
+                                onClick={handleStatusUpdate}
                                 className={`px-4 py-2 text-sm font-semibold rounded-xl text-white transition-colors ${
                                     confirmAction.status === AppointmentStatus.Rejected || confirmAction.status === AppointmentStatus.Cancelled
                                         ? 'bg-red-600 hover:bg-red-700' : 'bg-indigo-600 hover:bg-indigo-700'
                                 }`}
                             >
-                                Onayla
+                                {confirmAction.status === AppointmentStatus.Rejected ? 'Reddet'
+                                    : confirmAction.status === AppointmentStatus.Cancelled ? 'İptal Et'
+                                    : 'Onayla'}
                             </button>
                         </div>
                     </div>

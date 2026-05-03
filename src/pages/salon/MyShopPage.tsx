@@ -7,12 +7,14 @@ import { toast } from 'react-hot-toast';
 import { getApiError } from '../../utils/storage';
 import {
     MapPin, Phone, Building2, Trash2, CalendarX, Clock,
-    Camera, Store, ChevronDown, ChevronUp, ArrowRight, AlertTriangle
+    Camera, Store, ChevronDown, ChevronUp, ArrowRight, AlertTriangle, CalendarClock, UserX
 } from 'lucide-react';
 import { SearchableSelect } from '../../components/SearchableSelect';
 import { ShopCategoryLabels, TargetGender, TargetGenderLabels } from '../../types/shop';
 import type { ShopClosureDateDto } from '../../types/shop';
 import MapPicker from '../../components/MapPicker';
+import { employeeService } from '../../api/employee.service';
+import type { Employee, EmployeeLeaveDate } from '../../types/employee';
 
 const TURKIYE_API = 'https://turkiyeapi.dev/api/v1';
 
@@ -57,6 +59,7 @@ interface ShopSnapshot {
     openTime?: string;
     closeTime?: string;
     bookingDaysAhead?: number;
+    weeklyOffDays: number[];
 }
 
 type ShopUpdatePayload = {
@@ -76,6 +79,7 @@ type ShopUpdatePayload = {
     openTime?: string;
     closeTime?: string;
     bookingDaysAhead?: number;
+    weeklyOffDays?: number[];
 };
 
 interface ChangeItem {
@@ -142,10 +146,21 @@ export const MyShopPage: React.FC = () => {
     const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
     const [savedSnapshot, setSavedSnapshot] = useState<ShopSnapshot | null>(null);
 
+    const [weeklyOffDays, setWeeklyOffDays] = useState<number[]>([]);
+
     const [closureDates, setClosureDates] = useState<ShopClosureDateDto[]>([]);
     const [newClosureDate, setNewClosureDate] = useState('');
     const [newClosureReason, setNewClosureReason] = useState('');
     const [addingClosure, setAddingClosure] = useState(false);
+
+    // Employee leave dates
+    const [allEmployees, setAllEmployees] = useState<Employee[]>([]);
+    const [selectedLeaveEmployee, setSelectedLeaveEmployee] = useState<Employee | null>(null);
+    const [employeeLeaveDates, setEmployeeLeaveDates] = useState<EmployeeLeaveDate[]>([]);
+    const [newLeaveDate, setNewLeaveDate] = useState('');
+    const [newLeaveReason, setNewLeaveReason] = useState('');
+    const [addingLeave, setAddingLeave] = useState(false);
+    const [loadingLeaveDates, setLoadingLeaveDates] = useState(false);
 
     const [provinces, setProvinces] = useState<Province[]>([]);
     const [districts, setDistricts] = useState<{ id: number; name: string }[]>([]);
@@ -164,6 +179,7 @@ export const MyShopPage: React.FC = () => {
         hours: false,
         closureDates: false,
         map: false,
+        employeeLeave: false,
     });
 
     const toggleCard = (card: keyof typeof openCards) =>
@@ -215,6 +231,7 @@ export const MyShopPage: React.FC = () => {
 
                 setSelectedCategories(shop.categories ?? []);
                 setClosureDates(shop.closureDates || []);
+                setWeeklyOffDays(shop.weeklyOffDays ?? []);
 
                 setSavedSnapshot({
                     name: shop.name,
@@ -233,6 +250,7 @@ export const MyShopPage: React.FC = () => {
                     openTime: shop.openTime || '',
                     closeTime: shop.closeTime || '',
                     bookingDaysAhead: shop.bookingDaysAhead ?? 30,
+                    weeklyOffDays: shop.weeklyOffDays ?? [],
                 });
 
                 if (shop.city) {
@@ -309,10 +327,17 @@ export const MyShopPage: React.FC = () => {
                 items.push({ label: 'Harita Konumu', oldValue: oldCoord, newValue: newCoord });
         }
 
+        const DAY_TR = ['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'];
+        const fmtOffDays = (days: number[]) =>
+            days.length === 0 ? 'Yok' : [...days].sort((a, b) => a - b).map(d => DAY_TR[d]).join(', ');
+
         if (section === 'hours') {
             check('Açılış Saati', snap.openTime, payload.openTime);
             check('Kapanış Saati', snap.closeTime, payload.closeTime);
             check('Randevu Alma Süresi', String(snap.bookingDaysAhead ?? 30) + ' gün', String(payload.bookingDaysAhead ?? 30) + ' gün');
+            const oldOff = fmtOffDays(snap.weeklyOffDays ?? []);
+            const newOff = fmtOffDays(payload.weeklyOffDays ?? []);
+            if (oldOff !== newOff) items.push({ label: 'Haftalık Tatil Günleri', oldValue: oldOff, newValue: newOff });
         }
 
         return items;
@@ -364,6 +389,7 @@ export const MyShopPage: React.FC = () => {
             openTime: section === 'hours' ? values.openTime : savedSnapshot.openTime,
             closeTime: section === 'hours' ? values.closeTime : savedSnapshot.closeTime,
             bookingDaysAhead: section === 'hours' ? (Number(values.bookingDaysAhead) || 30) : (savedSnapshot.bookingDaysAhead ?? 30),
+            weeklyOffDays: section === 'hours' ? weeklyOffDays : savedSnapshot.weeklyOffDays,
         };
 
         const changes = buildChanges(section, payload);
@@ -398,7 +424,7 @@ export const MyShopPage: React.FC = () => {
                 if (section === 'location') {
                     return { ...prev, address: payload.address, city: payload.city, district: payload.district, neighborhood: payload.neighborhood, street: payload.street, buildingNumber: payload.buildingNumber, latitude: payload.latitude, longitude: payload.longitude };
                 }
-                return { ...prev, openTime: payload.openTime, closeTime: payload.closeTime, bookingDaysAhead: payload.bookingDaysAhead };
+                return { ...prev, openTime: payload.openTime, closeTime: payload.closeTime, bookingDaysAhead: payload.bookingDaysAhead, weeklyOffDays: payload.weeklyOffDays ?? [] };
             });
 
             toast.success('Dükkan detayları başarıyla güncellendi');
@@ -526,6 +552,57 @@ export const MyShopPage: React.FC = () => {
             toast.success('Kapalı gün silindi.');
         } catch (error: any) {
             toast.error(error.response?.data?.message || 'Kapalı gün silinemedi.');
+        }
+    };
+
+    // ─── EMPLOYEE LEAVE DATE HANDLERS ────────────────────────────────────────
+
+    const loadAllEmployees = async () => {
+        try {
+            const data = await employeeService.getEmployees();
+            setAllEmployees(data.filter(e => !e.isDeleted && e.isActive));
+        } catch {
+            toast.error('Çalışanlar yüklenemedi.');
+        }
+    };
+
+    const handleSelectLeaveEmployee = async (emp: Employee) => {
+        setSelectedLeaveEmployee(emp);
+        setLoadingLeaveDates(true);
+        try {
+            const data = await employeeService.getLeaveDates(emp.id);
+            setEmployeeLeaveDates(data);
+        } catch {
+            toast.error('İzin günleri yüklenemedi.');
+        } finally {
+            setLoadingLeaveDates(false);
+        }
+    };
+
+    const handleAddLeaveDate = async () => {
+        if (!selectedLeaveEmployee || !newLeaveDate) return;
+        setAddingLeave(true);
+        try {
+            await employeeService.addLeaveDate(selectedLeaveEmployee.id, newLeaveDate, newLeaveReason || undefined);
+            const updated = await employeeService.getLeaveDates(selectedLeaveEmployee.id);
+            setEmployeeLeaveDates(updated);
+            setNewLeaveDate('');
+            setNewLeaveReason('');
+            toast.success('İzin günü eklendi.');
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'İzin günü eklenemedi.');
+        } finally {
+            setAddingLeave(false);
+        }
+    };
+
+    const handleRemoveLeaveDate = async (id: string) => {
+        try {
+            await employeeService.removeLeaveDate(id);
+            setEmployeeLeaveDates(prev => prev.filter(l => l.id !== id));
+            toast.success('İzin günü silindi.');
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'İzin günü silinemedi.');
         }
     };
 
@@ -960,6 +1037,37 @@ export const MyShopPage: React.FC = () => {
                                     placeholder="30"
                                 />
                             </div>
+                            {/* Haftalık Tatil Günleri */}
+                            <div>
+                                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                                    Haftalık Tatil Günleri
+                                </label>
+                                <p className="text-xs text-gray-400 mb-2">Seçilen günlerde müşteriler randevu alamaz.</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'].map((label, idx) => (
+                                        <button
+                                            key={idx}
+                                            type="button"
+                                            onClick={() => setWeeklyOffDays(prev =>
+                                                prev.includes(idx) ? prev.filter(d => d !== idx) : [...prev, idx]
+                                            )}
+                                            className={`px-3 py-2 rounded-xl text-sm font-semibold border-2 transition-all ${
+                                                weeklyOffDays.includes(idx)
+                                                    ? 'bg-red-500 border-red-500 text-white'
+                                                    : 'bg-white border-gray-200 text-gray-600 hover:border-red-300'
+                                            }`}
+                                        >
+                                            {label}
+                                        </button>
+                                    ))}
+                                </div>
+                                {weeklyOffDays.length > 0 && (
+                                    <p className="text-xs text-red-500 mt-2">
+                                        Her hafta {['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi']
+                                            .filter((_, i) => weeklyOffDays.includes(i)).join(', ')} günleri kapalı
+                                    </p>
+                                )}
+                            </div>
                             <div className="flex justify-end">
                                 <Button type="button" onClick={() => handleSaveSection('hours')} isLoading={loading}>
                                     Çalışma Saatlerini Güncelle
@@ -1061,6 +1169,147 @@ export const MyShopPage: React.FC = () => {
                     </AccordionCard>
                 </div>
             )}
+
+            {/* Kart 6: Çalışanlar için İzin Günü */}
+            {shopId && (
+                <div className="mt-4">
+                    <AccordionCard
+                        icon={<CalendarClock className="w-6 h-6" />}
+                        iconBg="bg-violet-50"
+                        iconColor="text-violet-600"
+                        title="Çalışanlar için İzin Günü"
+                        subtitle="Bireysel çalışan izin günlerini takvimden yönetin"
+                        isOpen={openCards.employeeLeave}
+                        onToggle={() => {
+                            toggleCard('employeeLeave');
+                            if (!openCards.employeeLeave && allEmployees.length === 0) {
+                                loadAllEmployees();
+                            }
+                        }}
+                    >
+                        <div className="space-y-5">
+                            <p className="text-sm text-gray-500">
+                                Bir çalışan seçin, ardından izinli olacağı günleri ekleyin. Müşteriler o günlerde bu personeli seçemez.
+                            </p>
+
+                            {/* Çalışan listesi */}
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-2">Çalışan Seç</label>
+                                {allEmployees.length === 0 ? (
+                                    <p className="text-sm text-gray-400 italic">Aktif çalışan bulunamadı.</p>
+                                ) : (
+                                    <div className="flex flex-wrap gap-2">
+                                        {allEmployees.map(emp => (
+                                            <button
+                                                key={emp.id}
+                                                type="button"
+                                                onClick={() => handleSelectLeaveEmployee(emp)}
+                                                className={`flex items-center gap-2 px-3 py-2 rounded-xl border-2 text-sm font-semibold transition-all ${
+                                                    selectedLeaveEmployee?.id === emp.id
+                                                        ? 'border-violet-500 bg-violet-50 text-violet-700'
+                                                        : 'border-gray-200 text-gray-600 hover:border-violet-300'
+                                                }`}
+                                            >
+                                                <div className="w-7 h-7 rounded-full bg-violet-100 flex items-center justify-center text-violet-700 font-bold text-xs shrink-0">
+                                                    {emp.firstName[0]}{emp.lastName[0]}
+                                                </div>
+                                                {emp.firstName} {emp.lastName}
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+
+                            {/* Seçili çalışanın izin günleri */}
+                            {selectedLeaveEmployee && (
+                                <div className="border-t border-gray-100 pt-4 space-y-4">
+                                    <p className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                                        <UserX className="w-4 h-4 text-violet-500" />
+                                        {selectedLeaveEmployee.firstName} {selectedLeaveEmployee.lastName} — İzin Günleri
+                                    </p>
+
+                                    {/* Yeni izin ekle */}
+                                    <div className="flex flex-wrap gap-3 items-end">
+                                        <div>
+                                            <label className="block text-xs font-medium text-gray-600 mb-1">Tarih</label>
+                                            <input
+                                                type="date"
+                                                value={newLeaveDate}
+                                                min={new Date().toLocaleDateString('en-CA')}
+                                                onChange={e => setNewLeaveDate(e.target.value)}
+                                                className="px-3 py-2.5 rounded-xl border-2 border-gray-200 focus:border-violet-500 outline-none transition-all text-sm"
+                                            />
+                                        </div>
+                                        <div className="flex-1 min-w-40">
+                                            <label className="block text-xs font-medium text-gray-600 mb-1">
+                                                Açıklama (opsiyonel)
+                                            </label>
+                                            <input
+                                                type="text"
+                                                value={newLeaveReason}
+                                                onChange={e => setNewLeaveReason(e.target.value)}
+                                                placeholder="Örn: Yıllık izin, Hastalık..."
+                                                className="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 focus:border-violet-500 outline-none transition-all text-sm"
+                                            />
+                                        </div>
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={handleAddLeaveDate}
+                                            isLoading={addingLeave}
+                                            disabled={!newLeaveDate}
+                                            className="border-violet-300 text-violet-700 hover:bg-violet-50"
+                                        >
+                                            + Ekle
+                                        </Button>
+                                    </div>
+
+                                    {/* İzin listesi */}
+                                    {loadingLeaveDates ? (
+                                        <div className="py-6 text-center text-sm text-gray-400">Yükleniyor...</div>
+                                    ) : employeeLeaveDates.length === 0 ? (
+                                        <div className="text-center py-8 text-gray-400 text-sm bg-gray-50 rounded-xl border-2 border-dashed border-gray-200">
+                                            {selectedLeaveEmployee.firstName} için tanımlı izin günü yok.
+                                        </div>
+                                    ) : (
+                                        <ul className="divide-y divide-gray-100 border border-gray-200 rounded-xl overflow-hidden">
+                                            {employeeLeaveDates.map(l => (
+                                                <li
+                                                    key={l.id}
+                                                    className="flex items-center justify-between px-4 py-3 hover:bg-gray-50 transition-colors"
+                                                >
+                                                    <div>
+                                                        <span className="font-medium text-sm text-gray-800">
+                                                            {new Date(`${l.leaveDate}T12:00:00`).toLocaleDateString('tr-TR', {
+                                                                day: 'numeric',
+                                                                month: 'long',
+                                                                year: 'numeric',
+                                                                weekday: 'long',
+                                                            })}
+                                                        </span>
+                                                        {l.reason && (
+                                                            <span className="ml-3 text-xs text-gray-500">{l.reason}</span>
+                                                        )}
+                                                    </div>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRemoveLeaveDate(l.id)}
+                                                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </button>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    </AccordionCard>
+                </div>
+            )}
+
             {/* ── Değişiklik Onay Modalı ── */}
             {confirmUpdate && createPortal(
                 <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">

@@ -334,7 +334,7 @@ export const EmployeeAppointmentsPage: React.FC = () => {
                                                             </div>
                                                             <div className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
                                                                 <Clock className="h-3.5 w-3.5 text-gray-400" />
-                                                                {format(new Date(appointment.startTime), 'HH:mm', { locale: tr })}
+                                                                {format(new Date(appointment.startTime), 'HH:mm', { locale: tr })} - {format(new Date(appointment.endTime), 'HH:mm', { locale: tr })}
                                                             </div>
                                                         </td>
 

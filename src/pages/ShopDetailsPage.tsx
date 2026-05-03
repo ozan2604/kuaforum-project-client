@@ -479,13 +479,6 @@ export const ShopDetailsPage: React.FC = () => {
                                                                         </div>
                                                                         <div className="flex items-center gap-2.5 shrink-0 mt-0.5">
                                                                             <span className="font-extrabold text-gray-900 text-base sm:text-lg leading-none">&#8378;{service.price}</span>
-                                                                            <Button
-                                                                                size="sm"
-                                                                                onClick={() => handleBookClick(service)}
-                                                                                className="px-3 sm:px-5 py-1.5 sm:py-2 rounded-xl text-xs sm:text-sm font-bold shadow-sm whitespace-nowrap"
-                                                                            >
-                                                                                Seç
-                                                                            </Button>
                                                                         </div>
                                                                     </div>
 
@@ -644,6 +637,22 @@ export const ShopDetailsPage: React.FC = () => {
                                                 </p>
                                             </div>
                                         )}
+
+                                        {/* Haftalık Tatil */}
+                                        {shop.weeklyOffDays && shop.weeklyOffDays.length > 0 && (
+                                            <div className="bg-white rounded-2xl border border-red-100 shadow-sm p-5">
+                                                <div className="flex items-center gap-2 mb-3">
+                                                    <div className="w-8 h-8 rounded-lg bg-red-50 flex items-center justify-center shrink-0">
+                                                        <Calendar className="w-4 h-4 text-red-500" />
+                                                    </div>
+                                                    <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Haftalık Tatil</span>
+                                                </div>
+                                                <p className="font-semibold text-red-700 text-sm leading-snug">
+                                                    Her hafta {['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi']
+                                                        .filter((_, i) => shop.weeklyOffDays!.includes(i)).join(', ')} günleri kapalı
+                                                </p>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {/* Kategoriler */}
@@ -795,6 +804,27 @@ export const ShopDetailsPage: React.FC = () => {
                                     </div>
                                 )}
 
+                                {/* Haftalık Tatil Günleri */}
+                                {shop.weeklyOffDays && shop.weeklyOffDays.length > 0 && (
+                                    <div>
+                                        <h3 className="font-bold text-gray-800 mb-4 flex items-center gap-2">
+                                            <span>🗓️</span> Haftalık Tatil Günleri
+                                        </h3>
+                                        <div className="divide-y divide-gray-100 rounded-xl border border-red-100 overflow-hidden">
+                                            {['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi'].map((dayName, idx) => {
+                                                if (!shop.weeklyOffDays!.includes(idx)) return null;
+                                                const isToday = idx === new Date().getDay();
+                                                return (
+                                                    <div key={idx} className={`flex justify-between items-center px-4 py-3 text-sm ${isToday ? 'bg-red-100' : 'bg-red-50/40'}`}>
+                                                        <span className={`font-medium ${isToday ? 'text-red-700' : 'text-gray-700'}`}>{dayName}</span>
+                                                        <span className="text-red-500 font-semibold">Haftalık Tatil</span>
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
+
                                 {/* Closure Dates */}
                                 {shop.closureDates && shop.closureDates.filter(c => new Date(c.closureDate) >= new Date(new Date().toLocaleDateString('en-CA'))).length > 0 && (
                                     <div>
@@ -816,7 +846,7 @@ export const ShopDetailsPage: React.FC = () => {
                                     </div>
                                 )}
 
-                                {!shop.openTime && !shop.closeTime && employeeSchedules.length === 0 && (!shop.closureDates || shop.closureDates.length === 0) && (
+                                {!shop.openTime && !shop.closeTime && employeeSchedules.length === 0 && (!shop.closureDates || shop.closureDates.length === 0) && (!shop.weeklyOffDays || shop.weeklyOffDays.length === 0) && (
                                     <p className="text-gray-500 italic text-center py-8">Çalışma saati bilgisi henüz girilmemiş.</p>
                                 )}
                             </div>
@@ -880,6 +910,8 @@ export const ShopDetailsPage: React.FC = () => {
                     onClose={() => setIsBookingModalOpen(false)}
                     shopId={shop.id}
                     bookingDaysAhead={shop.bookingDaysAhead ?? 30}
+                    weeklyOffDays={shop.weeklyOffDays ?? []}
+                    closureDates={shop.closureDates ?? []}
                     initialServiceId={selectedService?.id}
                     initialServiceName={selectedService?.name}
                     initialServiceDuration={selectedService?.duration}

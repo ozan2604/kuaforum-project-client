@@ -1,5 +1,5 @@
 import api from './axios';
-import type { Employee, CreateEmployeeDto, UpdateScheduleDto, ScheduleDto, EmployeeProfile, UpdateEmployeeProfileDto, PublicEmployeeScheduleDto } from '../types/employee';
+import type { Employee, CreateEmployeeDto, UpdateScheduleDto, ScheduleDto, EmployeeProfile, UpdateEmployeeProfileDto, PublicEmployeeScheduleDto, EmployeeLeaveDate } from '../types/employee';
 
 export const employeeService = {
     // Get all employees for the logged-in salon owner's shop
@@ -76,5 +76,25 @@ export const employeeService = {
 
     updateMySchedule: async (data: UpdateScheduleDto): Promise<void> => {
         await api.put('/employee/me/schedule', data);
-    }
+    },
+
+    // Leave dates (owner)
+    getLeaveDates: async (employeeId: string): Promise<EmployeeLeaveDate[]> => {
+        const res = await api.get<EmployeeLeaveDate[]>(`/employee/${employeeId}/leave-dates`);
+        return res.data;
+    },
+
+    addLeaveDate: async (employeeId: string, leaveDate: string, reason?: string): Promise<void> => {
+        await api.post(`/employee/${employeeId}/leave-dates`, { leaveDate, reason });
+    },
+
+    removeLeaveDate: async (leaveDateId: string): Promise<void> => {
+        await api.delete(`/employee/leave-dates/${leaveDateId}`);
+    },
+
+    // Leave dates (public — randevu ekranı)
+    getPublicLeaveDates: async (employeeId: string): Promise<EmployeeLeaveDate[]> => {
+        const res = await api.get<EmployeeLeaveDate[]>(`/employee/${employeeId}/leave-dates/public`);
+        return res.data;
+    },
 };

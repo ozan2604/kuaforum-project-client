@@ -20,6 +20,7 @@ export interface AppointmentDto {
     employeeName: string;
     userId: string;
     customerName: string;
+    customerPhone?: string;
     startTime: string;
     endTime: string;
     status: AppointmentStatus;
@@ -42,6 +43,7 @@ export interface CreateAppointmentDto {
 
 export interface UpdateAppointmentStatusDto {
     status: AppointmentStatus;
+    reason?: string;
 }
 
 export interface TimeSlotDto {
@@ -52,6 +54,7 @@ export interface TimeSlotDto {
 export interface EmployeeAvailabilityDto {
     isWorking: boolean;
     isShopClosed?: boolean;
+    isOnLeave?: boolean;
     workStartTime?: string; // HH:mm:ss
     workEndTime?: string;
     breakStartTime?: string;
