@@ -85,6 +85,7 @@ export interface Shop {
     genderPreference: TargetGender;
     isAutoProcessEnabled: boolean;
     bookingDaysAhead?: number;
+    cancellationHours?: number;
     openTime?: string;
     closeTime?: string;
     weeklyOffDays?: number[];
@@ -113,5 +114,6 @@ export interface CreateShopDto {
     openTime?: string;
     closeTime?: string;
     bookingDaysAhead?: number;
+    cancellationHours?: number;
     weeklyOffDays?: number[];
 }

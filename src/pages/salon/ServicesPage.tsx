@@ -10,7 +10,7 @@ import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { EmptyState } from '../../components/EmptyState';
 import type { UpdateServiceCategoryDto, UpdateShopServiceDto } from '../../types/service';
 
-export const ServicesPage: React.FC = () => {
+export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
     const [categories, setCategories] = useState<ServiceCategoryDto[]>([]);
     const [loading, setLoading] = useState(true);
     const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
@@ -284,17 +284,27 @@ export const ServicesPage: React.FC = () => {
     );
 
     return (
-        <div className="max-w-5xl mx-auto space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <h1 className="text-2xl font-bold text-gray-800 flex items-center">
-                    <Scissors className="mr-3 h-8 w-8 text-primary-600" />
-                    Hizmetler ve Kategoriler
-                </h1>
-                <Button onClick={() => setIsCategoryModalOpen(true)} className="flex items-center shadow-md">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Yeni Kategori
-                </Button>
-            </div>
+        <div className={embedded ? 'space-y-4' : 'max-w-5xl mx-auto space-y-6'}>
+            {!embedded && (
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <h1 className="text-2xl font-bold text-gray-800 flex items-center">
+                        <Scissors className="mr-3 h-8 w-8 text-primary-600" />
+                        Hizmetler ve Kategoriler
+                    </h1>
+                    <Button type="button" onClick={() => setIsCategoryModalOpen(true)} className="flex items-center shadow-md">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Yeni Kategori
+                    </Button>
+                </div>
+            )}
+            {embedded && (
+                <div className="flex justify-end">
+                    <Button type="button" onClick={() => setIsCategoryModalOpen(true)} className="flex items-center">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Yeni Kategori
+                    </Button>
+                </div>
+            )}
 
             <div className="flex space-x-4 border-b border-gray-200">
                 <button
@@ -317,7 +327,7 @@ export const ServicesPage: React.FC = () => {
                         <EmptyState
                             message="Henüz hizmet bulunmuyor"
                             description="Bir kategori oluşturarak başlayın."
-                            action={<Button onClick={() => setIsCategoryModalOpen(true)}>Kategori Oluştur</Button>}
+                            action={<Button type="button" onClick={() => setIsCategoryModalOpen(true)}>Kategori Oluştur</Button>}
                         />
                     ) : (
                         activeCategories.map((category) => {
@@ -351,6 +361,7 @@ export const ServicesPage: React.FC = () => {
 
                                         <div className="flex items-center gap-1 shrink-0">
                                             <button
+                                                type="button"
                                                 onClick={(e) => { e.stopPropagation(); setSelectedCategory(category); setIsEditCategoryModalOpen(true); }}
                                                 className="p-1.5 text-gray-400 hover:text-primary-600 transition-colors rounded-lg hover:bg-primary-50"
                                                 title="Kategoriyi Düzenle"
@@ -358,6 +369,7 @@ export const ServicesPage: React.FC = () => {
                                                 <Edit className="h-4 w-4" />
                                             </button>
                                             <button
+                                                type="button"
                                                 onClick={(e) => { e.stopPropagation(); setSelectedCategory(category); setIsDeleteCategoryModalOpen(true); }}
                                                 className="p-1.5 text-gray-400 hover:text-red-600 transition-colors rounded-lg hover:bg-red-50"
                                                 title="Kategoriyi Sil"
@@ -365,6 +377,7 @@ export const ServicesPage: React.FC = () => {
                                                 <Trash2 className="h-4 w-4" />
                                             </button>
                                             <Button
+                                                type="button"
                                                 size="sm"
                                                 variant="outline"
                                                 className="ml-1 hidden sm:flex"
@@ -383,6 +396,7 @@ export const ServicesPage: React.FC = () => {
                                     {isOpen && (
                                         <div className="sm:hidden px-5 pb-3 border-b border-gray-100">
                                             <Button
+                                                type="button"
                                                 size="sm"
                                                 variant="outline"
                                                 className="w-full"
@@ -425,6 +439,7 @@ export const ServicesPage: React.FC = () => {
                                                         </div>
                                                         <div className="flex gap-1 shrink-0">
                                                             <button
+                                                                type="button"
                                                                 onClick={() => { setSelectedService(service); setIsEditServiceModalOpen(true); }}
                                                                 className="p-1.5 text-gray-400 hover:text-primary-600 transition-colors rounded-lg hover:bg-primary-50"
                                                                 title="Hizmeti Düzenle"
@@ -432,6 +447,7 @@ export const ServicesPage: React.FC = () => {
                                                                 <Edit className="h-4 w-4" />
                                                             </button>
                                                             <button
+                                                                type="button"
                                                                 onClick={() => { setSelectedService(service); setIsDeleteServiceModalOpen(true); }}
                                                                 className="p-1.5 text-gray-400 hover:text-red-600 transition-colors rounded-lg hover:bg-red-50"
                                                                 title="Hizmeti Sil"

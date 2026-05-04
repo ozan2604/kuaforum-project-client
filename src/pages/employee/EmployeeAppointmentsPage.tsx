@@ -26,7 +26,7 @@ export const EmployeeAppointmentsPage: React.FC = () => {
     const [pageSize, setPageSize] = useState(10);
     const [totalCount, setTotalCount] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
-    const [confirmAction, setConfirmAction] = useState<{ id: string; status: AppointmentStatus; label: string; actionText: string } | null>(null);
+    const [confirmAction, setConfirmAction] = useState<{ id: string; status: AppointmentStatus; label: string; actionText: string; groupSize?: number } | null>(null);
 
     const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
     const [weeklyAppointments, setWeeklyAppointments] = useState<Appointment[]>([]);
@@ -76,8 +76,8 @@ export const EmployeeAppointmentsPage: React.FC = () => {
 
     useEffect(() => { loadData(); }, [page, pageSize, statusFilter, searchTerm, filterDate, filterServiceId]);
 
-    const requestStatusUpdate = (id: string, status: AppointmentStatus, label: string, actionText: string) =>
-        setConfirmAction({ id, status, label, actionText });
+    const requestStatusUpdate = (id: string, status: AppointmentStatus, label: string, actionText: string, groupSize?: number) =>
+        setConfirmAction({ id, status, label, actionText, groupSize });
 
     const handleStatusUpdate = async (id: string, status: AppointmentStatus) => {
         try {
@@ -320,6 +320,9 @@ export const EmployeeAppointmentsPage: React.FC = () => {
                                                             <div className="text-sm text-gray-900 flex items-center gap-1">
                                                                 <Scissors className="h-3.5 w-3.5 text-gray-400" />
                                                                 {appointment.serviceName}
+                                                                {appointment.groupId && (
+                                                                    <span className="ml-1 px-1.5 py-0.5 bg-indigo-50 text-indigo-600 text-[10px] font-semibold rounded border border-indigo-100">GRUP</span>
+                                                                )}
                                                             </div>
                                                             <div className="text-xs text-gray-400 mt-0.5">
                                                                 {appointment.duration} dk • ₺{appointment.price}
@@ -350,17 +353,24 @@ export const EmployeeAppointmentsPage: React.FC = () => {
 
                                                         {/* Actions */}
                                                         <td className="px-6 py-4 whitespace-nowrap text-right">
-                                                            <div className="flex justify-end gap-2">
-                                                                {appointment.status === AppointmentStatus.Pending && (
-                                                                    <>
-                                                                        <Button size="sm" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Confirmed, 'Randevuyu Onayla', 'Bu randevuyu onaylamak istediğinize emin misiniz?')}>Onayla</Button>
-                                                                        <Button size="sm" variant="danger" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Rejected, 'Randevuyu Reddet', 'Bu randevuyu reddetmek istediğinize emin misiniz?')}>Reddet</Button>
-                                                                    </>
-                                                                )}
-                                                                {appointment.status === AppointmentStatus.Confirmed && new Date(appointment.startTime) <= new Date() && (
-                                                                    <Button size="sm" variant="outline" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Completed, 'Randevuyu Tamamla', 'Bu randevunun tamamlandığını onaylıyor musunuz?')}>Tamamlandı</Button>
-                                                                )}
-                                                            </div>
+                                                            {(() => {
+                                                                const grpSize = appointment.groupId
+                                                                    ? appointments.filter(a => a.groupId === appointment.groupId).length
+                                                                    : undefined;
+                                                                return (
+                                                                    <div className="flex justify-end gap-2">
+                                                                        {appointment.status === AppointmentStatus.Pending && (
+                                                                            <>
+                                                                                <Button size="sm" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Confirmed, 'Randevuyu Onayla', 'Bu randevuyu onaylamak istediğinize emin misiniz?', grpSize)}>Onayla</Button>
+                                                                                <Button size="sm" variant="danger" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Rejected, 'Randevuyu Reddet', 'Bu randevuyu reddetmek istediğinize emin misiniz?', grpSize)}>Reddet</Button>
+                                                                            </>
+                                                                        )}
+                                                                        {appointment.status === AppointmentStatus.Confirmed && new Date(appointment.startTime) <= new Date() && (
+                                                                            <Button size="sm" variant="outline" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Completed, 'Randevuyu Tamamla', 'Bu randevunun tamamlandığını onaylıyor musunuz?', grpSize)}>Tamamlandı</Button>
+                                                                        )}
+                                                                    </div>
+                                                                );
+                                                            })()}
                                                         </td>
                                                     </tr>
 
@@ -421,7 +431,12 @@ export const EmployeeAppointmentsPage: React.FC = () => {
                                                 </div>
 
                                                 <div className="mb-3 bg-gray-50 rounded-xl p-3">
-                                                    <div className="text-sm font-semibold text-gray-800">{appointment.serviceName}</div>
+                                                    <div className="text-sm font-semibold text-gray-800 flex items-center gap-1.5">
+                                                        {appointment.serviceName}
+                                                        {appointment.groupId && (
+                                                            <span className="px-1.5 py-0.5 bg-indigo-50 text-indigo-600 text-[10px] font-semibold rounded border border-indigo-100">GRUP</span>
+                                                        )}
+                                                    </div>
                                                     <div className="text-sm text-gray-500">{appointment.duration} dk • ₺{appointment.price}</div>
                                                 </div>
 
@@ -440,17 +455,25 @@ export const EmployeeAppointmentsPage: React.FC = () => {
                                                     </div>
                                                 )}
 
-                                                <div className="flex flex-wrap gap-2">
-                                                    {appointment.status === AppointmentStatus.Pending && (
-                                                        <>
-                                                            <Button size="sm" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Confirmed, 'Randevuyu Onayla', 'Bu randevuyu onaylamak istediğinize emin misiniz?')}>Onayla</Button>
-                                                            <Button size="sm" variant="danger" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Rejected, 'Randevuyu Reddet', 'Bu randevuyu reddetmek istediğinize emin misiniz?')}>Reddet</Button>
-                                                        </>
-                                                    )}
-                                                    {appointment.status === AppointmentStatus.Confirmed && new Date(appointment.startTime) <= new Date() && (
-                                                        <Button size="sm" variant="outline" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Completed, 'Randevuyu Tamamla', 'Bu randevunun tamamlandığını onaylıyor musunuz?')}>Tamamlandı</Button>
-                                                    )}
-                                                </div>
+                                                {(() => {
+                                                    const grpSize = appointment.groupId
+                                                        ? appointments.filter(a => a.groupId === appointment.groupId).length
+                                                        : undefined;
+                                                    return (
+                                                        <div className="flex flex-wrap gap-2">
+                                                            {appointment.status === AppointmentStatus.Pending && (
+                                                                <>
+                                                                    <Button size="sm" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Confirmed, 'Randevuyu Onayla', 'Bu randevuyu onaylamak istediğinize emin misiniz?', grpSize)}>Onayla</Button>
+                                                                    <Button size="sm" variant="danger" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Rejected, 'Randevuyu Reddet', 'Bu randevuyu reddetmek istediğinize emin misiniz?', grpSize)}>Reddet</Button>
+                                                                </>
+                                                            )}
+                                                            {appointment.status === AppointmentStatus.Confirmed && new Date(appointment.startTime) <= new Date() && (
+                                                                <Button size="sm" variant="outline" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Completed, 'Randevuyu Tamamla', 'Bu randevunun tamamlandığını onaylıyor musunuz?', grpSize)}>Tamamlandı</Button>
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })()}
+
                                             </div>
                                         );
                                     })}
@@ -466,7 +489,15 @@ export const EmployeeAppointmentsPage: React.FC = () => {
                 <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50">
                     <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
                         <h3 className="text-lg font-bold text-gray-900 mb-2">{confirmAction.label}</h3>
-                        <p className="text-gray-600 text-sm mb-6">{confirmAction.actionText}</p>
+                        <p className="text-gray-600 text-sm mb-3">{confirmAction.actionText}</p>
+                        {confirmAction.groupSize && confirmAction.groupSize > 1 && (
+                            <div className="flex items-start gap-2 bg-indigo-50 border border-indigo-100 rounded-xl px-3 py-2.5 mb-4">
+                                <span className="text-indigo-500 mt-0.5">ℹ️</span>
+                                <p className="text-xs text-indigo-700 font-medium">
+                                    Bu randevu <span className="font-bold">{confirmAction.groupSize} hizmetlik</span> bir grup randevusunun parçasıdır. İşlem gruptaki tüm randevulara uygulanacaktır.
+                                </p>
+                            </div>
+                        )}
                         <div className="flex gap-3 justify-end">
                             <button onClick={() => setConfirmAction(null)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl">Vazgeç</button>
                             <button

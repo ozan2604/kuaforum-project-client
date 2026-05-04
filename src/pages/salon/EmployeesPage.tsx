@@ -14,7 +14,7 @@ import type { UpdateEmployeeOwnerDto } from '../../types/employee';
 import { ScheduleEditor, SCHEDULE_DAYS } from '../../components/ScheduleEditor';
 import type { DaySchedule } from '../../components/ScheduleEditor';
 
-export const EmployeesPage: React.FC = () => {
+export const EmployeesPage: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [loading, setLoading] = useState(true);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -187,7 +187,7 @@ export const EmployeesPage: React.FC = () => {
                 <Input label="Ünvan (Örn: Kıdemli Stilist)" {...register('title', { required: true })} placeholder="Örn: Kıdemli Stilist" />
                 <div className="flex justify-end space-x-2 mt-6">
                     <Button variant="outline" onClick={() => setIsAddModalOpen(false)} type="button">İptal</Button>
-                    <Button isLoading={isSubmitting} type="submit">Çalışan Ekle</Button>
+                    <Button isLoading={isSubmitting} type="submit">Uzman Ekle</Button>
                 </div>
             </form>
         );
@@ -279,24 +279,34 @@ export const EmployeesPage: React.FC = () => {
     if (loading) return <LoadingSpinner size="md" />;
 
     return (
-        <div className="max-w-6xl mx-auto space-y-6">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                <h1 className="text-2xl font-bold text-gray-900 flex items-center">
-                    <Users className="mr-3 h-8 w-8 text-primary-600" />
-                    Çalışan Yönetimi
-                </h1>
-                <Button onClick={() => setIsAddModalOpen(true)} className="flex items-center shadow-md">
-                    <Plus className="h-4 w-4 mr-2" />
-                    Yeni Çalışan Ekle
-                </Button>
-            </div>
+        <div className={embedded ? 'space-y-4' : 'max-w-6xl mx-auto space-y-6'}>
+            {!embedded && (
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <h1 className="text-2xl font-bold text-gray-900 flex items-center">
+                        <Users className="mr-3 h-8 w-8 text-primary-600" />
+                        Uzman Yönetimi
+                    </h1>
+                    <Button type="button" onClick={() => setIsAddModalOpen(true)} className="flex items-center shadow-md">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Yeni Uzman Ekle
+                    </Button>
+                </div>
+            )}
+            {embedded && (
+                <div className="flex justify-end">
+                    <Button type="button" onClick={() => setIsAddModalOpen(true)} className="flex items-center">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Yeni Uzman Ekle
+                    </Button>
+                </div>
+            )}
 
             <div className="flex space-x-4 border-b border-gray-200">
                 <button
                     onClick={() => setActiveTab('active')}
                     className={`pb-3 px-1 text-sm font-medium border-b-2 transition-colors ${activeTab === 'active' ? 'border-primary-600 text-primary-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
                 >
-                    Mevcut Çalışanlar ({activeEmployees.length})
+                    Mevcut Uzmanlar ({activeEmployees.length})
                 </button>
                 <button
                     onClick={() => setActiveTab('deleted')}
@@ -326,6 +336,7 @@ export const EmployeesPage: React.FC = () => {
                                 {activeTab === 'active' ? (
                                     <div className="flex space-x-1">
                                         <button
+                                            type="button"
                                             onClick={() => { setSelectedEmployee(employee); setIsEditModalOpen(true); }}
                                             className="p-1 text-gray-400 hover:text-primary-600 transition-colors"
                                             title="Düzenle"
@@ -333,6 +344,7 @@ export const EmployeesPage: React.FC = () => {
                                             <Edit className="h-4 w-4" />
                                         </button>
                                         <button
+                                            type="button"
                                             onClick={() => confirmDeleteEmployee(employee)}
                                             className="p-1 text-gray-400 hover:text-red-600 transition-colors"
                                             title="Sil"
@@ -342,6 +354,7 @@ export const EmployeesPage: React.FC = () => {
                                     </div>
                                 ) : (
                                     <button
+                                        type="button"
                                         onClick={() => confirmRestoreEmployee(employee)}
                                         className="p-1 text-gray-400 hover:text-green-600 transition-colors"
                                         title="Geri Yükle"
@@ -353,11 +366,11 @@ export const EmployeesPage: React.FC = () => {
                         </div>
 
                         <div className="mt-4 pt-4 border-t border-gray-100 grid grid-cols-2 gap-2">
-                            <Button size="sm" variant="outline" onClick={() => handleOpenServicesModal(employee)} disabled={employee.isDeleted}>
+                            <Button type="button" size="sm" variant="outline" onClick={() => handleOpenServicesModal(employee)} disabled={employee.isDeleted}>
                                 <Scissors className="h-3 w-3 mr-1" />
                                 Hizmetler
                             </Button>
-                            <Button size="sm" variant="outline" onClick={() => handleOpenScheduleModal(employee)} disabled={employee.isDeleted}>
+                            <Button type="button" size="sm" variant="outline" onClick={() => handleOpenScheduleModal(employee)} disabled={employee.isDeleted}>
                                 <Clock className="h-3 w-3 mr-1" />
                                 Çalışma Saatleri
                             </Button>
@@ -368,7 +381,7 @@ export const EmployeesPage: React.FC = () => {
                 {(activeTab === 'active' ? activeEmployees : deletedEmployees).length === 0 && (
                     <div className="col-span-full">
                         <EmptyState
-                            message={activeTab === 'active' ? 'Henüz çalışan eklenmemiş.' : 'Silinmiş çalışan bulunmuyor.'}
+                            message={activeTab === 'active' ? 'Henüz uzman eklenmemiş.' : 'Silinmiş uzman bulunmuyor.'}
                             icon={<Users className="h-12 w-12" />}
                         />
                     </div>
@@ -379,7 +392,7 @@ export const EmployeesPage: React.FC = () => {
             {isAddModalOpen && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
                     <div className="bg-white rounded-xl p-6 w-full max-w-md">
-                        <h2 className="text-xl font-bold mb-4">Yeni Çalışan Ekle</h2>
+                        <h2 className="text-xl font-bold mb-4">Yeni Uzman Ekle</h2>
                         <AddEmployeeForm />
                     </div>
                 </div>
@@ -389,7 +402,7 @@ export const EmployeesPage: React.FC = () => {
             {isEditModalOpen && selectedEmployee && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
                     <div className="bg-white rounded-xl p-6 w-full max-w-md">
-                        <h2 className="text-xl font-bold mb-4">Çalışan Düzenle</h2>
+                        <h2 className="text-xl font-bold mb-4">Uzman Düzenle</h2>
                         <UpdateEmployeeForm employee={selectedEmployee} />
                     </div>
                 </div>
@@ -399,9 +412,9 @@ export const EmployeesPage: React.FC = () => {
             {isDeleteModalOpen && employeeToDelete && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
                     <div className="bg-white rounded-xl p-6 w-full max-w-sm">
-                        <h2 className="text-xl font-bold mb-4 text-gray-900">Çalışanı Sil</h2>
+                        <h2 className="text-xl font-bold mb-4 text-gray-900">Uzmanı Sil</h2>
                         <p className="text-gray-600 mb-6">
-                            <span className="font-semibold">{employeeToDelete.firstName} {employeeToDelete.lastName}</span> isimli çalışanı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.
+                            <span className="font-semibold">{employeeToDelete.firstName} {employeeToDelete.lastName}</span> isimli uzmanı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.
                         </p>
                         <div className="flex justify-end space-x-2">
                             <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>İptal</Button>
@@ -417,9 +430,9 @@ export const EmployeesPage: React.FC = () => {
             {isRestoreModalOpen && employeeToRestore && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
                     <div className="bg-white rounded-xl p-6 w-full max-w-sm">
-                        <h2 className="text-xl font-bold mb-4 text-gray-900">Çalışanı Geri Yükle</h2>
+                        <h2 className="text-xl font-bold mb-4 text-gray-900">Uzmanı Geri Yükle</h2>
                         <p className="text-gray-600 mb-6">
-                            <span className="font-semibold">{employeeToRestore.firstName} {employeeToRestore.lastName}</span> isimli çalışanı geri yüklemek istediğinize emin misiniz? Çalışana Employee rolü yeniden atanacak ve panele erişimi açılacaktır.
+                            <span className="font-semibold">{employeeToRestore.firstName} {employeeToRestore.lastName}</span> isimli uzmanı geri yüklemek istediğinize emin misiniz? Uzman Employee rolü yeniden atanacak ve panele erişimi açılacaktır.
                         </p>
                         <div className="flex justify-end space-x-2">
                             <Button variant="outline" onClick={() => { setIsRestoreModalOpen(false); setEmployeeToRestore(null); }}>İptal</Button>
@@ -499,7 +512,7 @@ export const EmployeesPage: React.FC = () => {
                             <div className="h-16 w-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-4">
                                 <CheckCircle className="h-10 w-10" />
                             </div>
-                            <h2 className="text-2xl font-bold text-gray-900 mb-2">Çalışan Eklendi!</h2>
+                            <h2 className="text-2xl font-bold text-gray-900 mb-2">Uzman Eklendi!</h2>
                             <p className="text-gray-500 mb-6">
                                 <span className="font-semibold text-gray-900">{createdEmployeeInfo.name}</span> başarıyla sisteme kaydedildi.
                             </p>

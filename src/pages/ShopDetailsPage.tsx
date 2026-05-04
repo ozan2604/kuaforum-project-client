@@ -706,6 +706,21 @@ export const ShopDetailsPage: React.FC = () => {
                                             </div>
                                         </div>
                                     </div>
+
+                                    {/* İptal Politikası */}
+                                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+                                                <Info className="w-5 h-5 text-blue-500" />
+                                            </div>
+                                            <div>
+                                                <p className="font-semibold text-gray-900 text-sm">İptal Politikası</p>
+                                                <p className="text-xs text-gray-500 mt-0.5">
+                                                    Randevunuzu en geç <span className="font-semibold text-gray-700">{shop.cancellationHours ?? 2} saat</span> öncesine kadar ücretsiz iptal edebilirsiniz.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             )}
 

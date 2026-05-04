@@ -5,7 +5,7 @@ import { ReviewModal } from '../components/ReviewModal';
 import type { AppointmentDto } from '../types/appointment';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { Calendar, Clock, User, Scissors, MessageSquare, XCircle } from 'lucide-react';
+import { Calendar, Clock, User, Scissors, MessageSquare, XCircle, Layers } from 'lucide-react';
 import { Button } from '../components/Button';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { EmptyState } from '../components/EmptyState';
@@ -51,17 +51,26 @@ export const MyAppointmentsPage: React.FC = () => {
         );
     }, [appointments]);
 
+    // Gruptaki ilk aktif randevunun başlangıç saatine göre toplu iptal kontrolü
     const canCancelGroup = (group: Appointment[]) => {
-        const hasActive = group.some(a => a.status === 0 || a.status === 1);
-        if (!hasActive) return false;
-        const hoursLeft = (new Date(group[0].startTime).getTime() - Date.now()) / 3600000;
-        return hoursLeft >= 2;
+        const activeApts = group.filter(a => a.status === 0 || a.status === 1);
+        if (activeApts.length === 0) return false;
+        const first = activeApts[0];
+        const hoursLeft = (new Date(first.startTime).getTime() - Date.now()) / 3600000;
+        return hoursLeft >= (first.shopCancellationHours ?? 2);
+    };
+
+    // Bireysel randevunun iptali için kontrol
+    const canCancelIndividual = (apt: Appointment) => {
+        if (apt.status !== 0 && apt.status !== 1) return false;
+        const hoursLeft = (new Date(apt.startTime).getTime() - Date.now()) / 3600000;
+        return hoursLeft >= (apt.shopCancellationHours ?? 2);
     };
 
     const handleCancelGroup = async (group: Appointment[]) => {
         const isMulti = group.length > 1 && !!group[0].groupId;
         const msg = isMulti
-            ? `"${group[0].shopName}" salonundaki ${group.length} hizmetli randevunuzu iptal etmek istediğinizden emin misiniz?`
+            ? `"${group[0].shopName}" salonundaki ${group.length} hizmetli randevunuzu tümüyle iptal etmek istediğinizden emin misiniz?`
             : `"${group[0].shopName}" salonundaki randevunuzu iptal etmek istediğinizden emin misiniz?`;
         if (!window.confirm(msg)) return;
         try {
@@ -74,6 +83,17 @@ export const MyAppointmentsPage: React.FC = () => {
             await loadAppointments();
         } catch (error: any) {
             toast.error(error.response?.data?.Message || 'Randevu iptal edilemedi.');
+        }
+    };
+
+    const handleCancelSingle = async (apt: Appointment) => {
+        if (!window.confirm(`"${apt.serviceName}" hizmetini iptal etmek istediğinizden emin misiniz?`)) return;
+        try {
+            await appointmentService.cancelAppointment(apt.id);
+            toast.success('Hizmet iptal edildi.');
+            await loadAppointments();
+        } catch (error: any) {
+            toast.error(error.response?.data?.Message || 'İptal edilemedi.');
         }
     };
 
@@ -134,7 +154,15 @@ export const MyAppointmentsPage: React.FC = () => {
                                 <div className="px-5 py-4">
                                     <div className="flex items-start justify-between gap-3">
                                         <div className="min-w-0">
-                                            <h3 className="font-bold text-gray-900 text-base leading-tight">{first.shopName}</h3>
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <h3 className="font-bold text-gray-900 text-base leading-tight">{first.shopName}</h3>
+                                                {isMulti && (
+                                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-50 text-indigo-600 text-[11px] font-semibold rounded-full border border-indigo-100">
+                                                        <Layers className="w-3 h-3" />
+                                                        {group.length} hizmet · Grup Randevusu
+                                                    </span>
+                                                )}
+                                            </div>
                                             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-sm text-gray-500">
                                                 <span className="flex items-center gap-1">
                                                     <Calendar className="w-3.5 h-3.5 text-primary-400 shrink-0" />
@@ -162,19 +190,30 @@ export const MyAppointmentsPage: React.FC = () => {
                                     {group.map((apt, idx) => (
                                         <div
                                             key={apt.id}
-                                            className={`flex items-center gap-3 px-5 py-3 ${idx < group.length - 1 ? 'border-b border-gray-50' : ''}`}
+                                            className={`px-5 py-3 ${idx < group.length - 1 ? 'border-b border-gray-50' : ''}`}
                                         >
-                                            <Scissors className="w-3.5 h-3.5 text-gray-300 shrink-0" />
-                                            <span className="text-sm font-medium text-gray-800 flex-1 min-w-0 truncate">
-                                                {apt.serviceName}
-                                            </span>
-                                            {isMulti && (
-                                                <span className="text-xs text-gray-400 shrink-0">
-                                                    {format(new Date(apt.startTime), 'HH:mm')}–{format(new Date(apt.endTime), 'HH:mm')}
+                                            <div className="flex items-center gap-3">
+                                                <Scissors className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                                                <span className="text-sm font-medium text-gray-800 flex-1 min-w-0 truncate">
+                                                    {apt.serviceName}
                                                 </span>
-                                            )}
-                                            <span className="font-semibold text-sm text-gray-700 shrink-0">₺{apt.price}</span>
-                                            {getStatusBadge(apt.status)}
+                                                {isMulti && (
+                                                    <span className="text-xs text-gray-400 shrink-0">
+                                                        {format(new Date(apt.startTime), 'HH:mm')}–{format(new Date(apt.endTime), 'HH:mm')}
+                                                    </span>
+                                                )}
+                                                <span className="font-semibold text-sm text-gray-700 shrink-0">₺{apt.price}</span>
+                                                {getStatusBadge(apt.status)}
+                                                {/* Bireysel iptal butonu — sadece çok-hizmetli grupta göster */}
+                                                {isMulti && canCancelIndividual(apt) && (
+                                                    <button
+                                                        onClick={() => handleCancelSingle(apt)}
+                                                        className="text-xs text-red-500 hover:text-red-700 font-semibold px-2 py-1 rounded-lg hover:bg-red-50 transition-colors shrink-0 whitespace-nowrap"
+                                                    >
+                                                        İptal
+                                                    </button>
+                                                )}
+                                            </div>
                                         </div>
                                     ))}
                                 </div>
@@ -200,27 +239,32 @@ export const MyAppointmentsPage: React.FC = () => {
 
                                 {/* ── Aksiyonlar ── */}
                                 {(canCancel || reviewable) && (
-                                    <div className="px-5 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-end gap-2">
-                                        {reviewable && (
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={() => {
-                                                    setSelectedAppointmentForReview(reviewable);
-                                                    setIsReviewModalOpen(true);
-                                                }}
-                                            >
-                                                Değerlendir
-                                            </Button>
-                                        )}
-                                        {canCancel && (
-                                            <button
-                                                onClick={() => handleCancelGroup(group)}
-                                                className="text-sm text-red-600 hover:text-red-700 font-semibold px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
-                                            >
-                                                {isMulti ? 'Tümünü İptal Et' : 'İptal Et'}
-                                            </button>
-                                        )}
+                                    <div className="px-5 py-3 bg-gray-50 border-t border-gray-100 flex items-center justify-between gap-2">
+                                        <div className="text-xs text-gray-400">
+                                            {isMulti && canCancel && 'Tüm grubu toplu iptal etmek için:'}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {reviewable && (
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => {
+                                                        setSelectedAppointmentForReview(reviewable);
+                                                        setIsReviewModalOpen(true);
+                                                    }}
+                                                >
+                                                    Değerlendir
+                                                </Button>
+                                            )}
+                                            {canCancel && (
+                                                <button
+                                                    onClick={() => handleCancelGroup(group)}
+                                                    className="text-sm text-red-600 hover:text-red-700 font-semibold px-3 py-1.5 rounded-lg hover:bg-red-50 transition-colors"
+                                                >
+                                                    {isMulti ? 'Tümünü İptal Et' : 'İptal Et'}
+                                                </button>
+                                            )}
+                                        </div>
                                     </div>
                                 )}
                             </div>

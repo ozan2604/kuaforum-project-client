@@ -28,6 +28,7 @@ export interface AppointmentDto {
     groupId?: string;
     hasReview: boolean;
     cancellationReason?: string;
+    shopCancellationHours: number;
 }
 
 // Alias for backward compatibility if needed, or just use AppointmentDto

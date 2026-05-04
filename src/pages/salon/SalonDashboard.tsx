@@ -1,19 +1,41 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { shopService } from '../../api/shop.service';
 import { reviewService } from '../../api/review.service';
 import type { Review } from '../../api/review.service';
 import { toast } from 'react-hot-toast';
-import { 
-    Calendar, Users, Scissors, CheckCircle, 
+import {
+    Calendar, Users, Scissors, CheckCircle, CheckCircle2,
     AlertCircle, Clock, PlusCircle, Store, ChevronRight, Activity, XOctagon,
-    ChevronDown, ChevronUp, DollarSign, Bell, Star, MessageSquare, Filter
+    ChevronDown, ChevronUp, DollarSign, Bell, Star, MessageSquare, Circle
 } from 'lucide-react';
+
+interface NotificationItem {
+    type: 'setup' | 'action' | 'warning' | 'info';
+    message: string;
+    link?: string;
+}
+
+interface SetupStatus {
+    hasName: boolean;
+    hasDescription: boolean;
+    hasCoverImage: boolean;
+    hasCategories: boolean;
+    hasLocation: boolean;
+    hasOpeningHours: boolean;
+    hasActiveServices: boolean;
+    hasActiveEmployees: boolean;
+    hasEmployeeServices: boolean;
+    hasEmployeeSchedules: boolean;
+    completionPercentage: number;
+}
 
 interface Stats {
     shopId: string;
     notifications: string[];
+    notificationItems: NotificationItem[];
+    setupStatus: SetupStatus;
     appointments: {
         today: { total: number; completed: number; cancelled: number; rejected: number; revenue: number };
         thisWeek: { total: number; completed: number; cancelled: number; rejected: number; revenue: number };
@@ -158,37 +180,102 @@ export const SalonDashboard: React.FC = () => {
                 </div>
             </div>
 
-            {/* Notifications Alert */}
-            {!loading && (
-                stats?.notifications && stats.notifications.length > 0 ? (
+            {/* Kurulum Checklist */}
+            {!loading && stats?.setupStatus && stats.setupStatus.completionPercentage < 100 && (() => {
+                const s = stats.setupStatus;
+                const steps: { label: string; done: boolean; link: string }[] = [
+                    { label: 'Salon adı ve açıklama',           done: s.hasName && s.hasDescription, link: '/salon-panel/shop' },
+                    { label: 'Kapak fotoğrafı',                 done: s.hasCoverImage,               link: '/salon-panel/shop' },
+                    { label: 'Kategori seçimi',                 done: s.hasCategories,               link: '/salon-panel/shop' },
+                    { label: 'Konum bilgisi (şehir & adres)',   done: s.hasLocation,                 link: '/salon-panel/shop' },
+                    { label: 'Genel çalışma saatleri',          done: s.hasOpeningHours,             link: '/salon-panel/shop' },
+                    { label: 'En az 1 aktif hizmet',            done: s.hasActiveServices,           link: '/salon-panel/shop' },
+                    { label: 'En az 1 aktif uzman',             done: s.hasActiveEmployees,          link: '/salon-panel/shop' },
+                    { label: 'Uzmanlara hizmet atandı',         done: s.hasEmployeeServices,         link: '/salon-panel/shop' },
+                    { label: 'Uzman çalışma saatleri ayarlandı', done: s.hasEmployeeSchedules,      link: '/salon-panel/shop' },
+                ];
+                const pct = s.completionPercentage;
+                return (
+                    <div className="bg-white border border-blue-100 rounded-2xl shadow-sm overflow-hidden">
+                        <div className="px-5 py-4 border-b border-blue-50 flex items-center gap-3">
+                            <div className="p-2 bg-blue-50 rounded-xl">
+                                <CheckCircle2 className="w-5 h-5 text-blue-600" />
+                            </div>
+                            <div className="flex-1">
+                                <h3 className="text-sm font-bold text-gray-900">Salon Kurulumu</h3>
+                                <p className="text-xs text-gray-400">Salonunuzu tamamlamak için aşağıdaki adımları takip edin</p>
+                            </div>
+                            <span className={`text-sm font-bold ${pct === 100 ? 'text-emerald-600' : 'text-blue-600'}`}>{pct}%</span>
+                        </div>
+                        {/* Progress bar */}
+                        <div className="h-1.5 bg-gray-100">
+                            <div
+                                className="h-full bg-blue-500 transition-all duration-500"
+                                style={{ width: `${pct}%` }}
+                            />
+                        </div>
+                        <div className="px-5 py-3 divide-y divide-gray-50">
+                            {steps.map((step, i) => (
+                                <div key={i} className="flex items-center gap-3 py-2.5">
+                                    {step.done
+                                        ? <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
+                                        : <Circle className="w-4 h-4 text-gray-300 shrink-0" />
+                                    }
+                                    <span className={`flex-1 text-sm ${step.done ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
+                                        {step.label}
+                                    </span>
+                                    {!step.done && (
+                                        <Link
+                                            to={step.link}
+                                            className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 shrink-0"
+                                        >
+                                            Tamamla <ChevronRight className="w-3 h-3" />
+                                        </Link>
+                                    )}
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                );
+            })()}
+
+            {/* Aksiyon Bildirimleri (bekleyen randevular vb.) */}
+            {!loading && (() => {
+                const actionItems = stats?.notificationItems?.filter(n => n.type === 'action') ?? [];
+                if (actionItems.length > 0) return (
                     <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3 shadow-sm">
                         <div className="p-2 bg-amber-100 text-amber-600 rounded-lg shrink-0">
                             <Bell className="w-5 h-5 animate-pulse" />
                         </div>
-                        <div>
-                            <h3 className="font-bold text-amber-800">Bildirimleriniz Var</h3>
+                        <div className="flex-1">
+                            <h3 className="font-bold text-amber-800">İşlem Gerektiren Bildirimler</h3>
                             <ul className="mt-1 space-y-1">
-                                {stats.notifications.map((note, idx) => (
+                                {actionItems.map((n, idx) => (
                                     <li key={idx} className="text-sm text-amber-700 flex items-center gap-2">
-                                        <div className="w-1.5 h-1.5 rounded-full bg-amber-500"></div>
-                                        {note}
+                                        <div className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
+                                        {n.link
+                                            ? <Link to={n.link} className="hover:underline">{n.message}</Link>
+                                            : n.message
+                                        }
                                     </li>
                                 ))}
                             </ul>
                         </div>
                     </div>
-                ) : (
+                );
+                if ((stats?.setupStatus?.completionPercentage ?? 0) === 100) return (
                     <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-start gap-3 shadow-sm">
                         <div className="p-2 bg-emerald-100 text-emerald-600 rounded-lg shrink-0">
                             <CheckCircle className="w-5 h-5" />
                         </div>
                         <div>
                             <h3 className="font-bold text-emerald-800">Her Şey Yolunda</h3>
-                            <p className="text-sm text-emerald-700 mt-0.5">Şu an için bekleyen bir bildiriminiz bulunmuyor. Dükkanınız harika çalışıyor!</p>
+                            <p className="text-sm text-emerald-700 mt-0.5">Bekleyen bir bildiriminiz yok. Dükkanınız harika çalışıyor!</p>
                         </div>
                     </div>
-                )
-            )}
+                );
+                return null;
+            })()}
 
             {loading ? (
                 <div className="grid grid-cols-1 gap-4">

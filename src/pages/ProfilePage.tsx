@@ -88,9 +88,9 @@ export const ProfilePage: React.FC = () => {
     const [resultModal, setResultModal] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
     const showResult = (type: 'success' | 'error', message: string) => setResultModal({ type, message });
     const [reviewToDelete, setReviewToDelete] = useState<string | null>(null);
-    const [appointmentToCancel, setAppointmentToCancel] = useState<string | null>(null);
+    const [appointmentToCancel, setAppointmentToCancel] = useState<AppointmentDto | null>(null);
     const [cancelReason, setCancelReason] = useState('');
-    const [openGroups, setOpenGroups] = useState<Set<string>>(new Set(['pending', 'upcoming', 'past']));
+    const [openGroups, setOpenGroups] = useState<Set<string>>(new Set<string>());
 
     const toggle = (id: TabType) => {
         const next = openSection === id ? null : id;
@@ -242,7 +242,7 @@ export const ProfilePage: React.FC = () => {
     const confirmCancelAppointment = async () => {
         if (!appointmentToCancel) return;
         try {
-            await appointmentService.cancelAppointment(appointmentToCancel, cancelReason);
+            await appointmentService.cancelAppointment(appointmentToCancel.id, cancelReason);
             loadAppointments();
             showResult('success', 'Randevunuz başarıyla iptal edildi.');
         } catch (err) {
@@ -266,7 +266,8 @@ export const ProfilePage: React.FC = () => {
 
     const pendingApps = appointments.filter(a => a.status === 0);
     const upcomingApps = appointments.filter(a => a.status === 1);
-    const pastApps = appointments.filter(a => [2, 3, 4].includes(a.status));
+    const completedApps = appointments.filter(a => a.status === 2);
+    const cancelledApps = appointments.filter(a => a.status === 3 || a.status === 4);
     const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Kullanıcı';
 
     const inputCls = "block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none";
@@ -393,7 +394,7 @@ export const ProfilePage: React.FC = () => {
                                                 </button>
                                                 {openGroups.has('pending') && (
                                                     <div className="p-2 space-y-2">
-                                                        {pendingApps.map(app => <AppCard key={app.id} app={app} badge={getStatusBadge(app.status)} onCancel={() => setAppointmentToCancel(app.id)} />)}
+                                                        {pendingApps.map(app => <AppCard key={app.id} app={app} badge={getStatusBadge(app.status)} onCancel={() => setAppointmentToCancel(app)} />)}
                                                     </div>
                                                 )}
                                             </div>
@@ -409,28 +410,44 @@ export const ProfilePage: React.FC = () => {
                                                 </button>
                                                 {openGroups.has('upcoming') && (
                                                     <div className="p-2 space-y-2">
-                                                        {upcomingApps.map(app => <AppCard key={app.id} app={app} badge={getStatusBadge(app.status)} onCancel={() => setAppointmentToCancel(app.id)} onReview={!app.hasReview && app.status === 2 ? () => { setSelectedAppointment(app); setIsReviewModalOpen(true); } : undefined} />)}
+                                                        {upcomingApps.map(app => <AppCard key={app.id} app={app} badge={getStatusBadge(app.status)} onCancel={() => setAppointmentToCancel(app)} onReview={!app.hasReview && app.status === 2 ? () => { setSelectedAppointment(app); setIsReviewModalOpen(true); } : undefined} />)}
                                                     </div>
                                                 )}
                                             </div>
                                         )}
                                         <div className="border border-gray-200 rounded-xl overflow-hidden">
-                                            <button onClick={() => toggleGroup('past')} className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors">
+                                            <button onClick={() => toggleGroup('completed')} className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors">
                                                 <div className="flex items-center gap-2">
                                                     <span className="text-xs font-bold text-gray-600 uppercase tracking-wider">Geçmiş</span>
-                                                    {pastApps.length > 0 && <span className="text-xs bg-gray-200 text-gray-700 rounded-full px-2 py-0.5 font-semibold">{pastApps.length}</span>}
+                                                    {completedApps.length > 0 && <span className="text-xs bg-gray-200 text-gray-700 rounded-full px-2 py-0.5 font-semibold">{completedApps.length}</span>}
                                                 </div>
-                                                <ChevronRight className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${openGroups.has('past') ? 'rotate-90' : ''}`} />
+                                                <ChevronRight className={`h-4 w-4 text-gray-500 transition-transform duration-200 ${openGroups.has('completed') ? 'rotate-90' : ''}`} />
                                             </button>
-                                            {openGroups.has('past') && (
+                                            {openGroups.has('completed') && (
                                                 <div className="p-2 space-y-2">
-                                                    {pastApps.length > 0
-                                                        ? pastApps.map(app => <AppCard key={app.id} app={app} badge={getStatusBadge(app.status)} onReview={!app.hasReview && app.status === 2 ? () => { setSelectedAppointment(app); setIsReviewModalOpen(true); } : undefined} />)
-                                                        : <p className="text-sm text-gray-400 text-center py-4">Geçmiş randevu bulunmuyor.</p>
+                                                    {completedApps.length > 0
+                                                        ? completedApps.map((app: AppointmentDto) => <AppCard key={app.id} app={app} badge={getStatusBadge(app.status)} onReview={!app.hasReview ? () => { setSelectedAppointment(app); setIsReviewModalOpen(true); } : undefined} />)
+                                                        : <p className="text-sm text-gray-400 text-center py-4">Tamamlanmış randevu bulunmuyor.</p>
                                                     }
                                                 </div>
                                             )}
                                         </div>
+                                        {cancelledApps.length > 0 && (
+                                            <div className="border border-red-200 rounded-xl overflow-hidden">
+                                                <button onClick={() => toggleGroup('cancelled')} className="w-full flex items-center justify-between px-4 py-3 bg-red-50 hover:bg-red-100 transition-colors">
+                                                    <div className="flex items-center gap-2">
+                                                        <span className="text-xs font-bold text-red-700 uppercase tracking-wider">İptal / Reddedilen</span>
+                                                        <span className="text-xs bg-red-200 text-red-800 rounded-full px-2 py-0.5 font-semibold">{cancelledApps.length}</span>
+                                                    </div>
+                                                    <ChevronRight className={`h-4 w-4 text-red-500 transition-transform duration-200 ${openGroups.has('cancelled') ? 'rotate-90' : ''}`} />
+                                                </button>
+                                                {openGroups.has('cancelled') && (
+                                                    <div className="p-2 space-y-2">
+                                                        {cancelledApps.map((app: AppointmentDto) => <AppCard key={app.id} app={app} badge={getStatusBadge(app.status)} />)}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 
@@ -618,7 +635,7 @@ export const ProfilePage: React.FC = () => {
                         
                         <div className="bg-orange-50 border border-orange-200 rounded-lg p-3 mb-4 flex gap-2 text-orange-800">
                             <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                            <p className="text-xs font-medium">Randevuya 2 saatten az süre kaldıysa iptal işlemi gerçekleştirilemez.</p>
+                            <p className="text-xs font-medium">Randevuya {appointmentToCancel.shopCancellationHours} saatten az süre kaldıysa iptal işlemi gerçekleştirilemez.</p>
                         </div>
 
                         <div className="mb-6">
@@ -671,7 +688,13 @@ export const ProfilePage: React.FC = () => {
 
 const AppCard: React.FC<{ app: AppointmentDto; badge: React.ReactNode; onReview?: () => void; onCancel?: () => void }> = ({ app, badge, onReview, onCancel }) => {
     const [isOpen, setIsOpen] = useState(false);
-    const isCancelDisabled = (new Date(app.startTime).getTime() - new Date().getTime()) < 2 * 60 * 60 * 1000;
+    const now = new Date().getTime();
+    const startMs = new Date(app.startTime).getTime();
+    const isPast = startMs < now;
+    const isCancelDisabled = (startMs - now) < app.shopCancellationHours * 60 * 60 * 1000;
+    const cancelBlockReason = isPast
+        ? 'Randevu saati geçtiği için sistem üzerinden iptal yapılamaz.'
+        : `Randevuya ${app.shopCancellationHours} saatten az kaldığı için sistem üzerinden iptal yapılamaz.`;
 
     return (
         <div className="border border-gray-200 rounded-lg overflow-hidden">
@@ -701,25 +724,33 @@ const AppCard: React.FC<{ app: AppointmentDto; badge: React.ReactNode; onReview?
                         <span className="font-bold text-sm text-gray-900">₺{app.price}</span>
                     </div>
                     {(onCancel || onReview) && (
-                        <div className="flex gap-2 pt-1">
-                            {onCancel && (
-                                <div title={isCancelDisabled ? "Randevuya 2 saatten az kaldığı için iptal edilemez." : ""}>
+                        <div className="space-y-2 pt-1">
+                            {onCancel && isCancelDisabled && (
+                                <div className="flex items-start gap-2 bg-amber-50 border border-amber-200 rounded-lg p-2.5">
+                                    <AlertCircle className="h-3.5 w-3.5 text-amber-600 flex-shrink-0 mt-0.5" />
+                                    <div>
+                                        <p className="text-xs font-medium text-amber-800">{cancelBlockReason}</p>
+                                        <p className="text-xs text-amber-700 mt-0.5">Değişiklik için işletme ile iletişime geçebilirsiniz.</p>
+                                    </div>
+                                </div>
+                            )}
+                            <div className="flex gap-2">
+                                {onCancel && !isCancelDisabled && (
                                     <Button
                                         size="sm"
                                         variant="outline"
                                         onClick={e => { e.stopPropagation(); onCancel(); }}
-                                        disabled={isCancelDisabled}
-                                        className="text-xs text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                                        className="text-xs text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700"
                                     >
                                         İptal Et
                                     </Button>
-                                </div>
-                            )}
-                            {onReview && (
-                                <Button size="sm" variant="outline" onClick={e => { e.stopPropagation(); onReview(); }} className="text-xs">
-                                    Değerlendir
-                                </Button>
-                            )}
+                                )}
+                                {onReview && (
+                                    <Button size="sm" variant="outline" onClick={e => { e.stopPropagation(); onReview(); }} className="text-xs">
+                                        Değerlendir
+                                    </Button>
+                                )}
+                            </div>
                         </div>
                     )}
                 </div>

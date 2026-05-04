@@ -7,8 +7,11 @@ import { toast } from 'react-hot-toast';
 import { getApiError } from '../../utils/storage';
 import {
     MapPin, Phone, Building2, Trash2, CalendarX, Clock,
-    Camera, Store, ChevronDown, ChevronUp, ArrowRight, AlertTriangle, CalendarClock, UserX
+    Camera, Store, ChevronDown, ChevronUp, ArrowRight, AlertTriangle, CalendarClock, UserX,
+    Scissors, Users
 } from 'lucide-react';
+import { ServicesPage } from './ServicesPage';
+import { EmployeesPage } from './EmployeesPage';
 import { SearchableSelect } from '../../components/SearchableSelect';
 import { ShopCategoryLabels, TargetGender, TargetGenderLabels } from '../../types/shop';
 import type { ShopClosureDateDto } from '../../types/shop';
@@ -39,6 +42,7 @@ interface ShopFormData {
     openTime?: string;
     closeTime?: string;
     bookingDaysAhead?: number;
+    cancellationHours?: number;
 }
 
 // Tracks the last successfully saved state per section — prevents cross-section contamination
@@ -59,6 +63,7 @@ interface ShopSnapshot {
     openTime?: string;
     closeTime?: string;
     bookingDaysAhead?: number;
+    cancellationHours?: number;
     weeklyOffDays: number[];
 }
 
@@ -79,6 +84,7 @@ type ShopUpdatePayload = {
     openTime?: string;
     closeTime?: string;
     bookingDaysAhead?: number;
+    cancellationHours?: number;
     weeklyOffDays?: number[];
 };
 
@@ -161,6 +167,7 @@ export const MyShopPage: React.FC = () => {
     const [newLeaveReason, setNewLeaveReason] = useState('');
     const [addingLeave, setAddingLeave] = useState(false);
     const [loadingLeaveDates, setLoadingLeaveDates] = useState(false);
+    const [leaveDateToDelete, setLeaveDateToDelete] = useState<EmployeeLeaveDate | null>(null);
 
     const [provinces, setProvinces] = useState<Province[]>([]);
     const [districts, setDistricts] = useState<{ id: number; name: string }[]>([]);
@@ -176,6 +183,8 @@ export const MyShopPage: React.FC = () => {
         images: false,
         info: false,
         location: false,
+        services: false,
+        employees: false,
         hours: false,
         closureDates: false,
         map: false,
@@ -227,6 +236,7 @@ export const MyShopPage: React.FC = () => {
                     openTime: shop.openTime || '',
                     closeTime: shop.closeTime || '',
                     bookingDaysAhead: shop.bookingDaysAhead ?? 30,
+                    cancellationHours: shop.cancellationHours ?? 2,
                 });
 
                 setSelectedCategories(shop.categories ?? []);
@@ -250,6 +260,7 @@ export const MyShopPage: React.FC = () => {
                     openTime: shop.openTime || '',
                     closeTime: shop.closeTime || '',
                     bookingDaysAhead: shop.bookingDaysAhead ?? 30,
+                    cancellationHours: shop.cancellationHours ?? 2,
                     weeklyOffDays: shop.weeklyOffDays ?? [],
                 });
 
@@ -335,6 +346,7 @@ export const MyShopPage: React.FC = () => {
             check('Açılış Saati', snap.openTime, payload.openTime);
             check('Kapanış Saati', snap.closeTime, payload.closeTime);
             check('Randevu Alma Süresi', String(snap.bookingDaysAhead ?? 30) + ' gün', String(payload.bookingDaysAhead ?? 30) + ' gün');
+            check('Min. İptal Süresi', String(snap.cancellationHours ?? 2) + ' saat', String(payload.cancellationHours ?? 2) + ' saat');
             const oldOff = fmtOffDays(snap.weeklyOffDays ?? []);
             const newOff = fmtOffDays(payload.weeklyOffDays ?? []);
             if (oldOff !== newOff) items.push({ label: 'Haftalık Tatil Günleri', oldValue: oldOff, newValue: newOff });
@@ -389,6 +401,7 @@ export const MyShopPage: React.FC = () => {
             openTime: section === 'hours' ? values.openTime : savedSnapshot.openTime,
             closeTime: section === 'hours' ? values.closeTime : savedSnapshot.closeTime,
             bookingDaysAhead: section === 'hours' ? (Number(values.bookingDaysAhead) || 30) : (savedSnapshot.bookingDaysAhead ?? 30),
+            cancellationHours: section === 'hours' ? (Number(values.cancellationHours) ?? 2) : (savedSnapshot.cancellationHours ?? 2),
             weeklyOffDays: section === 'hours' ? weeklyOffDays : savedSnapshot.weeklyOffDays,
         };
 
@@ -424,7 +437,7 @@ export const MyShopPage: React.FC = () => {
                 if (section === 'location') {
                     return { ...prev, address: payload.address, city: payload.city, district: payload.district, neighborhood: payload.neighborhood, street: payload.street, buildingNumber: payload.buildingNumber, latitude: payload.latitude, longitude: payload.longitude };
                 }
-                return { ...prev, openTime: payload.openTime, closeTime: payload.closeTime, bookingDaysAhead: payload.bookingDaysAhead, weeklyOffDays: payload.weeklyOffDays ?? [] };
+                return { ...prev, openTime: payload.openTime, closeTime: payload.closeTime, bookingDaysAhead: payload.bookingDaysAhead, cancellationHours: payload.cancellationHours ?? 2, weeklyOffDays: payload.weeklyOffDays ?? [] };
             });
 
             toast.success('Dükkan detayları başarıyla güncellendi');
@@ -628,7 +641,7 @@ export const MyShopPage: React.FC = () => {
                 </div>
             </div>
 
-            <form onSubmit={(e) => e.preventDefault()}>
+            <div>
                 <div className="space-y-4">
 
                     {/* Kart 1: Salon Görselleri */}
@@ -991,7 +1004,33 @@ export const MyShopPage: React.FC = () => {
                         </div>
                     </AccordionCard>
 
-                    {/* Kart 4: Çalışma Saatleri */}
+                    {/* Kart 4: Hizmetler */}
+                    <AccordionCard
+                        icon={<Scissors className="w-6 h-6" />}
+                        iconBg="bg-violet-50"
+                        iconColor="text-violet-600"
+                        title="Hizmetler"
+                        subtitle="Kategoriler ve hizmet tanımları"
+                        isOpen={openCards.services}
+                        onToggle={() => toggleCard('services')}
+                    >
+                        <ServicesPage embedded />
+                    </AccordionCard>
+
+                    {/* Kart 5: Uzmanlar */}
+                    <AccordionCard
+                        icon={<Users className="w-6 h-6" />}
+                        iconBg="bg-teal-50"
+                        iconColor="text-teal-600"
+                        title="Uzmanlar"
+                        subtitle="Çalışan yönetimi, hizmet atamaları ve çalışma saatleri"
+                        isOpen={openCards.employees}
+                        onToggle={() => toggleCard('employees')}
+                    >
+                        <EmployeesPage embedded />
+                    </AccordionCard>
+
+                    {/* Kart 6: Çalışma Saatleri */}
                     <AccordionCard
                         icon={<Clock className="w-6 h-6" />}
                         iconBg="bg-orange-50"
@@ -1025,17 +1064,45 @@ export const MyShopPage: React.FC = () => {
                             </div>
                             <div className="max-w-xs">
                                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                                    Randevu Alma Süresi (Gün)
+                                    Randevu Alma Süresi
                                 </label>
                                 <p className="text-xs text-gray-400 mb-2">Müşteriler bugünden kaç gün sonrasına kadar randevu alabilir?</p>
-                                <input
-                                    type="number"
-                                    min={1}
-                                    max={365}
-                                    {...register('bookingDaysAhead', { valueAsNumber: true })}
-                                    className="w-full px-3 py-2.5 rounded-xl border-2 border-gray-200 focus:border-primary-500 outline-none transition-all text-sm"
-                                    placeholder="30"
-                                />
+                                <div className="flex items-center rounded-xl border-2 border-gray-200 focus-within:border-primary-500 transition-all overflow-hidden">
+                                    <input
+                                        type="number"
+                                        min={1}
+                                        max={365}
+                                        {...register('bookingDaysAhead', { valueAsNumber: true })}
+                                        className="flex-1 px-3 py-2.5 outline-none text-sm bg-transparent"
+                                        placeholder="30"
+                                    />
+                                    <span className="px-3 py-2.5 text-sm text-gray-400 bg-gray-50 border-l border-gray-200 select-none whitespace-nowrap">
+                                        {(() => { const v = watch('bookingDaysAhead'); return (v && v > 0) ? `${v} gün` : 'gün'; })()}
+                                    </span>
+                                </div>
+                            </div>
+                            {/* Minimum İptal Süresi */}
+                            <div className="max-w-xs">
+                                <label className="block text-sm font-semibold text-gray-700 mb-1.5">
+                                    Minimum İptal Süresi
+                                </label>
+                                <p className="text-xs text-gray-400 mb-2">
+                                    Müşteriler randevudan en az kaç saat önce iptal edebilir?
+                                    Geçerli aralık: <strong>0 – 72 saat</strong>. (0 = her zaman iptal edilebilir)
+                                </p>
+                                <div className="flex items-center rounded-xl border-2 border-gray-200 focus-within:border-primary-500 transition-all overflow-hidden">
+                                    <input
+                                        type="number"
+                                        min={0}
+                                        max={72}
+                                        {...register('cancellationHours', { valueAsNumber: true })}
+                                        className="flex-1 px-3 py-2.5 outline-none text-sm bg-transparent"
+                                        placeholder="2"
+                                    />
+                                    <span className="px-3 py-2.5 text-sm text-gray-400 bg-gray-50 border-l border-gray-200 select-none whitespace-nowrap">
+                                        {(() => { const v = watch('cancellationHours'); return (v != null && v >= 0) ? `${v} saat` : 'saat'; })()}
+                                    </span>
+                                </div>
                             </div>
                             {/* Haftalık Tatil Günleri */}
                             <div>
@@ -1044,7 +1111,15 @@ export const MyShopPage: React.FC = () => {
                                 </label>
                                 <p className="text-xs text-gray-400 mb-2">Seçilen günlerde müşteriler randevu alamaz.</p>
                                 <div className="flex flex-wrap gap-2">
-                                    {['Paz', 'Pzt', 'Sal', 'Çar', 'Per', 'Cum', 'Cmt'].map((label, idx) => (
+                                    {[
+                                        { label: 'Pazartesi', idx: 1 },
+                                        { label: 'Salı',      idx: 2 },
+                                        { label: 'Çarşamba',  idx: 3 },
+                                        { label: 'Perşembe',  idx: 4 },
+                                        { label: 'Cuma',      idx: 5 },
+                                        { label: 'Cumartesi', idx: 6 },
+                                        { label: 'Pazar',     idx: 0 },
+                                    ].map(({ label, idx }) => (
                                         <button
                                             key={idx}
                                             type="button"
@@ -1063,8 +1138,20 @@ export const MyShopPage: React.FC = () => {
                                 </div>
                                 {weeklyOffDays.length > 0 && (
                                     <p className="text-xs text-red-500 mt-2">
-                                        Her hafta {['Pazar', 'Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi']
-                                            .filter((_, i) => weeklyOffDays.includes(i)).join(', ')} günleri kapalı
+                                        Her hafta{' '}
+                                        {[
+                                            { label: 'Pazartesi', idx: 1 },
+                                            { label: 'Salı',      idx: 2 },
+                                            { label: 'Çarşamba',  idx: 3 },
+                                            { label: 'Perşembe',  idx: 4 },
+                                            { label: 'Cuma',      idx: 5 },
+                                            { label: 'Cumartesi', idx: 6 },
+                                            { label: 'Pazar',     idx: 0 },
+                                        ]
+                                            .filter(d => weeklyOffDays.includes(d.idx))
+                                            .map(d => d.label)
+                                            .join(', ')}{' '}
+                                        günleri kapalı
                                     </p>
                                 )}
                             </div>
@@ -1077,7 +1164,7 @@ export const MyShopPage: React.FC = () => {
                     </AccordionCard>
 
                 </div>
-            </form>
+            </div>
 
             {/* Kart 5: Kapalı Günler */}
             {shopId && (
@@ -1294,8 +1381,9 @@ export const MyShopPage: React.FC = () => {
                                                     </div>
                                                     <button
                                                         type="button"
-                                                        onClick={() => handleRemoveLeaveDate(l.id)}
-                                                        className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                                                        onClick={() => setLeaveDateToDelete(l)}
+                                                        className="p-1.5 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                                        title="İzin gününü sil"
                                                     >
                                                         <Trash2 className="h-4 w-4" />
                                                     </button>
@@ -1308,6 +1396,50 @@ export const MyShopPage: React.FC = () => {
                         </div>
                     </AccordionCard>
                 </div>
+            )}
+            {/* ── İzin Günü Silme Onay Modalı ── */}
+            {leaveDateToDelete && createPortal(
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+                        <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-100">
+                            <div className="p-2.5 bg-red-50 text-red-600 rounded-xl shrink-0">
+                                <Trash2 className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h3 className="text-base font-bold text-gray-900">İzin Günü Silinecek</h3>
+                                <p className="text-xs text-gray-500 mt-0.5">Bu işlem geri alınamaz</p>
+                            </div>
+                        </div>
+                        <div className="px-6 py-5">
+                            <p className="text-sm text-gray-600">
+                                <span className="font-semibold text-gray-900">
+                                    {new Date(`${leaveDateToDelete.leaveDate}T12:00:00`).toLocaleDateString('tr-TR', {
+                                        day: 'numeric', month: 'long', year: 'numeric', weekday: 'long'
+                                    })}
+                                </span>
+                                {' '}tarihli izin günü silinsin mi?
+                            </p>
+                        </div>
+                        <div className="flex gap-3 px-6 pb-5">
+                            <button
+                                onClick={() => setLeaveDateToDelete(null)}
+                                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 rounded-xl transition-colors"
+                            >
+                                Vazgeç
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    await handleRemoveLeaveDate(leaveDateToDelete.id);
+                                    setLeaveDateToDelete(null);
+                                }}
+                                className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors"
+                            >
+                                Evet, Sil
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
             )}
 
             {/* ── Değişiklik Onay Modalı ── */}

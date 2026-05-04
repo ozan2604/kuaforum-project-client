@@ -9,7 +9,6 @@ import { AdminLayout } from './layouts/AdminLayout';
 import { AuthLayout } from './layouts/AuthLayout';
 
 import { ProtectedRoute } from './routes/ProtectedRoute';
-import { ErrorBoundary } from './components/ErrorBoundary';
 
 import { HomePage } from './pages/HomePage';
 import { ShopDetailsPage } from './pages/ShopDetailsPage';
@@ -31,8 +30,6 @@ import { UserListPage } from './pages/admin/UserListPage';
 import { SalonDashboard } from './pages/salon/SalonDashboard';
 import { SalonAppointmentsPage } from './pages/salon/SalonAppointmentsPage';
 import { MyShopPage } from './pages/salon/MyShopPage';
-import { ServicesPage } from './pages/salon/ServicesPage';
-import { EmployeesPage } from './pages/salon/EmployeesPage';
 
 import { EmployeeAppointmentsPage } from './pages/employee/EmployeeAppointmentsPage';
 import { EmployeeSchedulePage } from './pages/employee/EmployeeSchedulePage';
@@ -111,8 +108,8 @@ function App() {
             <Route path="/salon-panel" element={<SalonDashboard />} />
             <Route path="/salon-panel/appointments" element={<SalonAppointmentsPage />} />
             <Route path="/salon-panel/shop" element={<MyShopPage />} />
-            <Route path="/salon-panel/services" element={<ErrorBoundary><ServicesPage /></ErrorBoundary>} />
-            <Route path="/salon-panel/employees" element={<EmployeesPage />} />
+            <Route path="/salon-panel/services" element={<Navigate to="/salon-panel/shop" replace />} />
+            <Route path="/salon-panel/employees" element={<Navigate to="/salon-panel/shop" replace />} />
             <Route path="/salon-panel/settings" element={<div className="p-8">Ayarlar Sayfası (Yakında)</div>} />
           </Route>
         </Route>

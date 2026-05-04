@@ -464,6 +464,9 @@ export const SalonAppointmentsPage: React.FC = () => {
                                         const gId           = first.groupId;
                                         const cardKey       = gId ?? first.id;
                                         const isExpanded    = expandedRowId === cardKey;
+                                        // Mixed-status aware bulk action flags
+                                        const hasAnyPending   = group.some(a => a.status === AppointmentStatus.Pending);
+                                        const hasAnyConfirmed = group.some(a => a.status === AppointmentStatus.Confirmed);
 
                                             return (
                                             <div key={cardKey} className="bg-white">
@@ -537,11 +540,33 @@ export const SalonAppointmentsPage: React.FC = () => {
                                                             {/* Hizmet listesi */}
                                                             <div className="bg-white rounded-xl border border-gray-100 divide-y divide-gray-50 overflow-hidden">
                                                                 {group.map(apt => (
-                                                                    <div key={apt.id} className="flex items-center gap-2 px-3 py-2.5">
-                                                                        <Scissors className="w-3.5 h-3.5 text-gray-300 shrink-0" />
-                                                                        <span className="text-sm text-gray-700 flex-1 min-w-0 truncate">{apt.serviceName}</span>
-                                                                        <span className="text-xs text-gray-500 shrink-0 whitespace-nowrap">{apt.duration}dk · ₺{apt.price}</span>
-                                                                        <div className="shrink-0">{getStatusBadge(apt.status)}</div>
+                                                                    <div key={apt.id} className="px-3 py-2.5">
+                                                                        <div className="flex items-center gap-2">
+                                                                            <Scissors className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                                                                            <span className="text-sm text-gray-700 flex-1 min-w-0 truncate">{apt.serviceName}</span>
+                                                                            <span className="text-xs text-gray-500 shrink-0 whitespace-nowrap">{apt.duration}dk · ₺{apt.price}</span>
+                                                                            <div className="shrink-0">{getStatusBadge(apt.status)}</div>
+                                                                        </div>
+                                                                        {/* Bireysel aksiyon butonları — sadece çok-hizmetli grupta */}
+                                                                        {isMulti && (apt.status === AppointmentStatus.Pending || apt.status === AppointmentStatus.Confirmed) && (
+                                                                            <div className="flex gap-1.5 mt-2 ml-5 flex-wrap">
+                                                                                {apt.status === AppointmentStatus.Pending && (
+                                                                                    <>
+                                                                                        <Button size="sm" onClick={() => requestSingleUpdate(apt.id, AppointmentStatus.Confirmed, 'Randevuyu Onayla', 'Bu hizmeti onaylamak istediğinizden emin misiniz?', apt.startTime)}>Onayla</Button>
+                                                                                        <Button size="sm" variant="danger" onClick={() => requestSingleUpdate(apt.id, AppointmentStatus.Rejected, 'Randevuyu Reddet', 'Bu hizmet reddedilecek. Müşteriye gösterilecek sebebi girin.', apt.startTime)}>Reddet</Button>
+                                                                                    </>
+                                                                                )}
+                                                                                {apt.status === AppointmentStatus.Confirmed && (
+                                                                                    <>
+                                                                                        {new Date(apt.startTime) <= new Date() && (
+                                                                                            <Button size="sm" variant="outline" onClick={() => requestSingleUpdate(apt.id, AppointmentStatus.Completed, 'Randevuyu Tamamla', 'Bu hizmetin tamamlandığını onaylıyor musunuz?', apt.startTime)}>Tamamlandı</Button>
+                                                                                        )}
+                                                                                        <Button size="sm" variant="danger" onClick={() => requestSingleUpdate(apt.id, AppointmentStatus.Rejected, 'Randevuyu Reddet', 'Bu hizmet reddedilecek. Müşteriye gösterilecek sebebi girin.', apt.startTime)}>Reddet</Button>
+                                                                                        <Button size="sm" variant="danger" onClick={() => requestSingleUpdate(apt.id, AppointmentStatus.Cancelled, 'Randevuyu İptal Et', 'Bu hizmet iptal edilecek. İsterseniz müşteriye bir sebep bırakabilirsiniz.', apt.startTime)}>İptal</Button>
+                                                                                    </>
+                                                                                )}
+                                                                            </div>
+                                                                        )}
                                                                     </div>
                                                                 ))}
                                                             </div>
@@ -562,35 +587,42 @@ export const SalonAppointmentsPage: React.FC = () => {
                                                                 </div>
                                                             )}
 
-                                                            {/* Aksiyon butonları */}
-                                                            <div className="flex flex-wrap gap-2 pt-1">
-                                                                {primaryStatus === AppointmentStatus.Pending && (<>
-                                                                    <Button size="sm" onClick={() =>
-                                                                        isMulti && gId
-                                                                            ? requestGroupUpdate(gId, AppointmentStatus.Confirmed, 'Grubu Onayla', `${group.length} hizmetin tamamını onaylamak istediğinize emin misiniz?`, first.startTime)
-                                                                            : requestSingleUpdate(first.id, AppointmentStatus.Confirmed, 'Randevuyu Onayla', 'Bu randevuyu onaylamak istediğinize emin misiniz?', first.startTime)
-                                                                    }>{isMulti ? 'Tümünü Onayla' : 'Onayla'}</Button>
-                                                                    <Button size="sm" variant="danger" onClick={() =>
-                                                                        isMulti && gId
-                                                                            ? requestGroupUpdate(gId, AppointmentStatus.Rejected, 'Grubu Reddet', `${group.length} hizmet reddedilecek. Müşteriye gösterilecek sebebi girin.`, first.startTime)
-                                                                            : requestSingleUpdate(first.id, AppointmentStatus.Rejected, 'Randevuyu Reddet', 'Bu randevu reddedilecek. Müşteriye gösterilecek sebebi girin.', first.startTime)
-                                                                    }>{isMulti ? 'Tümünü Reddet' : 'Reddet'}</Button>
-                                                                </>)}
-                                                                {primaryStatus === AppointmentStatus.Confirmed && new Date(last.startTime) <= new Date() && (
-                                                                    <Button size="sm" variant="outline" onClick={() =>
-                                                                        isMulti && gId
-                                                                            ? requestGroupUpdate(gId, AppointmentStatus.Completed, 'Grubu Tamamla', `${group.length} hizmetin tamamını tamamlamak istediğinize emin misiniz?`, first.startTime)
-                                                                            : requestSingleUpdate(first.id, AppointmentStatus.Completed, 'Randevuyu Tamamla', 'Bu randevunun tamamlandığını onaylıyor musunuz?', first.startTime)
-                                                                    }>{isMulti ? 'Tümünü Tamamla' : 'Tamamlandı'}</Button>
-                                                                )}
-                                                                {primaryStatus === AppointmentStatus.Confirmed && (
-                                                                    <Button size="sm" variant="danger" onClick={() =>
-                                                                        isMulti && gId
-                                                                            ? requestGroupUpdate(gId, AppointmentStatus.Cancelled, 'Grubu İptal Et', `${group.length} hizmet iptal edilecek. İsterseniz müşteriye bir sebep bırakabilirsiniz.`, first.startTime)
-                                                                            : requestSingleUpdate(first.id, AppointmentStatus.Cancelled, 'Randevuyu İptal Et', 'Bu randevu iptal edilecek. İsterseniz müşteriye bir sebep bırakabilirsiniz.', first.startTime)
-                                                                    }>{isMulti ? 'Tümünü İptal Et' : 'İptal'}</Button>
-                                                                )}
-                                                            </div>
+                                                            {/* Toplu aksiyon butonları — karışık statüde dahi doğru çalışır */}
+                                                            {(hasAnyPending || hasAnyConfirmed) && (
+                                                                <div className="flex flex-wrap gap-2 pt-1 border-t border-gray-100">
+                                                                    {isMulti && (
+                                                                        <span className="w-full text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Toplu İşlem</span>
+                                                                    )}
+                                                                    {hasAnyPending && (
+                                                                        <>
+                                                                            <Button size="sm" onClick={() =>
+                                                                                isMulti && gId
+                                                                                    ? requestGroupUpdate(gId, AppointmentStatus.Confirmed, 'Grubu Onayla', `${group.length} hizmetin tamamını onaylamak istediğinize emin misiniz?`, first.startTime)
+                                                                                    : requestSingleUpdate(first.id, AppointmentStatus.Confirmed, 'Randevuyu Onayla', 'Bu randevuyu onaylamak istediğinize emin misiniz?', first.startTime)
+                                                                            }>{isMulti ? 'Tümünü Onayla' : 'Onayla'}</Button>
+                                                                            <Button size="sm" variant="danger" onClick={() =>
+                                                                                isMulti && gId
+                                                                                    ? requestGroupUpdate(gId, AppointmentStatus.Rejected, 'Grubu Reddet', `${group.length} hizmet reddedilecek. Müşteriye gösterilecek sebebi girin.`, first.startTime)
+                                                                                    : requestSingleUpdate(first.id, AppointmentStatus.Rejected, 'Randevuyu Reddet', 'Bu randevu reddedilecek. Müşteriye gösterilecek sebebi girin.', first.startTime)
+                                                                            }>{isMulti ? 'Tümünü Reddet' : 'Reddet'}</Button>
+                                                                        </>
+                                                                    )}
+                                                                    {hasAnyConfirmed && new Date(last.startTime) <= new Date() && (
+                                                                        <Button size="sm" variant="outline" onClick={() =>
+                                                                            isMulti && gId
+                                                                                ? requestGroupUpdate(gId, AppointmentStatus.Completed, 'Grubu Tamamla', `${group.length} hizmetin tamamını tamamlamak istediğinize emin misiniz?`, first.startTime)
+                                                                                : requestSingleUpdate(first.id, AppointmentStatus.Completed, 'Randevuyu Tamamla', 'Bu randevunun tamamlandığını onaylıyor musunuz?', first.startTime)
+                                                                        }>{isMulti ? 'Tümünü Tamamla' : 'Tamamlandı'}</Button>
+                                                                    )}
+                                                                    {hasAnyConfirmed && (
+                                                                        <Button size="sm" variant="danger" onClick={() =>
+                                                                            isMulti && gId
+                                                                                ? requestGroupUpdate(gId, AppointmentStatus.Cancelled, 'Grubu İptal Et', `${group.length} hizmet iptal edilecek. İsterseniz müşteriye bir sebep bırakabilirsiniz.`, first.startTime)
+                                                                                : requestSingleUpdate(first.id, AppointmentStatus.Cancelled, 'Randevuyu İptal Et', 'Bu randevu iptal edilecek. İsterseniz müşteriye bir sebep bırakabilirsiniz.', first.startTime)
+                                                                        }>{isMulti ? 'Tümünü İptal Et' : 'İptal'}</Button>
+                                                                    )}
+                                                                </div>
+                                                            )}
                                                         </div>
                                                     </div>
                                                 )}

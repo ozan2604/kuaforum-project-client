@@ -1,32 +1,87 @@
-import React from 'react';
-import { Outlet, Navigate, NavLink, useNavigate } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { Outlet, Navigate, NavLink, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { shopService } from '../api/shop.service';
 import {
     LayoutDashboard,
     Store,
-    Scissors,
-    Users,
     Calendar,
     Clock,
     Settings,
     LogOut,
     Menu,
     X,
-    Bell
+    Bell,
+    AlertCircle,
+    CheckCircle2,
+    ChevronRight,
 } from 'lucide-react';
+
+interface NotificationItem {
+    type: 'setup' | 'action' | 'warning' | 'info';
+    message: string;
+    link?: string;
+}
+
+const POLL_INTERVAL_MS = 60_000;
 
 export const SalonOwnerLayout: React.FC = () => {
     const { user, logout, isLoading } = useAuth();
     const navigate = useNavigate();
     const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
 
-    if (isLoading) {
-        return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
-    }
+    // Notification state
+    const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+    const [panelOpen, setPanelOpen] = useState(false);
+    const [notifSeen, setNotifSeen] = useState(false);
+    const panelRef = useRef<HTMLDivElement>(null);
 
     const userRoles = user ? (Array.isArray(user.role) ? user.role : [user.role]) : [];
     const isSalonOwner = userRoles.includes('SalonOwner');
-    const isEmployee   = userRoles.includes('Employee');
+    const isEmployee = userRoles.includes('Employee');
+
+    const fetchNotifications = async () => {
+        if (!isSalonOwner) return;
+        try {
+            const stats = await shopService.getDashboardStats();
+            const items: NotificationItem[] = stats?.notificationItems ?? [];
+            setNotifications(items);
+        } catch {
+            // Sessizce geç
+        }
+    };
+
+    useEffect(() => {
+        if (!isSalonOwner) return;
+        fetchNotifications();
+        const timer = setInterval(fetchNotifications, POLL_INTERVAL_MS);
+        return () => clearInterval(timer);
+    }, [isSalonOwner]);
+
+    // Panel dışına tıklanınca kapat
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+                setPanelOpen(false);
+            }
+        };
+        document.addEventListener('mousedown', handler);
+        return () => document.removeEventListener('mousedown', handler);
+    }, []);
+
+    const handleBellClick = () => {
+        setPanelOpen(prev => !prev);
+        setNotifSeen(true);
+    };
+
+    const handleNotifClick = (link?: string) => {
+        setPanelOpen(false);
+        if (link) navigate(link);
+    };
+
+    if (isLoading) {
+        return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
+    }
 
     if (!user || (!isSalonOwner && !isEmployee)) {
         return <Navigate to="/" replace />;
@@ -37,13 +92,9 @@ export const SalonOwnerLayout: React.FC = () => {
         { name: 'Dashboard',  href: '/salon-panel',             icon: LayoutDashboard },
         { name: 'Randevular', href: '/salon-panel/appointments', icon: Calendar },
         { name: 'Salonum',    href: '/salon-panel/shop',         icon: Store },
-        { name: 'Hizmetler',  href: '/salon-panel/services',     icon: Scissors },
-        { name: 'Çalışanlar', href: '/salon-panel/employees',    icon: Users },
         { name: 'Ayarlar',    href: '/salon-panel/settings',     icon: Settings },
     ];
 
-    // Çalışan: aynı menü ama Randevular kendi sayfasına yönlenir.
-    // Diğer linkler App.tsx'deki route'lar sayesinde UnauthorizedPage'e düşer.
     const employeeNavigation = [
         { name: 'Anasayfa',          href: '/',                                  icon: Store },
         { name: 'Dashboard',         href: '/salon-panel',                       icon: LayoutDashboard },
@@ -53,6 +104,14 @@ export const SalonOwnerLayout: React.FC = () => {
 
     const navigation = isSalonOwner ? ownerNavigation : employeeNavigation;
     const panelTitle = isSalonOwner ? 'Salon Paneli' : 'Personel Paneli';
+
+    const actionCount = notifications.filter(n => n.type === 'action').length;
+
+    const typeStyle = (type: NotificationItem['type']) => {
+        if (type === 'action') return { dot: 'bg-amber-500', bg: 'hover:bg-amber-50', icon: <AlertCircle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" /> };
+        if (type === 'setup')  return { dot: 'bg-blue-500',  bg: 'hover:bg-blue-50',  icon: <AlertCircle className="w-4 h-4 text-blue-500 shrink-0 mt-0.5" /> };
+        return { dot: 'bg-gray-400', bg: 'hover:bg-gray-50', icon: <AlertCircle className="w-4 h-4 text-gray-400 shrink-0 mt-0.5" /> };
+    };
 
     return (
         <div className="min-h-screen bg-gray-50 flex">
@@ -134,19 +193,98 @@ export const SalonOwnerLayout: React.FC = () => {
 
             {/* Main Content */}
             <div className="flex-1 flex flex-col min-w-0">
-                {/* Mobile Header */}
-                <header className="h-16 lg:hidden bg-white border-b border-gray-200 flex items-center px-4 justify-between">
+                {/* Top Header (hem mobile hem desktop) */}
+                <header className="h-16 bg-white border-b border-gray-200 flex items-center px-4 justify-between sticky top-0 z-30">
+                    {/* Sol: Mobile menu burger */}
                     <button
                         onClick={() => setIsSidebarOpen(true)}
-                        className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-lg"
+                        className="p-2 -ml-2 text-gray-600 hover:bg-gray-100 rounded-lg lg:hidden"
                     >
                         <Menu className="h-6 w-6" />
                     </button>
-                    <span className="font-bold text-gray-900">{panelTitle}</span>
-                    <button className="p-2 text-gray-600 hover:bg-gray-100 rounded-full relative">
-                        <Bell className="h-5 w-5" />
-                        <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-red-500 rounded-full"></span>
-                    </button>
+
+                    {/* Orta: Panel başlığı (sadece mobile) */}
+                    <span className="font-bold text-gray-900 lg:hidden">{panelTitle}</span>
+
+                    {/* Desktop'ta boşluk bırakıcı */}
+                    <div className="hidden lg:block" />
+
+                    {/* Sağ: Bildirim zili */}
+                    {isSalonOwner && (
+                        <div className="relative" ref={panelRef}>
+                            <button
+                                onClick={handleBellClick}
+                                className="p-2 text-gray-600 hover:bg-gray-100 rounded-full relative transition-colors"
+                                title="Bildirimler"
+                            >
+                                <Bell className="h-5 w-5" />
+                                {notifications.length > 0 && !notifSeen && (
+                                    <span className="absolute top-1.5 right-1.5 h-2 w-2 bg-red-500 rounded-full" />
+                                )}
+                                {notifications.length > 0 && notifSeen && (
+                                    <span className="absolute top-1 right-1 min-w-[16px] h-4 bg-primary-600 rounded-full text-white text-[10px] font-bold flex items-center justify-center px-0.5">
+                                        {notifications.length}
+                                    </span>
+                                )}
+                            </button>
+
+                            {/* Bildirim Paneli */}
+                            {panelOpen && (
+                                <div className="absolute right-0 top-full mt-2 w-80 bg-white rounded-2xl shadow-xl border border-gray-100 z-50 overflow-hidden">
+                                    {/* Panel başlık */}
+                                    <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                                        <div>
+                                            <p className="text-sm font-bold text-gray-900">Bildirimler</p>
+                                            {actionCount > 0 && (
+                                                <p className="text-xs text-amber-600">{actionCount} işlem bekliyor</p>
+                                            )}
+                                        </div>
+                                        <button onClick={() => setPanelOpen(false)} className="text-gray-400 hover:text-gray-600">
+                                            <X className="w-4 h-4" />
+                                        </button>
+                                    </div>
+
+                                    {/* Liste */}
+                                    <div className="max-h-96 overflow-y-auto divide-y divide-gray-50">
+                                        {notifications.length === 0 ? (
+                                            <div className="px-4 py-8 text-center">
+                                                <CheckCircle2 className="w-8 h-8 text-green-400 mx-auto mb-2" />
+                                                <p className="text-sm text-gray-500">Her şey yolunda görünüyor!</p>
+                                            </div>
+                                        ) : (
+                                            notifications.map((n, i) => {
+                                                const s = typeStyle(n.type);
+                                                return (
+                                                    <button
+                                                        key={i}
+                                                        onClick={() => handleNotifClick(n.link)}
+                                                        className={`w-full text-left px-4 py-3 flex items-start gap-3 transition-colors ${s.bg} ${n.link ? 'cursor-pointer' : 'cursor-default'}`}
+                                                    >
+                                                        {s.icon}
+                                                        <span className="flex-1 text-xs text-gray-700 leading-relaxed">{n.message}</span>
+                                                        {n.link && <ChevronRight className="w-3.5 h-3.5 text-gray-300 shrink-0 mt-0.5" />}
+                                                    </button>
+                                                );
+                                            })
+                                        )}
+                                    </div>
+
+                                    {/* Alt footer */}
+                                    {notifications.length > 0 && (
+                                        <div className="px-4 py-2.5 border-t border-gray-100 bg-gray-50">
+                                            <Link
+                                                to="/salon-panel"
+                                                onClick={() => setPanelOpen(false)}
+                                                className="text-xs text-primary-600 hover:text-primary-700 font-medium"
+                                            >
+                                                Dashboard'a git →
+                                            </Link>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    )}
                 </header>
 
                 <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8">
