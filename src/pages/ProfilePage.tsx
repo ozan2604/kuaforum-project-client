@@ -111,6 +111,7 @@ export const ProfilePage: React.FC = () => {
 
     // Form State
     const [appointments, setAppointments] = useState<AppointmentDto[]>([]);
+    const [appointmentsLoading, setAppointmentsLoading] = useState(false);
     const [firstName, setFirstName] = useState(user?.firstName || '');
     const [lastName, setLastName] = useState(user?.lastName || '');
     const [phoneNumber, setPhoneNumber] = useState(user?.phoneNumber || '');
@@ -144,7 +145,7 @@ export const ProfilePage: React.FC = () => {
         else if (openSection === 'reviews') loadReviews();
     }, [openSection]);
 
-    const loadAppointments = async () => { try { const result = await appointmentService.getMyAppointments(1, 50); setAppointments(result.items); } catch (err) { toast.error(getApiError(err, 'Randevular yüklenemedi.')); } };
+    const loadAppointments = async () => { setAppointmentsLoading(true); try { const result = await appointmentService.getMyAppointments(1, 50); setAppointments(result.items); } catch (err) { toast.error(getApiError(err, 'Randevular yüklenemedi.')); } finally { setAppointmentsLoading(false); } };
 
     const loadFavorites = async () => { setFavLoading(true); try { setFavorites(await favoriteService.getUserFavorites()); } catch (err) { toast.error(getApiError(err, 'Favoriler yüklenemedi.')); } finally { setFavLoading(false); } };
 
@@ -380,7 +381,15 @@ export const ProfilePage: React.FC = () => {
                                 {/* ── APPOINTMENTS ── */}
                                 {section.id === 'appointments' && (
                                     <div className="space-y-3">
-                                        {appointments.length === 0 && (
+                                        {appointmentsLoading && (
+                                            <div className="flex justify-center py-8">
+                                                <svg className="animate-spin w-6 h-6 text-primary-500" fill="none" viewBox="0 0 24 24">
+                                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                                </svg>
+                                            </div>
+                                        )}
+                                        {!appointmentsLoading && appointments.length === 0 && (
                                             <p className="text-sm text-gray-400 text-center py-6">Henüz randevunuz bulunmuyor.</p>
                                         )}
                                         {pendingApps.length > 0 && (

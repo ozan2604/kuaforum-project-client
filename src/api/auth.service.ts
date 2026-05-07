@@ -70,6 +70,16 @@ export const authService = {
         return response.data;
     },
 
+    // Şifre Sıfırlama
+    sendForgotPasswordOtp: async (data: { phoneNumber: string }): Promise<SendOtpResponse> => {
+        const response = await api.post<SendOtpResponse>('/auth/forgot-password/send-otp', data);
+        return response.data;
+    },
+
+    resetPasswordWithOtp: async (data: { phoneNumber: string; otpCode: string; newPassword: string }): Promise<void> => {
+        await api.post('/auth/forgot-password/reset', data);
+    },
+
     updateProfile: async (data: UpdateProfileRequest): Promise<AuthResponse> => {
         const response = await api.put<AuthResponse>('/auth/profile', data);
         return response.data;

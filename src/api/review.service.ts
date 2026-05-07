@@ -106,8 +106,8 @@ export const reviewService = {
         return response.data;
     },
 
-    getShopReviews: async (shopId: string) => {
-        const response = await api.get<Review[]>(`/Reviews/shop/${shopId}`);
+    getShopReviews: async (shopId: string, pageNumber = 1, pageSize = 10): Promise<{ items: Review[]; totalCount: number; totalPages: number; pageNumber: number }> => {
+        const response = await api.get(`/Reviews/shop/${shopId}?pageNumber=${pageNumber}&pageSize=${pageSize}`);
         return response.data;
     },
 

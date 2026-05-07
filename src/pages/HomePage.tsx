@@ -80,6 +80,9 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
     const [shops, setShops] = useState<Shop[]>([]);
     const [filteredShops, setFilteredShops] = useState<Shop[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
     const [searchParams] = useSearchParams();
     const searchTerm = searchParams.get('search') || '';
     const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -153,21 +156,25 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
     useEffect(() => {
         const loadShops = async () => {
             setLoading(true);
+            setCurrentPage(1);
             try {
                 let data: Shop[] = [];
                 if (showFavoritesOnly) {
-                    if (isAuthenticated) {
-                        data = await favoriteService.getUserFavorites();
-                    }
+                    if (isAuthenticated) data = await favoriteService.getUserFavorites();
+                    setShops(data);
+                    setFilteredShops(data);
+                    setTotalPages(1);
                 } else {
-                    data = await shopService.getPublicShops(
+                    const result = await shopService.getPublicShops(
                         selectedProvince || undefined,
                         selectedDistrict || undefined,
-                        selectedNeighborhood || undefined
+                        selectedNeighborhood || undefined,
+                        1, 20
                     );
+                    setShops(result.items);
+                    setFilteredShops(result.items);
+                    setTotalPages(result.totalPages);
                 }
-                setShops(data);
-                setFilteredShops(data);
             } catch (error) {
                 console.error('Failed to load shops', error);
             } finally {
@@ -176,6 +183,25 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
         };
         loadShops();
     }, [showFavoritesOnly, isAuthenticated, selectedProvince, selectedDistrict, selectedNeighborhood]);
+
+    const handleLoadMoreShops = async () => {
+        const nextPage = currentPage + 1;
+        setLoadingMore(true);
+        try {
+            const result = await shopService.getPublicShops(
+                selectedProvince || undefined,
+                selectedDistrict || undefined,
+                selectedNeighborhood || undefined,
+                nextPage, 20
+            );
+            setShops(prev => [...prev, ...result.items]);
+            setCurrentPage(nextPage);
+        } catch (error) {
+            console.error('Failed to load more shops', error);
+        } finally {
+            setLoadingMore(false);
+        }
+    };
 
     useEffect(() => {
         const loadFavorites = async () => {
@@ -721,6 +747,26 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                                     onToggleFavorite={(status) => handleToggleFavorite(shop.id, status)}
                                 />
                             ))}
+                        </div>
+                    )}
+
+                    {!loading && !showFavoritesOnly && currentPage < totalPages && (
+                        <div className="flex justify-center mt-6">
+                            <button
+                                onClick={handleLoadMoreShops}
+                                disabled={loadingMore}
+                                className="px-8 py-3 bg-white border-2 border-primary-500 text-primary-600 font-semibold rounded-xl hover:bg-primary-50 disabled:opacity-60 transition-all flex items-center gap-2"
+                            >
+                                {loadingMore ? (
+                                    <>
+                                        <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                                        </svg>
+                                        Yükleniyor…
+                                    </>
+                                ) : 'Daha Fazla Göster'}
+                            </button>
                         </div>
                     )}
 

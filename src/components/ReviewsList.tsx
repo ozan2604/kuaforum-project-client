@@ -8,7 +8,7 @@ import { toast } from 'react-hot-toast';
 import { getApiError } from '../utils/storage';
 import { ConfirmationModal } from './ConfirmationModal';
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
 
 interface ReviewsListProps {
     shopId: string;
@@ -19,24 +19,40 @@ interface ReviewsListProps {
 export const ReviewsList: React.FC<ReviewsListProps> = ({ shopId, onEdit, refreshTrigger }) => {
     const [reviews, setReviews] = useState<Review[]>([]);
     const [loading, setLoading] = useState(true);
-    const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const [totalCount, setTotalCount] = useState(0);
     const [deleteModalOpen, setDeleteModalOpen] = useState(false);
     const [reviewToDelete, setReviewToDelete] = useState<string | null>(null);
     const { user } = useAuth();
 
     useEffect(() => {
-        loadReviews();
+        setReviews([]);
+        setCurrentPage(1);
+        loadReviews(1, true);
     }, [shopId, refreshTrigger]);
 
-    const loadReviews = async () => {
-        setLoading(true);
+    const loadReviews = async (page: number, reset = false) => {
+        if (reset) setLoading(true);
+        else setLoadingMore(true);
         try {
-            const data = await reviewService.getShopReviews(shopId);
-            setReviews(data);
+            const data = await reviewService.getShopReviews(shopId, page, PAGE_SIZE);
+            setReviews(prev => reset ? data.items : [...prev, ...data.items]);
+            setCurrentPage(data.pageNumber);
+            setTotalPages(data.totalPages);
+            setTotalCount(data.totalCount);
         } catch (error) {
             console.error('Failed to load reviews', error);
         } finally {
             setLoading(false);
+            setLoadingMore(false);
+        }
+    };
+
+    const handleLoadMore = () => {
+        if (currentPage < totalPages && !loadingMore) {
+            loadReviews(currentPage + 1);
         }
     };
 
@@ -50,7 +66,9 @@ export const ReviewsList: React.FC<ReviewsListProps> = ({ shopId, onEdit, refres
         try {
             await reviewService.deleteReview(reviewToDelete);
             toast.success('Yorum silindi.');
-            loadReviews();
+            setReviews([]);
+            setCurrentPage(1);
+            loadReviews(1, true);
         } catch (err) {
             toast.error(getApiError(err, 'Yorum silinemedi.'));
         } finally {
@@ -88,23 +106,12 @@ export const ReviewsList: React.FC<ReviewsListProps> = ({ shopId, onEdit, refres
         );
     }
 
-    // Kullanıcının kendi yorumları önce, sonra tarihe göre en yeni
-    const sorted = [...reviews].sort((a, b) => {
-        const aOwn = user?.id === a.userId ? 0 : 1;
-        const bOwn = user?.id === b.userId ? 0 : 1;
-        if (aOwn !== bOwn) return aOwn - bOwn;
-        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
-
-    const visible = sorted.slice(0, visibleCount);
-    const hasMore = visibleCount < sorted.length;
-
-    const ratingColor = () => 'text-yellow-600 bg-yellow-50 border-yellow-200';
+    const hasMore = currentPage < totalPages;
 
     return (
         <div>
             <div className="space-y-3">
-                {visible.map((review) => {
+                {reviews.map((review) => {
                     const isOwner = user?.id === review.userId;
 
                     return (
@@ -114,7 +121,6 @@ export const ReviewsList: React.FC<ReviewsListProps> = ({ shopId, onEdit, refres
                                 isOwner ? 'bg-primary-50/40 border-primary-100' : 'bg-gray-50/50 border-gray-100'
                             }`}
                         >
-                            {/* Üst satır: Avatar + İsim + Tarih + Puan + Aksiyonlar */}
                             <div className="flex items-start gap-3">
                                 <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center shrink-0 overflow-hidden ring-2 ring-white shadow-sm">
                                     {review.userProfileImage ? (
@@ -137,7 +143,6 @@ export const ReviewsList: React.FC<ReviewsListProps> = ({ shopId, onEdit, refres
                                         </span>
                                     </div>
 
-                                    {/* Hizmet bilgisi */}
                                     {review.serviceName && (
                                         <div className="flex items-center gap-1 mt-1.5">
                                             <Scissors className="w-3 h-3 text-gray-400 shrink-0" />
@@ -151,9 +156,8 @@ export const ReviewsList: React.FC<ReviewsListProps> = ({ shopId, onEdit, refres
                                     )}
                                 </div>
 
-                                {/* Puan + Aksiyonlar */}
                                 <div className="flex items-center gap-1.5 shrink-0">
-                                    <div className={`flex items-center gap-1 px-2 py-1 rounded-lg border text-xs font-bold ${ratingColor()}`}>
+                                    <div className="flex items-center gap-1 px-2 py-1 rounded-lg border text-xs font-bold text-yellow-600 bg-yellow-50 border-yellow-200">
                                         <Star className="h-3 w-3 fill-current" />
                                         {review.rating}
                                     </div>
@@ -178,14 +182,12 @@ export const ReviewsList: React.FC<ReviewsListProps> = ({ shopId, onEdit, refres
                                 </div>
                             </div>
 
-                            {/* Yorum metni */}
                             {review.comment && (
                                 <p className="text-gray-700 text-sm leading-relaxed mt-3 ml-[52px]">
                                     {review.comment}
                                 </p>
                             )}
 
-                            {/* Görseller */}
                             {review.imageUrls && review.imageUrls.length > 0 && (
                                 <div className="flex gap-2 mt-3 ml-[52px] flex-wrap">
                                     {review.imageUrls.map((url, idx) => (
@@ -204,19 +206,31 @@ export const ReviewsList: React.FC<ReviewsListProps> = ({ shopId, onEdit, refres
                 })}
             </div>
 
-            {/* Daha Fazla Gör */}
             {hasMore && (
                 <button
-                    onClick={() => setVisibleCount(v => v + PAGE_SIZE)}
-                    className="w-full mt-4 flex items-center justify-center gap-2 py-3 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-all"
+                    onClick={handleLoadMore}
+                    disabled={loadingMore}
+                    className="w-full mt-4 flex items-center justify-center gap-2 py-3 rounded-2xl border border-gray-200 bg-white text-sm font-semibold text-gray-600 hover:bg-gray-50 hover:border-gray-300 transition-all disabled:opacity-60"
                 >
-                    <ChevronDown className="w-4 h-4" />
-                    Daha Fazla Gör ({sorted.length - visibleCount} yorum daha)
+                    {loadingMore ? (
+                        <>
+                            <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
+                                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                            </svg>
+                            Yükleniyor…
+                        </>
+                    ) : (
+                        <>
+                            <ChevronDown className="w-4 h-4" />
+                            Daha Fazla Gör ({totalCount - reviews.length} yorum daha)
+                        </>
+                    )}
                 </button>
             )}
 
-            {!hasMore && sorted.length > PAGE_SIZE && (
-                <p className="text-center text-xs text-gray-400 mt-4">Tüm {sorted.length} yorum gösteriliyor</p>
+            {!hasMore && totalCount > PAGE_SIZE && (
+                <p className="text-center text-xs text-gray-400 mt-4">Tüm {totalCount} yorum gösteriliyor</p>
             )}
 
             <ConfirmationModal
