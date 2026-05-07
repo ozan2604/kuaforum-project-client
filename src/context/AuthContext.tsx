@@ -115,6 +115,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     };
 
     const logout = () => {
+        authService.logout().catch(() => {});
         clearAuth();
         setUserState(null);
         setIsAuthenticated(false);

@@ -8,8 +8,10 @@ import { getApiError } from '../../utils/storage';
 import {
     MapPin, Phone, Building2, Trash2, CalendarX, Clock,
     Camera, Store, ChevronDown, ChevronUp, ArrowRight, AlertTriangle, CalendarClock, UserX,
-    Scissors, Users
+    Scissors, Users, CheckCircle, CheckCircle2, Circle, ChevronRight
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { ConfirmationModal } from '../../components/ConfirmationModal';
 import { ServicesPage } from './ServicesPage';
 import { EmployeesPage } from './EmployeesPage';
 import { SearchableSelect } from '../../components/SearchableSelect';
@@ -37,7 +39,7 @@ interface ShopFormData {
     latitude?: number;
     longitude?: number;
     coverImagePath?: string;
-    images?: { id: string; url: string }[];
+    images?: { id: string; url: string; tags: { id: string; name: string }[] }[];
     genderPreference: TargetGender;
     openTime?: string;
     closeTime?: string;
@@ -149,8 +151,14 @@ export const MyShopPage: React.FC = () => {
     const [initialLoading, setInitialLoading] = useState(true);
     const [shopId, setShopId] = useState<string | null>(null);
     const [refreshImages, setRefreshImages] = useState(0);
+    const [tagInputs, setTagInputs] = useState<Record<string, string>>({});
+    const [editingTag, setEditingTag] = useState<{ tagId: string; name: string } | null>(null);
     const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
     const [savedSnapshot, setSavedSnapshot] = useState<ShopSnapshot | null>(null);
+    const [setupStatus, setSetupStatus] = useState<any>(null);
+    const [deleteImageId, setDeleteImageId] = useState<string | null>(null);
+    const [deletingCover, setDeletingCover] = useState(false);
+    const [deleteCoverConfirm, setDeleteCoverConfirm] = useState(false);
 
     const [weeklyOffDays, setWeeklyOffDays] = useState<number[]>([]);
 
@@ -180,6 +188,7 @@ export const MyShopPage: React.FC = () => {
     const [confirmUpdate, setConfirmUpdate] = useState<ConfirmUpdateState | null>(null);
 
     const [openCards, setOpenCards] = useState({
+        setup: false,
         images: false,
         info: false,
         location: false,
@@ -289,6 +298,9 @@ export const MyShopPage: React.FC = () => {
             }
         };
         fetchShop();
+        shopService.getDashboardStats()
+            .then(data => setSetupStatus(data.setupStatus))
+            .catch(() => {});
     }, [reset, refreshImages]);
 
     // Computes the human-readable diff between current form values and the last saved snapshot
@@ -520,17 +532,86 @@ export const MyShopPage: React.FC = () => {
         }
     };
 
+    const handleDeleteCoverImage = async () => {
+        if (!shopId) return;
+        setDeletingCover(true);
+        try {
+            await shopService.deleteCoverImage(shopId);
+            setValue('coverImagePath', '');
+            toast.success('Kapak fotoğrafı silindi');
+            setRefreshImages(prev => prev + 1);
+        } catch (err) {
+            toast.error(getApiError(err, 'Fotoğraf silinemedi.'));
+        } finally {
+            setDeletingCover(false);
+        }
+    };
+
     const handleDeleteGalleryImage = async (imageId: string) => {
         if (!shopId) return;
-        if (!confirm('Bu fotoğrafı silmek istediğinize emin misiniz?')) return;
+        setDeleteImageId(imageId);
+    };
+
+    const confirmDeleteGalleryImage = async () => {
+        if (!deleteImageId) return;
+        const id = deleteImageId;
+        setDeleteImageId(null);
         try {
             const toastId = toast.loading('Fotoğraf siliniyor...');
-            await shopService.deleteGalleryImage(imageId);
+            await shopService.deleteGalleryImage(id);
             toast.dismiss(toastId);
             toast.success('Fotoğraf silindi');
             setRefreshImages(prev => prev + 1);
         } catch (err) {
             toast.error(getApiError(err, 'Fotoğraf silinemedi'));
+        }
+    };
+
+    const TAG_LIMIT = 10;
+
+    const handleAddTag = async (imageId: string) => {
+        const name = (tagInputs[imageId] || '').trim();
+        if (!name) return;
+        const currentTags = (getValues('images') || []).find(img => img.id === imageId)?.tags || [];
+        if (currentTags.length >= TAG_LIMIT) {
+            toast.error(`Bir fotoğrafa en fazla ${TAG_LIMIT} etiket eklenebilir`);
+            return;
+        }
+        try {
+            const tag = await shopService.addImageTag(imageId, name);
+            setValue('images', (getValues('images') || []).map(img =>
+                img.id === imageId ? { ...img, tags: [...(img.tags || []), tag] } : img
+            ));
+            setTagInputs(prev => ({ ...prev, [imageId]: '' }));
+        } catch {
+            toast.error('Etiket eklenemedi');
+        }
+    };
+
+    const handleUpdateTag = async (imageId: string, tagId: string, name: string) => {
+        const trimmed = name.trim();
+        if (!trimmed) return;
+        try {
+            await shopService.updateImageTag(tagId, trimmed);
+            setValue('images', (getValues('images') || []).map(img =>
+                img.id === imageId
+                    ? { ...img, tags: img.tags.map(t => t.id === tagId ? { ...t, name: trimmed } : t) }
+                    : img
+            ));
+            setEditingTag(null);
+        } catch {
+            toast.error('Etiket güncellenemedi');
+        }
+    };
+
+    const handleDeleteTag = async (imageId: string, tagId: string) => {
+        try {
+            await shopService.deleteImageTag(tagId);
+            setValue('images', (getValues('images') || []).map(img =>
+                img.id === imageId ? { ...img, tags: img.tags.filter(t => t.id !== tagId) } : img
+            ));
+        } catch {
+            toast.error('Etiket silinemedi');
         }
     };
 
@@ -644,6 +725,64 @@ export const MyShopPage: React.FC = () => {
             <div>
                 <div className="space-y-4">
 
+                    {/* Kart 0: Salon Kurulum Durumu */}
+                    {setupStatus && setupStatus.completionPercentage < 100 && (() => {
+                        const s = setupStatus;
+                        const pct: number = s.completionPercentage;
+                        const steps = [
+                            { label: 'Salon adı ve açıklama',            done: s.hasName && s.hasDescription },
+                            { label: 'Kapak fotoğrafı',                  done: s.hasCoverImage },
+                            { label: 'Kategori seçimi',                  done: s.hasCategories },
+                            { label: 'Konum bilgisi (şehir & adres)',    done: s.hasLocation },
+                            { label: 'Genel çalışma saatleri',           done: s.hasOpeningHours },
+                            { label: 'En az 1 aktif hizmet',             done: s.hasActiveServices },
+                            { label: 'En az 1 aktif uzman',              done: s.hasActiveEmployees },
+                            { label: 'Uzmanlara hizmet atandı',          done: s.hasEmployeeServices },
+                            { label: 'Uzman çalışma saatleri ayarlandı', done: s.hasEmployeeSchedules },
+                        ];
+                        return (
+                            <div className={`bg-white border rounded-2xl shadow-sm overflow-hidden ${pct >= 80 ? 'border-green-100' : 'border-red-100'}`}>
+                                <button
+                                    type="button"
+                                    onClick={() => toggleCard('setup')}
+                                    className={`w-full px-5 py-4 flex items-center gap-3 transition-colors ${pct >= 80 ? 'hover:bg-green-50/40' : 'hover:bg-red-50/40'}`}
+                                >
+                                    <div className={`p-2 rounded-xl shrink-0 ${pct >= 80 ? 'bg-green-50' : 'bg-red-50'}`}>
+                                        <CheckCircle2 className={`w-5 h-5 ${pct >= 80 ? 'text-green-600' : 'text-red-500'}`} />
+                                    </div>
+                                    <div className="flex-1 text-left">
+                                        <h3 className="text-sm font-bold text-gray-900">Salon Kurulumu</h3>
+                                        {pct < 80 ? (
+                                            <p className="text-xs text-red-400 font-medium">⚠ Salonunuz henüz yeterince tamamlanmadı, müşteriler göremeyebilir</p>
+                                        ) : (
+                                            <p className="text-xs text-gray-400">Salonunuzu tamamlamak için aşağıdaki adımları takip edin</p>
+                                        )}
+                                    </div>
+                                    <span className={`text-sm font-bold mr-2 ${pct >= 80 ? 'text-green-600' : 'text-red-500'}`}>{pct}%</span>
+                                    {openCards.setup ? <ChevronUp className="w-4 h-4 text-gray-400" /> : <ChevronDown className="w-4 h-4 text-gray-400" />}
+                                </button>
+                                <div className="h-1.5 bg-gray-100">
+                                    <div className={`h-full transition-all duration-500 ${pct >= 80 ? 'bg-green-500' : 'bg-red-500'}`} style={{ width: `${pct}%` }} />
+                                </div>
+                                {openCards.setup && (
+                                    <div className="px-5 py-3 divide-y divide-gray-50">
+                                        {steps.map((step, i) => (
+                                            <div key={i} className="flex items-center gap-3 py-2.5">
+                                                {step.done
+                                                    ? <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
+                                                    : <Circle className="w-4 h-4 text-gray-300 shrink-0" />
+                                                }
+                                                <span className={`flex-1 text-sm ${step.done ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
+                                                    {step.label}
+                                                </span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })()}
+
                     {/* Kart 1: Salon Görselleri */}
                     <AccordionCard
                         icon={<Camera className="w-6 h-6" />}
@@ -690,6 +829,18 @@ export const MyShopPage: React.FC = () => {
                                         >
                                             Fotoğraf Değiştir
                                         </Button>
+                                        {getValues('coverImagePath') && (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                disabled={deletingCover}
+                                                onClick={() => setDeleteCoverConfirm(true)}
+                                                className="text-red-600 border-red-200 hover:bg-red-50"
+                                            >
+                                                {deletingCover ? 'Siliniyor…' : 'Fotoğrafı Sil'}
+                                            </Button>
+                                        )}
                                         <p className="text-xs text-gray-400">Önerilen: 1200×400 piksel</p>
                                     </div>
                                 </div>
@@ -716,28 +867,84 @@ export const MyShopPage: React.FC = () => {
                                         + Fotoğraf Ekle
                                     </Button>
                                 </div>
-                                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 items-start">
                                     {(getValues('images') || []).map((image, index) => (
                                         <div
                                             key={image.id || index}
-                                            className="relative group aspect-square bg-gray-100 rounded-xl overflow-hidden border border-gray-200"
+                                            className="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden"
                                         >
-                                            <img
-                                                src={getImageUrl(image.url)}
-                                                alt={`Galeri ${index + 1}`}
-                                                className="w-full h-full object-cover"
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => handleDeleteGalleryImage(image.id)}
-                                                className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
-                                            >
-                                                <Trash2 className="h-3.5 w-3.5" />
-                                            </button>
+                                            {/* Fotoğraf — tam boyut, kırpma yok */}
+                                            <div className="relative group overflow-hidden">
+                                                <img
+                                                    src={getImageUrl(image.url)}
+                                                    alt={`Galeri ${index + 1}`}
+                                                    className="w-full h-auto block"
+                                                />
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleDeleteGalleryImage(image.id)}
+                                                    className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                </button>
+                                            </div>
+                                            {/* Etiketler */}
+                                            <div className="p-2.5 space-y-2">
+                                                <div className="flex flex-wrap gap-1.5">
+                                                    {(image.tags || []).map(tag => (
+                                                        <span key={tag.id} className="group/tag inline-flex items-center gap-1 px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+                                                            {editingTag?.tagId === tag.id ? (
+                                                                <input
+                                                                    autoFocus
+                                                                    className="w-20 bg-transparent outline-none text-xs text-purple-800"
+                                                                    value={editingTag.name}
+                                                                    onChange={e => setEditingTag({ tagId: tag.id, name: e.target.value })}
+                                                                    onKeyDown={e => {
+                                                                        if (e.key === 'Enter') handleUpdateTag(image.id, tag.id, editingTag.name);
+                                                                        if (e.key === 'Escape') setEditingTag(null);
+                                                                    }}
+                                                                    onBlur={() => handleUpdateTag(image.id, tag.id, editingTag.name)}
+                                                                />
+                                                            ) : (
+                                                                <span
+                                                                    className="cursor-pointer"
+                                                                    onClick={() => setEditingTag({ tagId: tag.id, name: tag.name })}
+                                                                >
+                                                                    {tag.name}
+                                                                </span>
+                                                            )}
+                                                            <button
+                                                                type="button"
+                                                                onClick={() => handleDeleteTag(image.id, tag.id)}
+                                                                className="opacity-0 group-hover/tag:opacity-100 transition-opacity text-purple-400 hover:text-red-500 leading-none"
+                                                            >
+                                                                ×
+                                                            </button>
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                                <div className="flex items-center gap-1">
+                                                    <input
+                                                        type="text"
+                                                        placeholder="Etiket ekle..."
+                                                        value={tagInputs[image.id] || ''}
+                                                        onChange={e => setTagInputs(prev => ({ ...prev, [image.id]: e.target.value }))}
+                                                        onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddTag(image.id); } }}
+                                                        className="flex-1 text-xs px-2 py-1 rounded-lg border border-gray-200 focus:border-purple-400 outline-none bg-white"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleAddTag(image.id)}
+                                                        className="text-xs px-2 py-1 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
+                                                    >
+                                                        +
+                                                    </button>
+                                                </div>
+                                            </div>
                                         </div>
                                     ))}
                                     {(getValues('images') || []).length === 0 && (
-                                        <div className="col-span-2 sm:col-span-3 md:col-span-4 py-10 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 text-center text-gray-400 text-sm">
+                                        <div className="col-span-1 sm:col-span-2 md:col-span-3 py-10 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 text-center text-gray-400 text-sm">
                                             Henüz galeri fotoğrafı yüklenmemiş.
                                         </div>
                                     )}
@@ -1397,6 +1604,83 @@ export const MyShopPage: React.FC = () => {
                     </AccordionCard>
                 </div>
             )}
+            {/* ── Kapak Fotoğrafı Silme Onay Modalı ── */}
+            {deleteCoverConfirm && createPortal(
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+                        <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-100">
+                            <div className="p-2.5 bg-red-50 text-red-600 rounded-xl shrink-0">
+                                <Trash2 className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h3 className="text-base font-bold text-gray-900">Kapak Fotoğrafı Silinecek</h3>
+                                <p className="text-xs text-gray-500 mt-0.5">Bu işlem geri alınamaz</p>
+                            </div>
+                        </div>
+                        <div className="px-6 py-5">
+                            <p className="text-sm text-gray-600">
+                                Kapak fotoğrafını silmek istediğinizden emin misiniz?
+                            </p>
+                        </div>
+                        <div className="flex gap-3 px-6 pb-5">
+                            <button
+                                onClick={() => setDeleteCoverConfirm(false)}
+                                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 rounded-xl transition-colors"
+                            >
+                                Vazgeç
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    setDeleteCoverConfirm(false);
+                                    await handleDeleteCoverImage();
+                                }}
+                                className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors"
+                            >
+                                Evet, Sil
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* ── Galeri Fotoğrafı Silme Onay Modalı ── */}
+            {deleteImageId && createPortal(
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+                        <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-100">
+                            <div className="p-2.5 bg-red-50 text-red-600 rounded-xl shrink-0">
+                                <Trash2 className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h3 className="text-base font-bold text-gray-900">Fotoğraf Silinecek</h3>
+                                <p className="text-xs text-gray-500 mt-0.5">Bu işlem geri alınamaz</p>
+                            </div>
+                        </div>
+                        <div className="px-6 py-5">
+                            <p className="text-sm text-gray-600">
+                                Bu galeri fotoğrafını silmek istediğinizden emin misiniz?
+                            </p>
+                        </div>
+                        <div className="flex gap-3 px-6 pb-5">
+                            <button
+                                onClick={() => setDeleteImageId(null)}
+                                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 rounded-xl transition-colors"
+                            >
+                                Vazgeç
+                            </button>
+                            <button
+                                onClick={confirmDeleteGalleryImage}
+                                className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors"
+                            >
+                                Evet, Sil
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
             {/* ── İzin Günü Silme Onay Modalı ── */}
             {leaveDateToDelete && createPortal(
                 <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">

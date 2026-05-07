@@ -72,7 +72,7 @@ export interface Shop {
     ownerEmail?: string;
     isActive: boolean;
     coverImagePath?: string;
-    images?: { id: string; url: string }[];
+    images?: { id: string; url: string; tags: { id: string; name: string }[] }[];
     averageRating: number;
     reviewCount: number;
     minServicePrice?: number;

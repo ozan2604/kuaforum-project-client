@@ -104,5 +104,9 @@ export const authService = {
 
     deleteProfileImage: async (): Promise<void> => {
         await api.delete('/auth/profile-image');
+    },
+
+    logout: async (): Promise<void> => {
+        await api.post('/auth/logout');
     }
 };

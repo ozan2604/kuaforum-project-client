@@ -6,9 +6,9 @@ import { reviewService } from '../../api/review.service';
 import type { Review } from '../../api/review.service';
 import { toast } from 'react-hot-toast';
 import {
-    Calendar, Users, Scissors, CheckCircle, CheckCircle2,
+    Calendar, Users, Scissors, CheckCircle,
     AlertCircle, Clock, PlusCircle, Store, ChevronRight, Activity, XOctagon,
-    ChevronDown, ChevronUp, DollarSign, Bell, Star, MessageSquare, Circle
+    ChevronDown, ChevronUp, DollarSign, Bell, Star, MessageSquare
 } from 'lucide-react';
 
 interface NotificationItem {
@@ -180,64 +180,6 @@ export const SalonDashboard: React.FC = () => {
                 </div>
             </div>
 
-            {/* Kurulum Checklist */}
-            {!loading && stats?.setupStatus && stats.setupStatus.completionPercentage < 100 && (() => {
-                const s = stats.setupStatus;
-                const steps: { label: string; done: boolean; link: string }[] = [
-                    { label: 'Salon adı ve açıklama',           done: s.hasName && s.hasDescription, link: '/salon-panel/shop' },
-                    { label: 'Kapak fotoğrafı',                 done: s.hasCoverImage,               link: '/salon-panel/shop' },
-                    { label: 'Kategori seçimi',                 done: s.hasCategories,               link: '/salon-panel/shop' },
-                    { label: 'Konum bilgisi (şehir & adres)',   done: s.hasLocation,                 link: '/salon-panel/shop' },
-                    { label: 'Genel çalışma saatleri',          done: s.hasOpeningHours,             link: '/salon-panel/shop' },
-                    { label: 'En az 1 aktif hizmet',            done: s.hasActiveServices,           link: '/salon-panel/shop' },
-                    { label: 'En az 1 aktif uzman',             done: s.hasActiveEmployees,          link: '/salon-panel/shop' },
-                    { label: 'Uzmanlara hizmet atandı',         done: s.hasEmployeeServices,         link: '/salon-panel/shop' },
-                    { label: 'Uzman çalışma saatleri ayarlandı', done: s.hasEmployeeSchedules,      link: '/salon-panel/shop' },
-                ];
-                const pct = s.completionPercentage;
-                return (
-                    <div className="bg-white border border-blue-100 rounded-2xl shadow-sm overflow-hidden">
-                        <div className="px-5 py-4 border-b border-blue-50 flex items-center gap-3">
-                            <div className="p-2 bg-blue-50 rounded-xl">
-                                <CheckCircle2 className="w-5 h-5 text-blue-600" />
-                            </div>
-                            <div className="flex-1">
-                                <h3 className="text-sm font-bold text-gray-900">Salon Kurulumu</h3>
-                                <p className="text-xs text-gray-400">Salonunuzu tamamlamak için aşağıdaki adımları takip edin</p>
-                            </div>
-                            <span className={`text-sm font-bold ${pct === 100 ? 'text-emerald-600' : 'text-blue-600'}`}>{pct}%</span>
-                        </div>
-                        {/* Progress bar */}
-                        <div className="h-1.5 bg-gray-100">
-                            <div
-                                className="h-full bg-blue-500 transition-all duration-500"
-                                style={{ width: `${pct}%` }}
-                            />
-                        </div>
-                        <div className="px-5 py-3 divide-y divide-gray-50">
-                            {steps.map((step, i) => (
-                                <div key={i} className="flex items-center gap-3 py-2.5">
-                                    {step.done
-                                        ? <CheckCircle className="w-4 h-4 text-emerald-500 shrink-0" />
-                                        : <Circle className="w-4 h-4 text-gray-300 shrink-0" />
-                                    }
-                                    <span className={`flex-1 text-sm ${step.done ? 'text-gray-400 line-through' : 'text-gray-700'}`}>
-                                        {step.label}
-                                    </span>
-                                    {!step.done && (
-                                        <Link
-                                            to={step.link}
-                                            className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1 shrink-0"
-                                        >
-                                            Tamamla <ChevronRight className="w-3 h-3" />
-                                        </Link>
-                                    )}
-                                </div>
-                            ))}
-                        </div>
-                    </div>
-                );
-            })()}
 
             {/* Aksiyon Bildirimleri (bekleyen randevular vb.) */}
             {!loading && (() => {

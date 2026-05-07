@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { MapPin, Star, Calendar, Heart } from 'lucide-react';
 import { Button } from './Button';
-import { ShopCategoryLabels, type Shop } from '../types/shop';
+import { ShopCategoryLabels, type Shop, type ShopCategory } from '../types/shop';
 import { useAuth } from '../context/AuthContext';
 import { favoriteService } from '../services/favorite.service';
 import { toast } from 'react-hot-toast';

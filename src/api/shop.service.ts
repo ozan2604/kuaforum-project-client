@@ -67,6 +67,10 @@ export const shopService = {
         await api.delete(`/shop/gallery-images/${imageId}`);
     },
 
+    deleteCoverImage: async (id: string): Promise<void> => {
+        await api.delete(`/shop/${id}/cover-image`);
+    },
+
     updateAutoProcess: async (id: string, isEnabled: boolean): Promise<void> => {
         await api.patch(`/shop/${id}/auto-process`, isEnabled, {
             headers: { 'Content-Type': 'application/json' }
@@ -84,5 +88,22 @@ export const shopService = {
 
     removeClosureDate: async (id: string): Promise<void> => {
         await api.delete(`/shop/closure-dates/${id}`);
+    },
+
+    addImageTag: async (imageId: string, name: string): Promise<{ id: string; name: string }> => {
+        const response = await api.post<{ id: string; name: string }>(`/shop/gallery-images/${imageId}/tags`, JSON.stringify(name), {
+            headers: { 'Content-Type': 'application/json' }
+        });
+        return response.data;
+    },
+
+    updateImageTag: async (tagId: string, name: string): Promise<void> => {
+        await api.put(`/shop/gallery-images/tags/${tagId}`, JSON.stringify(name), {
+            headers: { 'Content-Type': 'application/json' }
+        });
+    },
+
+    deleteImageTag: async (tagId: string): Promise<void> => {
+        await api.delete(`/shop/gallery-images/tags/${tagId}`);
     }
 };
