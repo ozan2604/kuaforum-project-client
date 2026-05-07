@@ -152,6 +152,7 @@ export const MyShopPage: React.FC = () => {
     const [shopId, setShopId] = useState<string | null>(null);
     const [refreshImages, setRefreshImages] = useState(0);
     const [tagInputs, setTagInputs] = useState<Record<string, string>>({});
+    const watchedImages = watch('images') || [];
     const [editingTag, setEditingTag] = useState<{ tagId: string; name: string } | null>(null);
     const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
     const [savedSnapshot, setSavedSnapshot] = useState<ShopSnapshot | null>(null);
@@ -867,13 +868,11 @@ export const MyShopPage: React.FC = () => {
                                         + Fotoğraf Ekle
                                     </Button>
                                 </div>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 items-start">
-                                    {(getValues('images') || []).map((image, index) => (
-                                        <div
-                                            key={image.id || index}
-                                            className="bg-gray-50 rounded-xl border border-gray-200 overflow-hidden"
-                                        >
-                                            {/* Fotoğraf — tam boyut, kırpma yok */}
+                                <div className="columns-2 md:columns-3 gap-4">
+                                    {watchedImages.map((image, index) => (
+                                        <div key={image.id || index} className="break-inside-avoid mb-4">
+                                            <div className="rounded-xl border border-gray-200 overflow-hidden bg-white">
+                                            {/* Fotoğraf — tam boyut, masonry */}
                                             <div className="relative group overflow-hidden">
                                                 <img
                                                     src={getImageUrl(image.url)}
@@ -892,11 +891,11 @@ export const MyShopPage: React.FC = () => {
                                             <div className="p-2.5 space-y-2">
                                                 <div className="flex flex-wrap gap-1.5">
                                                     {(image.tags || []).map(tag => (
-                                                        <span key={tag.id} className="group/tag inline-flex items-center gap-1 px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+                                                        <span key={tag.id} className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
                                                             {editingTag?.tagId === tag.id ? (
                                                                 <input
                                                                     autoFocus
-                                                                    className="w-20 bg-transparent outline-none text-xs text-purple-800"
+                                                                    className="w-16 bg-transparent outline-none text-xs text-purple-800"
                                                                     value={editingTag.name}
                                                                     onChange={e => setEditingTag({ tagId: tag.id, name: e.target.value })}
                                                                     onKeyDown={e => {
@@ -916,7 +915,7 @@ export const MyShopPage: React.FC = () => {
                                                             <button
                                                                 type="button"
                                                                 onClick={() => handleDeleteTag(image.id, tag.id)}
-                                                                className="opacity-0 group-hover/tag:opacity-100 transition-opacity text-purple-400 hover:text-red-500 leading-none"
+                                                                className="text-purple-400 hover:text-red-500 leading-none shrink-0 text-sm"
                                                             >
                                                                 ×
                                                             </button>
@@ -930,21 +929,22 @@ export const MyShopPage: React.FC = () => {
                                                         value={tagInputs[image.id] || ''}
                                                         onChange={e => setTagInputs(prev => ({ ...prev, [image.id]: e.target.value }))}
                                                         onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddTag(image.id); } }}
-                                                        className="flex-1 text-xs px-2 py-1 rounded-lg border border-gray-200 focus:border-purple-400 outline-none bg-white"
+                                                        className="min-w-0 flex-1 text-xs px-2 py-1 rounded-lg border border-gray-200 focus:border-purple-400 outline-none bg-white"
                                                     />
                                                     <button
                                                         type="button"
                                                         onClick={() => handleAddTag(image.id)}
-                                                        className="text-xs px-2 py-1 bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors"
+                                                        className="shrink-0 w-7 h-7 flex items-center justify-center bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-base leading-none"
                                                     >
                                                         +
                                                     </button>
                                                 </div>
                                             </div>
+                                            </div>
                                         </div>
                                     ))}
-                                    {(getValues('images') || []).length === 0 && (
-                                        <div className="col-span-1 sm:col-span-2 md:col-span-3 py-10 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 text-center text-gray-400 text-sm">
+                                    {watchedImages.length === 0 && (
+                                        <div className="py-10 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 text-center text-gray-400 text-sm">
                                             Henüz galeri fotoğrafı yüklenmemiş.
                                         </div>
                                     )}

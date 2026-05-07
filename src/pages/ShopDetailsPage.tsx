@@ -728,29 +728,29 @@ export const ShopDetailsPage: React.FC = () => {
                             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8 animate-fadeIn">
                                 <h2 className="text-2xl font-bold text-gray-900 mb-6">Galeri</h2>
                                 {shop.images && shop.images.length > 0 ? (
-                                    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-5 items-start">
+                                    <div className="columns-2 md:columns-3 gap-4">
                                         {shop.images.map((image, index) => (
-                                            <div key={index} className="rounded-xl overflow-hidden border border-gray-100 shadow-sm bg-white">
-                                                <div className="group cursor-zoom-in overflow-hidden">
+                                            <div key={index} className="break-inside-avoid mb-4">
+                                                <div className="rounded-xl overflow-hidden border border-gray-100 shadow-sm bg-white group cursor-zoom-in">
                                                     <img
                                                         src={getImageUrl(image.url)}
                                                         alt={`${shop.name} ${index + 1}`}
-                                                        className="w-full h-auto block group-hover:scale-105 transition-transform duration-500"
+                                                        className="w-full h-auto block group-hover:brightness-95 transition-all duration-300"
                                                         onClick={() => window.open(getImageUrl(image.url), '_blank')}
                                                     />
+                                                    {image.tags && image.tags.length > 0 && (
+                                                        <div className="px-3 py-2.5 flex flex-wrap gap-1.5">
+                                                            {image.tags.map(tag => (
+                                                                <span
+                                                                    key={tag.id}
+                                                                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-100"
+                                                                >
+                                                                    {tag.name}
+                                                                </span>
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                 </div>
-                                                {image.tags && image.tags.length > 0 && (
-                                                    <div className="px-3 py-2.5 flex flex-wrap gap-1.5">
-                                                        {image.tags.map(tag => (
-                                                            <span
-                                                                key={tag.id}
-                                                                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-100"
-                                                            >
-                                                                {tag.name}
-                                                            </span>
-                                                        ))}
-                                                    </div>
-                                                )}
                                             </div>
                                         ))}
                                     </div>

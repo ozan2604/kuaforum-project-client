@@ -52,6 +52,8 @@ export const SalonDashboard: React.FC = () => {
     const [stats, setStats] = useState<Stats | null>(null);
     const [reviews, setReviews] = useState<Review[]>([]);
     const [loading, setLoading] = useState(true);
+    const [reviewsLoading, setReviewsLoading] = useState(false);
+    const [reviewsFetched, setReviewsFetched] = useState(false);
     const [timeRange, setTimeRange] = useState<'today' | 'thisWeek' | 'thisMonth' | 'thisYear'>('today');
 
     // Reviews State
@@ -76,12 +78,8 @@ export const SalonDashboard: React.FC = () => {
     useEffect(() => {
         const loadDashboard = async () => {
             try {
-                const [data, shopReviews] = await Promise.all([
-                    shopService.getDashboardStats(),
-                    reviewService.getMyShopReviews()
-                ]);
+                const data = await shopService.getDashboardStats();
                 setStats(data);
-                setReviews(shopReviews);
             } catch (error) {
                 console.error('Failed to load dashboard', error);
                 toast.error('İstatistikler yüklenemedi.');
@@ -92,6 +90,24 @@ export const SalonDashboard: React.FC = () => {
 
         loadDashboard();
     }, []);
+
+    useEffect(() => {
+        if (!openCards.reviews || reviewsFetched) return;
+        const loadReviews = async () => {
+            setReviewsLoading(true);
+            try {
+                const shopReviews = await reviewService.getMyShopReviews();
+                setReviews(shopReviews);
+                setReviewsFetched(true);
+            } catch (error) {
+                console.error('Failed to load reviews', error);
+                toast.error('Yorumlar yüklenemedi.');
+            } finally {
+                setReviewsLoading(false);
+            }
+        };
+        loadReviews();
+    }, [openCards.reviews, reviewsFetched]);
 
     // Date formatting helpers
     const now = new Date();
@@ -407,7 +423,9 @@ export const SalonDashboard: React.FC = () => {
                                 </div>
                                 <div>
                                     <h2 className="text-lg font-bold text-gray-900 text-left">Müşteri Yorumları</h2>
-                                    <p className="text-xs text-gray-500 text-left mt-0.5">{reviews.length} Toplam Değerlendirme</p>
+                                    <p className="text-xs text-gray-500 text-left mt-0.5">
+                                        {reviewsFetched ? `${reviews.length} Toplam Değerlendirme` : 'Açmak için tıklayın'}
+                                    </p>
                                 </div>
                             </div>
                             <div className="absolute right-5 sm:right-6 flex items-center justify-center p-1 bg-gray-50 rounded-full text-gray-400">
@@ -417,8 +435,15 @@ export const SalonDashboard: React.FC = () => {
 
                         {openCards.reviews && (
                             <div className="p-5 sm:p-6 pt-0 border-t border-gray-50 animate-in fade-in slide-in-from-top-4 duration-300">
+                                {reviewsLoading && (
+                                    <div className="space-y-3 mt-6">
+                                        {[...Array(3)].map((_, i) => (
+                                            <div key={i} className="h-20 bg-gray-100 animate-pulse rounded-xl" />
+                                        ))}
+                                    </div>
+                                )}
                                 {/* Employee Review Stats */}
-                                {Object.keys(employeeReviewStats).length > 0 && (
+                                {!reviewsLoading && Object.keys(employeeReviewStats).length > 0 && (
                                     <div className="mb-6 mt-6">
                                         <h3 className="text-sm font-bold text-gray-700 mb-3 uppercase tracking-wider">Çalışan Puan Ortalamaları</h3>
                                         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
@@ -441,87 +466,91 @@ export const SalonDashboard: React.FC = () => {
                                 )}
 
                                 {/* Filter & List */}
-                                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 mt-6 gap-3">
-                                    <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Son Yorumlar</h3>
-                                    <div className="flex bg-gray-50 p-1 rounded-lg border border-gray-100 overflow-x-auto">
-                                        <button onClick={() => { setReviewFilter(null); setReviewPage(1); }} className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${reviewFilter === null ? 'bg-white shadow-sm text-yellow-600' : 'text-gray-500 hover:bg-gray-100'}`}>Tümü</button>
-                                        {[5, 4, 3, 2, 1].map(star => (
-                                            <button key={star} onClick={() => { setReviewFilter(star); setReviewPage(1); }} className={`px-3 py-1 text-sm font-medium rounded-md transition-colors flex items-center gap-1 ${reviewFilter === star ? 'bg-white shadow-sm text-yellow-600' : 'text-gray-500 hover:bg-gray-100'}`}>
-                                                {star} <Star className="w-3 h-3 fill-current" />
-                                            </button>
-                                        ))}
-                                    </div>
-                                </div>
+                                {!reviewsLoading && (
+                                    <>
+                                        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-4 mt-6 gap-3">
+                                            <h3 className="text-sm font-bold text-gray-700 uppercase tracking-wider">Son Yorumlar</h3>
+                                            <div className="flex bg-gray-50 p-1 rounded-lg border border-gray-100 overflow-x-auto">
+                                                <button onClick={() => { setReviewFilter(null); setReviewPage(1); }} className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${reviewFilter === null ? 'bg-white shadow-sm text-yellow-600' : 'text-gray-500 hover:bg-gray-100'}`}>Tümü</button>
+                                                {[5, 4, 3, 2, 1].map(star => (
+                                                    <button key={star} onClick={() => { setReviewFilter(star); setReviewPage(1); }} className={`px-3 py-1 text-sm font-medium rounded-md transition-colors flex items-center gap-1 ${reviewFilter === star ? 'bg-white shadow-sm text-yellow-600' : 'text-gray-500 hover:bg-gray-100'}`}>
+                                                        {star} <Star className="w-3 h-3 fill-current" />
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
 
-                                {currentReviews.length === 0 ? (
-                                    <div className="text-center py-8 bg-gray-50 rounded-xl border border-gray-100">
-                                        <MessageSquare className="w-8 h-8 text-gray-300 mx-auto mb-2" />
-                                        <p className="text-gray-500">Henüz bu kritere uygun yorum bulunmuyor.</p>
-                                    </div>
-                                ) : (
-                                    <div className="space-y-3">
-                                        {currentReviews.map(r => (
-                                            <div key={r.id} className="p-5 bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md transition-shadow">
-                                                <div className="flex justify-between items-start mb-3">
-                                                    <div className="flex gap-3 items-center">
-                                                        <div className="w-10 h-10 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center font-bold text-indigo-500 shrink-0 uppercase">
-                                                            {r.userName.charAt(0)}
-                                                        </div>
-                                                        <div>
-                                                            <h4 className="font-semibold text-gray-900">{r.userName}</h4>
-                                                            <div className="text-xs text-gray-500 flex flex-wrap items-center gap-1.5 mt-1">
-                                                                <span className="font-medium text-indigo-600">{r.serviceName}</span>
-                                                                <span>•</span>
-                                                                <span className="font-medium">{r.employeeName}</span>
-                                                                <span>•</span>
-                                                                <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 font-medium">₺{r.servicePrice}</span>
+                                        {currentReviews.length === 0 ? (
+                                            <div className="text-center py-8 bg-gray-50 rounded-xl border border-gray-100">
+                                                <MessageSquare className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                                                <p className="text-gray-500">Henüz bu kritere uygun yorum bulunmuyor.</p>
+                                            </div>
+                                        ) : (
+                                            <div className="space-y-3">
+                                                {currentReviews.map(r => (
+                                                    <div key={r.id} className="p-5 bg-white border border-gray-100 rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                                                        <div className="flex justify-between items-start mb-3">
+                                                            <div className="flex gap-3 items-center">
+                                                                <div className="w-10 h-10 rounded-full bg-indigo-50 border border-indigo-100 flex items-center justify-center font-bold text-indigo-500 shrink-0 uppercase">
+                                                                    {r.userName.charAt(0)}
+                                                                </div>
+                                                                <div>
+                                                                    <h4 className="font-semibold text-gray-900">{r.userName}</h4>
+                                                                    <div className="text-xs text-gray-500 flex flex-wrap items-center gap-1.5 mt-1">
+                                                                        <span className="font-medium text-indigo-600">{r.serviceName}</span>
+                                                                        <span>•</span>
+                                                                        <span className="font-medium">{r.employeeName}</span>
+                                                                        <span>•</span>
+                                                                        <span className="bg-gray-100 px-1.5 py-0.5 rounded text-gray-600 font-medium">₺{r.servicePrice}</span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                            <div className="flex items-center text-yellow-400">
+                                                                {[...Array(5)].map((_, i) => (
+                                                                    <Star key={i} className={`w-4 h-4 ${i < r.rating ? 'fill-current' : 'text-gray-200'}`} />
+                                                                ))}
                                                             </div>
                                                         </div>
+                                                        <p className="text-gray-700 text-sm mt-3 pb-1">
+                                                            {r.comment ? `"${r.comment}"` : <span className="italic text-gray-400">Yorum bırakılmadı. Sadece puan verildi.</span>}
+                                                        </p>
+                                                        <div className="mt-3 text-xs text-gray-400 flex items-center justify-between pt-3 border-t border-gray-50">
+                                                            <span className="flex items-center gap-1.5">
+                                                                <Clock className="w-3.5 h-3.5" />
+                                                                {new Date(r.appointmentDate).toLocaleString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                                                            </span>
+                                                            {r.imageUrls && r.imageUrls.length > 0 && (
+                                                                <span className="text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-md font-medium">{r.imageUrls.length} Fotoğraf</span>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                    <div className="flex items-center text-yellow-400">
-                                                        {[...Array(5)].map((_, i) => (
-                                                            <Star key={i} className={`w-4 h-4 ${i < r.rating ? 'fill-current' : 'text-gray-200'}`} />
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                                <p className="text-gray-700 text-sm mt-3 pb-1">
-                                                    {r.comment ? `"${r.comment}"` : <span className="italic text-gray-400">Yorum bırakılmadı. Sadece puan verildi.</span>}
-                                                </p>
-                                                <div className="mt-3 text-xs text-gray-400 flex items-center justify-between pt-3 border-t border-gray-50">
-                                                    <span className="flex items-center gap-1.5">
-                                                        <Clock className="w-3.5 h-3.5" />
-                                                        {new Date(r.appointmentDate).toLocaleString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                                    </span>
-                                                    {r.imageUrls && r.imageUrls.length > 0 && (
-                                                        <span className="text-indigo-500 bg-indigo-50 px-2 py-0.5 rounded-md font-medium">{r.imageUrls.length} Fotoğraf</span>
-                                                    )}
-                                                </div>
+                                                ))}
                                             </div>
-                                        ))}
-                                    </div>
-                                )}
+                                        )}
 
-                                {/* Pagination */}
-                                {totalReviewPages > 1 && (
-                                    <div className="flex items-center justify-center gap-2 mt-6">
-                                        <button 
-                                            onClick={() => setReviewPage(p => Math.max(1, p - 1))}
-                                            disabled={reviewPage === 1}
-                                            className="p-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:bg-gray-50"
-                                        >
-                                            Önceki
-                                        </button>
-                                        <span className="text-sm font-medium text-gray-600 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
-                                            Sayfa {reviewPage} / {totalReviewPages}
-                                        </span>
-                                        <button 
-                                            onClick={() => setReviewPage(p => Math.min(totalReviewPages, p + 1))}
-                                            disabled={reviewPage === totalReviewPages}
-                                            className="p-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:bg-gray-50"
-                                        >
-                                            Sonraki
-                                        </button>
-                                    </div>
+                                        {/* Pagination */}
+                                        {totalReviewPages > 1 && (
+                                            <div className="flex items-center justify-center gap-2 mt-6">
+                                                <button
+                                                    onClick={() => setReviewPage(p => Math.max(1, p - 1))}
+                                                    disabled={reviewPage === 1}
+                                                    className="p-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:bg-gray-50"
+                                                >
+                                                    Önceki
+                                                </button>
+                                                <span className="text-sm font-medium text-gray-600 bg-gray-50 px-3 py-1.5 rounded-lg border border-gray-100">
+                                                    Sayfa {reviewPage} / {totalReviewPages}
+                                                </span>
+                                                <button
+                                                    onClick={() => setReviewPage(p => Math.min(totalReviewPages, p + 1))}
+                                                    disabled={reviewPage === totalReviewPages}
+                                                    className="p-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50 disabled:bg-gray-50"
+                                                >
+                                                    Sonraki
+                                                </button>
+                                            </div>
+                                        )}
+                                    </>
                                 )}
                             </div>
                         )}
