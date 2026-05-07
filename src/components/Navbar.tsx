@@ -34,14 +34,14 @@ export const Navbar: React.FC = () => {
                         <Link to="/" className="flex-shrink-0 flex items-center gap-3 group">
                             <div className="relative">
                                 <img 
-                                    src="/logo.png" 
-                                    alt="Kuğulum Logo" 
+                                    src="/salonyolu-logo.png" 
+                                    alt="Salonyolu Logo" 
                                     className="h-12 w-12 rounded-full object-cover border-2 border-gray-100 shadow-sm group-hover:border-primary-400 transition-all duration-300 aspect-square" 
                                 />
                                 <div className="absolute inset-0 rounded-full bg-primary-500/5 group-hover:bg-transparent transition-colors" />
                             </div>
                             <span className="font-black text-2xl tracking-tighter bg-gradient-to-br from-gray-900 via-gray-800 to-gray-500 bg-clip-text text-transparent hidden sm:block italic">
-                                Kuğulum
+                                Salonyolu
                             </span>
                         </Link>
                     </div>

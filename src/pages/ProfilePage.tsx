@@ -144,7 +144,7 @@ export const ProfilePage: React.FC = () => {
         else if (openSection === 'reviews') loadReviews();
     }, [openSection]);
 
-    const loadAppointments = async () => { try { setAppointments(await appointmentService.getMyAppointments()); } catch (err) { toast.error(getApiError(err, 'Randevular yüklenemedi.')); } };
+    const loadAppointments = async () => { try { const result = await appointmentService.getMyAppointments(1, 50); setAppointments(result.items); } catch (err) { toast.error(getApiError(err, 'Randevular yüklenemedi.')); } };
 
     const loadFavorites = async () => { setFavLoading(true); try { setFavorites(await favoriteService.getUserFavorites()); } catch (err) { toast.error(getApiError(err, 'Favoriler yüklenemedi.')); } finally { setFavLoading(false); } };
 

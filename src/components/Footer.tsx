@@ -11,12 +11,12 @@ export const Footer: React.FC = () => {
                     <div className="space-y-4">
                         <Link to="/" className="flex items-center gap-3 group">
                             <img 
-                                src="/logo.png" 
-                                alt="Kuğulum Logo" 
+                                src="/salonyolu-logo.png" 
+                                alt="Salonyolu Logo" 
                                 className="h-12 w-12 rounded-full object-cover border-2 border-gray-100 shadow-sm transition-all aspect-square" 
                             />
                             <span className="text-2xl font-black italic bg-gradient-to-br from-gray-900 via-gray-800 to-gray-500 bg-clip-text text-transparent tracking-tighter">
-                                Kuğulum
+                                Salonyolu
                             </span>
                         </Link>
                         <p className="text-gray-500 text-sm max-w-xs">
@@ -69,7 +69,7 @@ export const Footer: React.FC = () => {
                 </div>
 
                 <div className="border-t border-gray-100 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500">
-                    <p>&copy; {new Date().getFullYear()} Kuğulum. Tüm hakları saklıdır.</p>
+                    <p>&copy; {new Date().getFullYear()} Salonyolu. Tüm hakları saklıdır.</p>
                     <div className="flex flex-wrap justify-center gap-4 mt-4 md:mt-0">
                         <Link to="/kvkk" className="hover:text-gray-900 transition-colors">KVKK Aydınlatma Metni</Link>
                         <Link to="/gizlilik-politikasi" className="hover:text-gray-900 transition-colors">Gizlilik Politikası</Link>

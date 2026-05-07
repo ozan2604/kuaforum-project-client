@@ -1,7 +1,7 @@
 import React from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, Store, Users, LogOut, Scissors, Menu, X } from 'lucide-react';
+import { LayoutDashboard, Store, Users, LogOut, Scissors, Menu, X, MessageSquare } from 'lucide-react';
 
 export const AdminLayout: React.FC = () => {
     const { logout } = useAuth();
@@ -18,6 +18,7 @@ export const AdminLayout: React.FC = () => {
         { path: '/admin/applications', label: 'Applications', icon: Users },
         { path: '/admin/shops', label: 'Shops', icon: Store },
         { path: '/admin/users', label: 'Users', icon: Users },
+        { path: '/admin/sms-test', label: 'SMS Test', icon: MessageSquare },
     ];
 
     const [sidebarOpen, setSidebarOpen] = React.useState(false);

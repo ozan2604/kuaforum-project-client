@@ -92,6 +92,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
     const [districts, setDistricts] = useState<{ id: number; name: string }[]>([]);
     const [neighborhoods, setNeighborhoods] = useState<Neighborhood[]>([]);
     const [loadingLocation, setLoadingLocation] = useState(false);
+    const [provincesLoading, setProvincesLoading] = useState(true);
 
     const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
     const [selectedDistrict, setSelectedDistrict] = useState<string | null>(null);
@@ -112,6 +113,8 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                 setProvinces(sorted);
             } catch (error) {
                 console.error('Failed to load provinces', error);
+            } finally {
+                setProvincesLoading(false);
             }
         };
         loadProvinces();
@@ -360,7 +363,11 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                                                          </div>
 
                                                          <div className="grid grid-cols-1 gap-1.5 max-h-44 overflow-y-auto p-1 pr-2 custom-scrollbar border border-gray-100 rounded-xl bg-gray-50/30">
-                                                             {(filteredProvinces.length > 0 ? filteredProvinces : provinces).map(p => (
+                                                             {provincesLoading ? (
+                                                                 <div className="flex justify-center items-center py-4">
+                                                                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-600" />
+                                                                 </div>
+                                                             ) : (filteredProvinces.length > 0 ? filteredProvinces : provinces).map(p => (
                                                                  <button
                                                                      key={p.id}
                                                                      onClick={() => {

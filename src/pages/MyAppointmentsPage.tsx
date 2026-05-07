@@ -14,25 +14,36 @@ import { toast } from 'react-hot-toast';
 
 type Appointment = AppointmentDto;
 
+const PAGE_SIZE = 20;
+
 export const MyAppointmentsPage: React.FC = () => {
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [loading, setLoading] = useState(true);
+    const [loadingMore, setLoadingMore] = useState(false);
+    const [page, setPage] = useState(1);
+    const [hasMore, setHasMore] = useState(false);
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
     const [selectedAppointmentForReview, setSelectedAppointmentForReview] = useState<Appointment | null>(null);
     const navigate = useNavigate();
 
-    useEffect(() => { loadAppointments(); }, []);
+    useEffect(() => { loadAppointments(1, true); }, []);
 
-    const loadAppointments = async () => {
+    const loadAppointments = async (pageNum: number, reset: boolean) => {
         try {
-            const data = await appointmentService.getMyAppointments();
-            setAppointments(data);
+            if (reset) setLoading(true); else setLoadingMore(true);
+            const result = await appointmentService.getMyAppointments(pageNum, PAGE_SIZE);
+            setAppointments(prev => reset ? result.items : [...prev, ...result.items]);
+            setHasMore(pageNum < result.totalPages);
+            setPage(pageNum);
         } catch (error) {
             console.error('Failed to load appointments', error);
         } finally {
             setLoading(false);
+            setLoadingMore(false);
         }
     };
+
+    const handleLoadMore = () => loadAppointments(page + 1, false);
 
     // Aynı groupId'ye sahip randevuları tek kart altında topla.
     // groupId yoksa (eski tek-hizmet randevuları) appointment.id gruplanma anahtarı olur.
@@ -80,7 +91,7 @@ export const MyAppointmentsPage: React.FC = () => {
                 await appointmentService.cancelAppointment(group[0].id);
             }
             toast.success('Randevu iptal edildi.');
-            await loadAppointments();
+            await loadAppointments(1, true);
         } catch (error: any) {
             toast.error(error.response?.data?.Message || 'Randevu iptal edilemedi.');
         }
@@ -91,7 +102,7 @@ export const MyAppointmentsPage: React.FC = () => {
         try {
             await appointmentService.cancelAppointment(apt.id);
             toast.success('Hizmet iptal edildi.');
-            await loadAppointments();
+            await loadAppointments(1, true);
         } catch (error: any) {
             toast.error(error.response?.data?.Message || 'İptal edilemedi.');
         }
@@ -106,7 +117,7 @@ export const MyAppointmentsPage: React.FC = () => {
                 comment,
                 images,
             });
-            await loadAppointments();
+            await loadAppointments(1, true);
         } catch (error) {
             console.error('Failed to submit review', error);
         }
@@ -270,6 +281,17 @@ export const MyAppointmentsPage: React.FC = () => {
                             </div>
                         );
                     })}
+                    {hasMore && (
+                        <div className="flex justify-center pt-2 pb-4">
+                            <Button
+                                variant="outline"
+                                onClick={handleLoadMore}
+                                disabled={loadingMore}
+                            >
+                                {loadingMore ? 'Yükleniyor...' : 'Daha Fazla Göster'}
+                            </Button>
+                        </div>
+                    )}
                 </div>
             )}
 

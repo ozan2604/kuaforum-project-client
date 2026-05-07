@@ -27,9 +27,11 @@ export const appointmentService = {
         return response.data;
     },
 
-    // Get my appointments (Customer) - useful if we reuse types
-    getMyAppointments: async (): Promise<Appointment[]> => {
-        const response = await api.get<Appointment[]>('/Appointment/my-appointments');
+    // Get my appointments (Customer) — paginated
+    getMyAppointments: async (page: number = 1, pageSize: number = 20): Promise<PagedResult<Appointment>> => {
+        const response = await api.get<PagedResult<Appointment>>('/Appointment/my-appointments', {
+            params: { page, pageSize }
+        });
         return response.data;
     },
 
