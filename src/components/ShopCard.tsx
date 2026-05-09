@@ -73,7 +73,7 @@ export const ShopCard: React.FC<ShopCardProps> = ({ shop, initialIsFavorite = fa
     return (
         <div className="group bg-white rounded-xl sm:rounded-2xl overflow-hidden hover:shadow-xl hover:shadow-primary-900/8 hover:-translate-y-1 transition-all duration-400 border border-gray-100 flex flex-col h-full relative">
             {/* Görsel Bölümü */}
-            <Link to={`/shop/${shop.id}`} className="block relative w-full h-[140px] sm:h-[200px] overflow-hidden shrink-0">
+            <Link to={`/shop/${shop.id}`} className="block relative w-full h-[170px] sm:h-[230px] overflow-hidden shrink-0">
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent z-10" />
                 <img
                     src={getImageUrl(shop.coverImagePath)}
@@ -124,10 +124,6 @@ export const ShopCard: React.FC<ShopCardProps> = ({ shop, initialIsFavorite = fa
                     <MapPin className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-0.5 sm:mr-1 text-secondary-400 shrink-0" />
                     <span className="line-clamp-1">{shop.district}, {shop.city}</span>
                 </div>
-
-                <p className="text-gray-500 text-[11px] sm:text-xs mb-2 sm:mb-3 line-clamp-1 leading-relaxed hidden sm:block">
-                    {shop.description || 'Profesyonel güzellik ve bakım hizmetleri.'}
-                </p>
 
                 <div className="flex items-center justify-between pt-2 sm:pt-3 border-t border-gray-100 mt-auto">
                     <div className="flex items-center gap-1.5 flex-wrap">

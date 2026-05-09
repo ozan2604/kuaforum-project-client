@@ -310,19 +310,18 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
             {/* Sub-Navbar for Quick Filters (like Location) */}
             <div className="bg-white border-b border-gray-100 sticky top-20 z-40">
                 <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center h-12 text-sm font-medium">
-                        {/* Fixed items container (dropdowns won't be clipped) */}
-                        <div className="flex items-center shrink-0 pr-3 mr-3 md:pr-6 md:mr-6 border-r border-gray-100 h-full max-w-[120px] sm:max-w-none">
-                            {/* Location Dropdown Toggle */}
+                    <div className="flex items-center h-12 text-sm font-medium overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] select-none">
+                        {/* Location Dropdown Toggle */}
+                        <div className="relative h-full flex items-center shrink-0 pr-3 mr-3 sm:pr-5 sm:mr-5 border-r border-gray-100">
                             <div className="relative h-full flex items-center">
                                 <button
                                     onClick={() => setIsLocationDropdownOpen(!isLocationDropdownOpen)}
-                                    className={`flex items-center gap-1 sm:gap-2 hover:text-primary-700 transition-colors py-3 border-b-2 ${isLocationDropdownOpen || selectedProvince ? 'text-primary-700 border-primary-600' : 'text-gray-600 border-transparent'}`}
+                                    className={`flex items-center gap-1 sm:gap-2 hover:text-primary-700 transition-colors py-3 border-b-2 whitespace-nowrap ${isLocationDropdownOpen || selectedProvince ? 'text-primary-700 border-primary-600' : 'text-gray-600 border-transparent'}`}
                                 >
                                      <MapPin className="h-4 w-4 shrink-0" />
-                                     <span className="truncate">
-                                         {selectedNeighborhood ? `${selectedNeighborhood}` : 
-                                          selectedDistrict ? `${selectedDistrict}` : 
+                                     <span className="max-w-[90px] sm:max-w-none truncate">
+                                         {selectedNeighborhood ? `${selectedNeighborhood}` :
+                                          selectedDistrict ? `${selectedDistrict}` :
                                           selectedProvince ? `${selectedProvince}` : 'Konuma Göre'}
                                      </span>
                                      <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${isLocationDropdownOpen ? 'rotate-180' : ''}`} />
@@ -475,73 +474,69 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                             </div>
                         </div>
 
-                        {/* Scrollable quick tabs container */}
-                        <div className="flex items-center gap-3 md:gap-4 lg:gap-5 overflow-x-auto whitespace-nowrap flex-1 min-w-0 h-full select-none [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                            <button
-                                onClick={() => toggleTag('kadin')}
-                                className={`font-semibold transition-colors py-3 border-b-2 shrink-0 ${activeTags.includes('kadin') ? 'text-primary-700 border-primary-600' : 'text-gray-800 hover:text-primary-700 border-transparent'}`}
-                            >
-                                Kadın
-                            </button>
-                            <div className="w-px h-4 bg-gray-200 shrink-0 mx-0.5 md:mx-1 text-[13px] md:text-sm"></div>
-                            <button
-                                onClick={() => toggleTag('erkek')}
-                                className={`font-semibold transition-colors py-3 border-b-2 shrink-0 text-[13px] md:text-sm ${activeTags.includes('erkek') ? 'text-primary-700 border-primary-600' : 'text-gray-800 hover:text-primary-700 border-transparent'}`}
-                            >
-                                Erkek
-                            </button>
-                            <div className="w-px h-4 bg-gray-200 shrink-0 mx-0.5 md:mx-1"></div>
-
-                            {/* Other quick tabs sort elements */}
-                            <button
-                                onClick={() => toggleTag('low-price')}
-                                className={`transition-colors py-3 border-b-2 shrink-0 text-[13px] md:text-sm ${activeTags.includes('low-price') ? 'text-primary-700 border-primary-600 font-bold' : 'text-gray-600 hover:text-primary-700 border-transparent'}`}
-                            >
-                                Düşük Fiyatlar
-                            </button>
-                            <div className="w-px h-4 bg-gray-200 shrink-0 mx-0.5 md:mx-1"></div>
-                            <button
-                                onClick={() => toggleTag('high-price')}
-                                className={`transition-colors py-3 border-b-2 shrink-0 text-[13px] md:text-sm ${activeTags.includes('high-price') ? 'text-primary-700 border-primary-600 font-bold' : 'text-gray-600 hover:text-primary-700 border-transparent'}`}
-                            >
-                                Yüksek Fiyatlar
-                            </button>
-                            <div className="w-px h-4 bg-gray-200 shrink-0 mx-0.5 md:mx-1"></div>
-                            <button
-                                onClick={() => toggleTag('rating')}
-                                className={`transition-colors py-3 border-b-2 shrink-0 text-[13px] md:text-sm ${activeTags.includes('rating') ? 'text-primary-700 border-primary-600 font-bold' : 'text-gray-600 hover:text-primary-700 border-transparent'}`}
-                            >
-                                En Yüksek Puanlılar
-                            </button>
-                            <div className="w-px h-4 bg-gray-200 shrink-0 mx-0.5 md:mx-1"></div>
-                            <button
-                                onClick={() => setMinRating(prev => prev === 4 ? null : 4)}
-                                className={`transition-colors py-3 border-b-2 shrink-0 text-[13px] md:text-sm ${minRating === 4 ? 'text-primary-700 border-primary-600 font-bold' : 'text-gray-600 hover:text-primary-700 border-transparent'}`}
-                            >
-                                4★ ve Üzeri
-                            </button>
-                            <div className="w-px h-4 bg-gray-200 shrink-0 mx-0.5 md:mx-1"></div>
-                            <button
-                                onClick={() => toggleTag('campaign')}
-                                className={`transition-colors py-3 border-b-2 shrink-0 text-[13px] md:text-sm ${activeTags.includes('campaign') ? 'text-primary-700 border-primary-600 font-bold' : 'text-gray-600 hover:text-primary-700 border-transparent'}`}
-                            >
-                                Kampanyalılar
-                            </button>
-                            <div className="w-px h-4 bg-gray-200 shrink-0 mx-0.5 md:mx-1"></div>
-                            <button
-                                onClick={() => toggleTag('reviews')}
-                                className={`transition-colors py-3 border-b-2 shrink-0 text-[13px] md:text-sm ${activeTags.includes('reviews') ? 'text-primary-700 border-primary-600 font-bold' : 'text-gray-600 hover:text-primary-700 border-transparent'}`}
-                            >
-                                En Çok Yorum Alanlar
-                            </button>
-                            <div className="w-px h-4 bg-gray-200 shrink-0 mx-0.5 md:mx-1"></div>
-                            <button
-                                onClick={() => toggleTag('newest')}
-                                className={`transition-colors py-3 border-b-2 shrink-0 text-[13px] md:text-sm ${activeTags.includes('newest') ? 'text-primary-700 border-primary-600 font-bold' : 'text-gray-600 hover:text-primary-700 border-transparent'}`}
-                            >
-                                En Yeniler
-                            </button>
-                        </div>
+                        <div className="w-px h-4 bg-gray-200 shrink-0 mx-1"></div>
+                        <button
+                            onClick={() => toggleTag('kadin')}
+                            className={`font-semibold transition-colors py-3 border-b-2 shrink-0 whitespace-nowrap text-[13px] sm:text-sm mx-2 sm:mx-2.5 ${activeTags.includes('kadin') ? 'text-primary-700 border-primary-600' : 'text-gray-800 hover:text-primary-700 border-transparent'}`}
+                        >
+                            Kadın
+                        </button>
+                        <div className="w-px h-4 bg-gray-200 shrink-0"></div>
+                        <button
+                            onClick={() => toggleTag('erkek')}
+                            className={`font-semibold transition-colors py-3 border-b-2 shrink-0 whitespace-nowrap text-[13px] sm:text-sm mx-2 sm:mx-2.5 ${activeTags.includes('erkek') ? 'text-primary-700 border-primary-600' : 'text-gray-800 hover:text-primary-700 border-transparent'}`}
+                        >
+                            Erkek
+                        </button>
+                        <div className="w-px h-4 bg-gray-200 shrink-0"></div>
+                        <button
+                            onClick={() => toggleTag('low-price')}
+                            className={`transition-colors py-3 border-b-2 shrink-0 whitespace-nowrap text-[13px] sm:text-sm mx-2 sm:mx-2.5 ${activeTags.includes('low-price') ? 'text-primary-700 border-primary-600 font-bold' : 'text-gray-600 hover:text-primary-700 border-transparent'}`}
+                        >
+                            Düşük Fiyatlar
+                        </button>
+                        <div className="w-px h-4 bg-gray-200 shrink-0"></div>
+                        <button
+                            onClick={() => toggleTag('high-price')}
+                            className={`transition-colors py-3 border-b-2 shrink-0 whitespace-nowrap text-[13px] sm:text-sm mx-2 sm:mx-2.5 ${activeTags.includes('high-price') ? 'text-primary-700 border-primary-600 font-bold' : 'text-gray-600 hover:text-primary-700 border-transparent'}`}
+                        >
+                            Yüksek Fiyatlar
+                        </button>
+                        <div className="w-px h-4 bg-gray-200 shrink-0"></div>
+                        <button
+                            onClick={() => toggleTag('rating')}
+                            className={`transition-colors py-3 border-b-2 shrink-0 whitespace-nowrap text-[13px] sm:text-sm mx-2 sm:mx-2.5 ${activeTags.includes('rating') ? 'text-primary-700 border-primary-600 font-bold' : 'text-gray-600 hover:text-primary-700 border-transparent'}`}
+                        >
+                            En Yüksek Puanlılar
+                        </button>
+                        <div className="w-px h-4 bg-gray-200 shrink-0"></div>
+                        <button
+                            onClick={() => setMinRating(prev => prev === 4 ? null : 4)}
+                            className={`transition-colors py-3 border-b-2 shrink-0 whitespace-nowrap text-[13px] sm:text-sm mx-2 sm:mx-2.5 ${minRating === 4 ? 'text-primary-700 border-primary-600 font-bold' : 'text-gray-600 hover:text-primary-700 border-transparent'}`}
+                        >
+                            4★ ve Üzeri
+                        </button>
+                        <div className="w-px h-4 bg-gray-200 shrink-0"></div>
+                        <button
+                            onClick={() => toggleTag('campaign')}
+                            className={`transition-colors py-3 border-b-2 shrink-0 whitespace-nowrap text-[13px] sm:text-sm mx-2 sm:mx-2.5 ${activeTags.includes('campaign') ? 'text-primary-700 border-primary-600 font-bold' : 'text-gray-600 hover:text-primary-700 border-transparent'}`}
+                        >
+                            Kampanyalılar
+                        </button>
+                        <div className="w-px h-4 bg-gray-200 shrink-0"></div>
+                        <button
+                            onClick={() => toggleTag('reviews')}
+                            className={`transition-colors py-3 border-b-2 shrink-0 whitespace-nowrap text-[13px] sm:text-sm mx-2 sm:mx-2.5 ${activeTags.includes('reviews') ? 'text-primary-700 border-primary-600 font-bold' : 'text-gray-600 hover:text-primary-700 border-transparent'}`}
+                        >
+                            En Çok Yorum Alanlar
+                        </button>
+                        <div className="w-px h-4 bg-gray-200 shrink-0"></div>
+                        <button
+                            onClick={() => toggleTag('newest')}
+                            className={`transition-colors py-3 border-b-2 shrink-0 whitespace-nowrap text-[13px] sm:text-sm mx-2 sm:mx-2.5 ${activeTags.includes('newest') ? 'text-primary-700 border-primary-600 font-bold' : 'text-gray-600 hover:text-primary-700 border-transparent'}`}
+                        >
+                            En Yeniler
+                        </button>
                     </div>
                 </div>
             </div>
@@ -557,7 +552,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                                 const el = document.getElementById('category-scroll');
                                 if (el) el.scrollBy({ left: -300, behavior: 'smooth' });
                             }}
-                            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm border border-gray-200 shadow-lg flex items-center justify-center hover:bg-white hover:shadow-xl transition-all opacity-0 group-hover/scroll:opacity-100 -translate-x-1"
+                            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm border border-gray-200 shadow-lg hidden sm:flex items-center justify-center hover:bg-white hover:shadow-xl transition-all opacity-0 group-hover/scroll:opacity-100 -translate-x-1"
                         >
                             <ChevronLeft className="w-5 h-5 text-gray-600" />
                         </button>
@@ -568,7 +563,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                                 const el = document.getElementById('category-scroll');
                                 if (el) el.scrollBy({ left: 300, behavior: 'smooth' });
                             }}
-                            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm border border-gray-200 shadow-lg flex items-center justify-center hover:bg-white hover:shadow-xl transition-all opacity-0 group-hover/scroll:opacity-100 translate-x-1"
+                            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm border border-gray-200 shadow-lg hidden sm:flex items-center justify-center hover:bg-white hover:shadow-xl transition-all opacity-0 group-hover/scroll:opacity-100 translate-x-1"
                         >
                             <ChevronRight className="w-5 h-5 text-gray-600" />
                         </button>

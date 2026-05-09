@@ -1065,7 +1065,7 @@ export const MyShopPage: React.FC = () => {
                                     Açıklama <span className="text-red-500">*</span>
                                 </label>
                                 <textarea
-                                    {...register('description', { required: 'Açıklama zorunludur' })}
+                                    {...register('description', { required: 'Açıklama zorunludur', maxLength: { value: 2000, message: 'Açıklama en fazla 2000 karakter olabilir' } })}
                                     rows={4}
                                     className={`w-full rounded-xl border-2 ${errors.description ? 'border-red-400' : 'border-gray-200'} px-4 py-2.5 text-sm focus:border-primary-500 outline-none transition-all`}
                                     placeholder="Müşterilerinize salonunuzdan bahsedin..."
