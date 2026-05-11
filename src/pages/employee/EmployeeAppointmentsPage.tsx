@@ -2,12 +2,13 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Button } from '../../components/Button';
 import { appointmentService } from '../../api/appointment.service';
+import { employeeService } from '../../api/employee.service';
 import { type Appointment, AppointmentStatus } from '../../types/appointment';
 import { toast } from 'react-hot-toast';
 import { getApiError } from '../../utils/storage';
 import {
     Calendar, Clock, CheckCircle, XCircle, AlertCircle,
-    Scissors, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Filter
+    Scissors, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Filter, X
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -33,6 +34,7 @@ export const EmployeeAppointmentsPage: React.FC = () => {
     const [weeklyLoading, setWeeklyLoading] = useState(true);
 
     const [managementOpen, setManagementOpen] = useState(false);
+    const [bookingDaysAhead, setBookingDaysAhead] = useState(30);
 
     // Derive unique services from weekly appointments for service filter
     const services = useMemo(() => {
@@ -55,7 +57,10 @@ export const EmployeeAppointmentsPage: React.FC = () => {
         }
     };
 
-    useEffect(() => { loadWeeklyAppointments(); }, []);
+    useEffect(() => {
+        loadWeeklyAppointments();
+        employeeService.getProfile().then(p => setBookingDaysAhead(p.bookingDaysAhead ?? 30)).catch(() => {});
+    }, []);
 
     const loadData = async () => {
         setLoading(true);
@@ -128,6 +133,7 @@ export const EmployeeAppointmentsPage: React.FC = () => {
             <WeeklyCalendarCard
                 appointments={weeklyAppointments}
                 loading={weeklyLoading}
+                daysAhead={bookingDaysAhead}
             />
 
             {/* ══════════════════════════════════════════
@@ -195,6 +201,17 @@ export const EmployeeAppointmentsPage: React.FC = () => {
                                     />
                                 </div>
                             </div>
+                            {(searchTerm || filterDate || filterServiceId || statusFilter !== undefined) && (
+                                <div className="mt-3 flex justify-end">
+                                    <button
+                                        onClick={() => { setSearchTerm(''); setFilterDate(''); setFilterServiceId(''); setStatusFilter(undefined); setPage(1); }}
+                                        className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-red-600 bg-gray-100 hover:bg-red-50 border border-gray-200 hover:border-red-200 px-3 py-1.5 rounded-lg transition-colors"
+                                    >
+                                        <X className="w-3.5 h-3.5" />
+                                        Filtreleri Temizle
+                                    </button>
+                                </div>
+                            )}
                         </div>
 
                         {/* Status Tabs */}
@@ -365,8 +382,13 @@ export const EmployeeAppointmentsPage: React.FC = () => {
                                                                                 <Button size="sm" variant="danger" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Rejected, 'Randevuyu Reddet', 'Bu randevuyu reddetmek istediğinize emin misiniz?', grpSize)}>Reddet</Button>
                                                                             </>
                                                                         )}
-                                                                        {appointment.status === AppointmentStatus.Confirmed && new Date(appointment.startTime) <= new Date() && (
-                                                                            <Button size="sm" variant="outline" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Completed, 'Randevuyu Tamamla', 'Bu randevunun tamamlandığını onaylıyor musunuz?', grpSize)}>Tamamlandı</Button>
+                                                                        {appointment.status === AppointmentStatus.Confirmed && (
+                                                                            <>
+                                                                                {new Date(appointment.startTime) <= new Date() && (
+                                                                                    <Button size="sm" variant="outline" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Completed, 'Randevuyu Tamamla', 'Bu randevunun tamamlandığını onaylıyor musunuz?', grpSize)}>Tamamlandı</Button>
+                                                                                )}
+                                                                                <Button size="sm" variant="danger" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Cancelled, 'Randevuyu İptal Et', 'Bu randevuyu iptal etmek istediğinize emin misiniz?', grpSize)}>İptal Et</Button>
+                                                                            </>
                                                                         )}
                                                                     </div>
                                                                 );
@@ -467,8 +489,13 @@ export const EmployeeAppointmentsPage: React.FC = () => {
                                                                     <Button size="sm" variant="danger" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Rejected, 'Randevuyu Reddet', 'Bu randevuyu reddetmek istediğinize emin misiniz?', grpSize)}>Reddet</Button>
                                                                 </>
                                                             )}
-                                                            {appointment.status === AppointmentStatus.Confirmed && new Date(appointment.startTime) <= new Date() && (
-                                                                <Button size="sm" variant="outline" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Completed, 'Randevuyu Tamamla', 'Bu randevunun tamamlandığını onaylıyor musunuz?', grpSize)}>Tamamlandı</Button>
+                                                            {appointment.status === AppointmentStatus.Confirmed && (
+                                                                <>
+                                                                    {new Date(appointment.startTime) <= new Date() && (
+                                                                        <Button size="sm" variant="outline" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Completed, 'Randevuyu Tamamla', 'Bu randevunun tamamlandığını onaylıyor musunuz?', grpSize)}>Tamamlandı</Button>
+                                                                    )}
+                                                                    <Button size="sm" variant="danger" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Cancelled, 'Randevuyu İptal Et', 'Bu randevuyu iptal etmek istediğinize emin misiniz?', grpSize)}>İptal Et</Button>
+                                                                </>
                                                             )}
                                                         </div>
                                                     );

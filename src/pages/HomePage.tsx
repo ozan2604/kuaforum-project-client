@@ -5,10 +5,19 @@ import { type Shop, TargetGender, ShopCategory, ShopCategoryLabels } from '../ty
 import { useSearchParams } from 'react-router-dom';
 import { ShopCard } from '../components/ShopCard';
 import { useAuth } from '../context/AuthContext';
-import { MapPin, ChevronDown, ChevronLeft, ChevronRight, Check, Map, XCircle } from 'lucide-react';
+import { MapPin, ChevronDown, ChevronLeft, ChevronRight, Map, XCircle } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+
+// ─── Session-storage helpers ──────────────────────────────────────────────────
+const SS_KEY = 'homepage_filters';
+function loadFilters() {
+    try { return JSON.parse(sessionStorage.getItem(SS_KEY) || 'null'); } catch { return null; }
+}
+function saveFilters(data: object) {
+    try { sessionStorage.setItem(SS_KEY, JSON.stringify(data)); } catch {}
+}
 
 // Fix Leaflet's default icon path issues in React
 delete (L.Icon.Default.prototype as any)._getIconUrl;
@@ -97,13 +106,15 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
     const [loadingLocation, setLoadingLocation] = useState(false);
     const [provincesLoading, setProvincesLoading] = useState(true);
 
-    const [selectedProvince, setSelectedProvince] = useState<string | null>(null);
-    const [selectedDistrict, setSelectedDistrict] = useState<string | null>(null);
-    const [selectedNeighborhood, setSelectedNeighborhood] = useState<string | null>(null);
+    // ── Restore filter state from sessionStorage ─────────────────────────────
+    const _saved = loadFilters() || {};
+    const [selectedProvince, setSelectedProvince] = useState<string | null>(_saved.selectedProvince ?? null);
+    const [selectedDistrict, setSelectedDistrict] = useState<string | null>(_saved.selectedDistrict ?? null);
+    const [selectedNeighborhood, setSelectedNeighborhood] = useState<string | null>(_saved.selectedNeighborhood ?? null);
+    const [activeTags, setActiveTags] = useState<string[]>(_saved.activeTags ?? []);
+    const [selectedCategory, setSelectedCategory] = useState<ShopCategory | null>(_saved.selectedCategory ?? null);
+    const [minRating, setMinRating] = useState<number | null>(_saved.minRating ?? null);
 
-    const [activeTags, setActiveTags] = useState<string[]>([]);
-    const [selectedCategory, setSelectedCategory] = useState<ShopCategory | null>(null);
-    const [minRating, setMinRating] = useState<number | null>(null);
     const [isLocationDropdownOpen, setIsLocationDropdownOpen] = useState(false);
     const [isMapModalOpen, setIsMapModalOpen] = useState(false);
 
@@ -114,6 +125,27 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                 const json = await res.json();
                 const sorted = (json.data || []).sort((a: Province, b: Province) => a.name.localeCompare(b.name, 'tr'));
                 setProvinces(sorted);
+
+                // ── Restore districts/neighborhoods from session ─────────────
+                const saved = loadFilters();
+                if (saved?.selectedProvince) {
+                    const savedProv = sorted.find((p: Province) => p.name === saved.selectedProvince);
+                    if (savedProv) {
+                        const sortedDistricts = [...savedProv.districts].sort((a: any, b: any) => a.name.localeCompare(b.name, 'tr'));
+                        setDistricts(sortedDistricts);
+                        if (saved.selectedDistrict) {
+                            const savedDist = sortedDistricts.find((d: any) => d.name === saved.selectedDistrict);
+                            if (savedDist) {
+                                try {
+                                    const nRes = await fetch(`${TURKIYE_API}/neighborhoods?districtId=${savedDist.id}`);
+                                    const nJson = await nRes.json();
+                                    const sortedN = (nJson.data || []).sort((a: Neighborhood, b: Neighborhood) => a.name.localeCompare(b.name, 'tr'));
+                                    setNeighborhoods(sortedN);
+                                } catch {}
+                            }
+                        }
+                    }
+                }
             } catch (error) {
                 console.error('Failed to load provinces', error);
             } finally {
@@ -122,6 +154,11 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
         };
         loadProvinces();
     }, []);
+
+    // ── Persist all filter state whenever it changes ────────────────────────
+    useEffect(() => {
+        saveFilters({ selectedProvince, selectedDistrict, selectedNeighborhood, activeTags, selectedCategory, minRating });
+    }, [selectedProvince, selectedDistrict, selectedNeighborhood, activeTags, selectedCategory, minRating]);
 
     const handleProvinceChange = (provinceName: string) => {
         const prov = provinces.find(p => p.name === provinceName);
@@ -152,6 +189,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
             }
         }
     };
+
 
     useEffect(() => {
         const loadShops = async () => {
@@ -290,9 +328,6 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
             );
         }
     }, []);
-
-
-
     const handleToggleFavorite = (shopId: string, isFavorite: boolean) => {
         const newFavorites = new Set(favoriteIds);
         if (isFavorite) {
@@ -303,243 +338,191 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
         setFavoriteIds(newFavorites);
     };
 
-    // Addresses moved to mockUserAddresses at root for visibility 
-
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col pt-0">
-            {/* Sub-Navbar for Quick Filters (like Location) */}
+            {/* Sub-Navbar for Quick Filters */}
             <div className="bg-white border-b border-gray-100 sticky top-20 z-40">
                 <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center h-12 text-sm font-medium overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] select-none">
-                        {/* Location Dropdown Toggle */}
+                    <div className="flex items-center h-12 text-sm font-medium select-none">
+
+                        {/* ── Location Button — pinned left, outside scroll container ── */}
                         <div className="relative h-full flex items-center shrink-0 pr-3 mr-3 sm:pr-5 sm:mr-5 border-r border-gray-100">
-                            <div className="relative h-full flex items-center">
-                                <button
-                                    onClick={() => setIsLocationDropdownOpen(!isLocationDropdownOpen)}
-                                    className={`flex items-center gap-1 sm:gap-2 hover:text-primary-700 transition-colors py-3 border-b-2 whitespace-nowrap ${isLocationDropdownOpen || selectedProvince ? 'text-primary-700 border-primary-600' : 'text-gray-600 border-transparent'}`}
-                                >
-                                     <MapPin className="h-4 w-4 shrink-0" />
-                                     <span className="max-w-[90px] sm:max-w-none truncate">
-                                         {selectedNeighborhood ? `${selectedNeighborhood}` :
-                                          selectedDistrict ? `${selectedDistrict}` :
-                                          selectedProvince ? `${selectedProvince}` : 'Konuma Göre'}
-                                     </span>
-                                     <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${isLocationDropdownOpen ? 'rotate-180' : ''}`} />
-                                 </button>
+                            <button
+                                onClick={() => setIsLocationDropdownOpen(!isLocationDropdownOpen)}
+                                className={`flex items-center gap-1 sm:gap-2 hover:text-primary-700 transition-colors py-3 border-b-2 whitespace-nowrap ${isLocationDropdownOpen || selectedProvince ? 'text-primary-700 border-primary-600' : 'text-gray-600 border-transparent'}`}
+                            >
+                                <MapPin className="h-4 w-4 shrink-0" />
+                                <span className="max-w-[90px] sm:max-w-none truncate">
+                                    {selectedNeighborhood || selectedDistrict || selectedProvince || 'Konuma Göre'}
+                                </span>
+                                <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${isLocationDropdownOpen ? 'rotate-180' : ''}`} />
+                            </button>
 
-                                 {/* Location Dropdown Menu */}
-                                 {isLocationDropdownOpen && (
-                                     <>
-                                         {/* Mobile Backdrop */}
-                                         <div 
-                                             className="fixed inset-0 bg-black/20 backdrop-blur-[2px] z-[90] sm:hidden" 
-                                             onClick={() => setIsLocationDropdownOpen(false)}
-                                         />
-                                         
-                                         <div className="fixed inset-x-4 top-[15%] sm:absolute sm:top-full sm:left-0 sm:mt-3 w-auto sm:w-80 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.2)] rounded-2xl overflow-hidden border border-gray-100 z-[100] animate-in fade-in slide-in-from-top-4 duration-200">
-                                             {/* Header */}
-                                             <div className="flex justify-between items-center px-5 py-4 border-b border-gray-50">
-                                                 <h4 className="font-bold text-gray-900 text-base tracking-tight">Konum Seç</h4>
-                                                 <div className="flex items-center gap-3">
-                                                     {(selectedProvince || selectedDistrict || selectedNeighborhood) && (
-                                                         <button
-                                                             onClick={(e) => { 
-                                                                 e.stopPropagation(); 
-                                                                 setSelectedProvince(null); 
-                                                                 setSelectedDistrict(null); 
-                                                                 setSelectedNeighborhood(null);
-                                                                 setDistricts([]);
-                                                                 setNeighborhoods([]);
-                                                             }}
-                                                             className="text-xs font-semibold text-red-500 hover:text-red-700 transition-colors"
-                                                         >
-                                                             Temizle
-                                                         </button>
-                                                     )}
-                                                     <button 
-                                                         onClick={() => setIsLocationDropdownOpen(false)}
-                                                         className="text-gray-400 hover:text-gray-600 p-1"
-                                                     >
-                                                         <XCircle className="w-5 h-5" />
-                                                     </button>
-                                                 </div>
-                                             </div>
- 
-                                             <div className="p-0 max-h-[65vh] overflow-y-auto custom-scrollbar">
-                                                 <div className="p-4 space-y-5">
-                                                     {/* Province Selection */}
-                                                     <div className="space-y-2">
-                                                         <div className="flex justify-between items-end mb-1">
-                                                             <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">İl Seçimi</label>
-                                                             {selectedProvince && <span className="text-[10px] font-bold text-primary-600 bg-primary-50 px-2 py-0.5 rounded-md">Seçili: {selectedProvince}</span>}
-                                                         </div>
-                                                         
-                                                         <div className="relative mb-2">
-                                                             <input 
-                                                                 type="text" 
-                                                                 placeholder="İl ara..."
-                                                                 onChange={(e) => {
-                                                                     const term = e.target.value.toLocaleLowerCase('tr');
-                                                                     const filtered = provinces.filter(p => p.name.toLocaleLowerCase('tr').includes(term));
-                                                                     setFilteredProvinces(filtered);
-                                                                 }}
-                                                                 className="w-full bg-gray-50 border border-gray-100 rounded-lg pl-3 pr-3 py-2 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-primary-500 focus:bg-white transition-all"
-                                                             />
-                                                         </div>
+                            {isLocationDropdownOpen && (
+                                <>
+                                    {/* Transparent backdrop */}
+                                    <div className="fixed inset-0 z-[90]" onClick={() => setIsLocationDropdownOpen(false)} />
 
-                                                         <div className="grid grid-cols-1 gap-1.5 max-h-44 overflow-y-auto p-1 pr-2 custom-scrollbar border border-gray-100 rounded-xl bg-gray-50/30">
-                                                             {provincesLoading ? (
-                                                                 <div className="flex justify-center items-center py-4">
-                                                                     <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-600" />
-                                                                 </div>
-                                                             ) : (filteredProvinces.length > 0 ? filteredProvinces : provinces).map(p => (
-                                                                 <button
-                                                                     key={p.id}
-                                                                     onClick={() => {
-                                                                         handleProvinceChange(p.name);
-                                                                     }}
-                                                                     className={`text-left px-4 py-2 rounded-lg text-sm font-medium transition-all ${selectedProvince === p.name ? 'bg-primary-600 text-white shadow-md shadow-primary-100' : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-100'}`}
-                                                                 >
-                                                                     {p.name}
-                                                                 </button>
-                                                             ))}
-                                                         </div>
-                                                     </div>
+                                    {/* Dropdown */}
+                                    <div className="fixed inset-x-4 top-[15%] sm:absolute sm:inset-x-auto sm:top-full sm:left-0 sm:mt-3 w-auto sm:w-80 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.2)] rounded-2xl overflow-hidden border border-gray-100 z-[100] animate-in fade-in slide-in-from-top-4 duration-200">
+                                        {/* Header */}
+                                        <div className="flex justify-between items-center px-5 py-4 border-b border-gray-50">
+                                            <h4 className="font-bold text-gray-900 text-base">Konum Seç</h4>
+                                            <div className="flex items-center gap-3">
+                                                {(selectedProvince || selectedDistrict || selectedNeighborhood) && (
+                                                    <button onClick={(e) => { e.stopPropagation(); setSelectedProvince(null); setSelectedDistrict(null); setSelectedNeighborhood(null); setDistricts([]); setNeighborhoods([]); setFilteredProvinces([]); }} className="text-xs font-semibold text-red-500 hover:text-red-700">Temizle</button>
+                                                )}
+                                                <button onClick={() => setIsLocationDropdownOpen(false)} className="text-gray-400 hover:text-gray-600 p-1"><XCircle className="w-5 h-5" /></button>
+                                            </div>
+                                        </div>
 
-                                                     {/* District Selection */}
-                                                     {selectedProvince && (
-                                                         <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                                                             <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">İlçe Seçimi</label>
-                                                             <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto p-1 pr-2 custom-scrollbar border border-gray-100 rounded-xl bg-gray-50/30">
-                                                                 {districts.map(d => (
-                                                                     <button
-                                                                         key={d.id}
-                                                                         onClick={() => handleDistrictChange(d.name)}
-                                                                         className={`text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${selectedDistrict === d.name ? 'bg-primary-600 text-white shadow-md shadow-primary-100' : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-100'}`}
-                                                                     >
-                                                                         {d.name}
-                                                                     </button>
-                                                                 ))}
-                                                             </div>
-                                                         </div>
-                                                     )}
+                                        <div className="max-h-[65vh] overflow-y-auto custom-scrollbar">
+                                            <div className="p-4 space-y-4">
 
-                                                     {/* Neighborhood Selection */}
-                                                     {selectedDistrict && (
-                                                         <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
-                                                             <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Mahalle Seçimi</label>
-                                                             <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto p-1 pr-2 custom-scrollbar border border-gray-100 rounded-xl bg-gray-50/30 relative">
-                                                                 {loadingLocation ? (
-                                                                     <div className="flex items-center justify-center py-8">
-                                                                         <div className="w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin"></div>
-                                                                     </div>
-                                                                 ) : (
-                                                                     neighborhoods.map(n => (
-                                                                         <button
-                                                                             key={n.id}
-                                                                             onClick={() => {
-                                                                                 setSelectedNeighborhood(n.name);
-                                                                                 setIsLocationDropdownOpen(false);
-                                                                             }}
-                                                                             className={`text-left px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${selectedNeighborhood === n.name ? 'bg-primary-600 text-white shadow-md shadow-primary-100' : 'bg-white text-gray-700 hover:bg-gray-100 border border-gray-100'}`}
-                                                                         >
-                                                                             {n.name}
-                                                                         </button>
-                                                                     ))
-                                                                 )}
-                                                             </div>
-                                                         </div>
-                                                     )}
-                                                 </div>
-                                             </div>
- 
-                                             <div className="p-5 bg-gray-50/50 border-t border-gray-50">
-                                                 <button 
-                                                     onClick={() => setIsLocationDropdownOpen(false)}
-                                                     className="w-full bg-primary-600 text-white rounded-xl py-3 text-sm font-bold hover:bg-primary-700 transition-all shadow-lg shadow-primary-100 active:scale-[0.98]"
-                                                 >
-                                                     Sonuçları Göster
-                                                 </button>
-                                             </div>
-                                         </div>
+                                                {/* ── İL ── */}
+                                                <div className="space-y-2">
+                                                    <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">İl</label>
+                                                    {selectedProvince ? (
+                                                        /* Seçili il chip'i */
+                                                        <div className="flex items-center justify-between bg-primary-50 border border-primary-200 rounded-xl px-4 py-2.5">
+                                                            <div className="flex items-center gap-2">
+                                                                <MapPin className="w-4 h-4 text-primary-600 shrink-0" />
+                                                                <span className="text-sm font-semibold text-primary-700">{selectedProvince}</span>
+                                                            </div>
+                                                            <button
+                                                                onClick={() => { setSelectedProvince(null); setSelectedDistrict(null); setSelectedNeighborhood(null); setDistricts([]); setNeighborhoods([]); setFilteredProvinces([]); }}
+                                                                className="text-primary-400 hover:text-red-500 transition-colors p-0.5"
+                                                            >
+                                                                <XCircle className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        /* İl arama + liste */
+                                                        <>
+                                                            <input
+                                                                type="text"
+                                                                placeholder="İl ara..."
+                                                                onChange={(e) => { const t = e.target.value.toLocaleLowerCase('tr'); setFilteredProvinces(provinces.filter(p => p.name.toLocaleLowerCase('tr').includes(t))); }}
+                                                                className="w-full bg-gray-50 border border-gray-100 rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-primary-500 transition-all"
+                                                            />
+                                                            <div className="grid grid-cols-1 gap-1.5 max-h-44 overflow-y-auto p-1 pr-2 custom-scrollbar border border-gray-100 rounded-xl bg-gray-50/30 mt-1.5">
+                                                                {provincesLoading
+                                                                    ? <div className="flex justify-center py-4"><div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-600" /></div>
+                                                                    : (filteredProvinces.length > 0 ? filteredProvinces : provinces).map(p => (
+                                                                        <button key={p.id} onClick={() => handleProvinceChange(p.name)}
+                                                                            className="text-left px-4 py-2 rounded-lg text-sm font-medium bg-white text-gray-700 hover:bg-primary-50 hover:text-primary-700 border border-gray-100 transition-all">
+                                                                            {p.name}
+                                                                        </button>
+                                                                    ))
+                                                                }
+                                                            </div>
+                                                        </>
+                                                    )}
+                                                </div>
 
-                                         <style dangerouslySetInnerHTML={{ __html: `
-                                             .custom-scrollbar::-webkit-scrollbar { width: 4px; }
-                                             .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
-                                             .custom-scrollbar::-webkit-scrollbar-thumb { background: #e5e7eb; border-radius: 10px; }
-                                             .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #d1d5db; }
-                                         `}} />
-                                     </>
-                                 )}
-                            </div>
+                                                {/* ── İLÇE — sadece il seçildiyse göster ── */}
+                                                {selectedProvince && (
+                                                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                                                        <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">İlçe</label>
+                                                        {selectedDistrict ? (
+                                                            /* Seçili ilçe chip'i */
+                                                            <div className="flex items-center justify-between bg-primary-50 border border-primary-200 rounded-xl px-4 py-2.5">
+                                                                <div className="flex items-center gap-2">
+                                                                    <MapPin className="w-4 h-4 text-primary-600 shrink-0" />
+                                                                    <span className="text-sm font-semibold text-primary-700">{selectedDistrict}</span>
+                                                                </div>
+                                                                <button
+                                                                    onClick={() => { setSelectedDistrict(null); setSelectedNeighborhood(null); setNeighborhoods([]); }}
+                                                                    className="text-primary-400 hover:text-red-500 transition-colors p-0.5"
+                                                                >
+                                                                    <XCircle className="w-4 h-4" />
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            /* İlçe listesi */
+                                                            <div className="grid grid-cols-1 gap-1.5 max-h-44 overflow-y-auto p-1 pr-2 custom-scrollbar border border-gray-100 rounded-xl bg-gray-50/30">
+                                                                {districts.map(d => (
+                                                                    <button key={d.id} onClick={() => handleDistrictChange(d.name)}
+                                                                        className="text-left px-4 py-2 rounded-lg text-sm font-medium bg-white text-gray-700 hover:bg-primary-50 hover:text-primary-700 border border-gray-100 transition-all">
+                                                                        {d.name}
+                                                                    </button>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                                {/* ── MAHALLE — sadece ilçe seçildiyse göster ── */}
+                                                {selectedDistrict && (
+                                                    <div className="space-y-2 animate-in fade-in slide-in-from-top-2">
+                                                        <label className="text-[11px] font-bold text-gray-400 uppercase tracking-widest ml-1">Mahalle</label>
+                                                        {selectedNeighborhood ? (
+                                                            /* Seçili mahalle chip'i */
+                                                            <div className="flex items-center justify-between bg-primary-50 border border-primary-200 rounded-xl px-4 py-2.5">
+                                                                <div className="flex items-center gap-2">
+                                                                    <MapPin className="w-4 h-4 text-primary-600 shrink-0" />
+                                                                    <span className="text-sm font-semibold text-primary-700">{selectedNeighborhood}</span>
+                                                                </div>
+                                                                <button
+                                                                    onClick={() => setSelectedNeighborhood(null)}
+                                                                    className="text-primary-400 hover:text-red-500 transition-colors p-0.5"
+                                                                >
+                                                                    <XCircle className="w-4 h-4" />
+                                                                </button>
+                                                            </div>
+                                                        ) : (
+                                                            /* Mahalle listesi */
+                                                            <div className="grid grid-cols-1 gap-1.5 max-h-44 overflow-y-auto p-1 pr-2 custom-scrollbar border border-gray-100 rounded-xl bg-gray-50/30">
+                                                                {loadingLocation
+                                                                    ? <div className="flex justify-center py-8"><div className="w-6 h-6 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" /></div>
+                                                                    : neighborhoods.map(n => (
+                                                                        <button key={n.id} onClick={() => { setSelectedNeighborhood(n.name); setIsLocationDropdownOpen(false); }}
+                                                                            className="text-left px-4 py-2 rounded-lg text-sm font-medium bg-white text-gray-700 hover:bg-primary-50 hover:text-primary-700 border border-gray-100 transition-all">
+                                                                            {n.name}
+                                                                        </button>
+                                                                    ))
+                                                                }
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                )}
+
+                                            </div>
+                                        </div>
+
+                                        <div className="p-5 bg-gray-50/50 border-t border-gray-50">
+                                            <button onClick={() => setIsLocationDropdownOpen(false)} className="w-full bg-primary-600 text-white rounded-xl py-3 text-sm font-bold hover:bg-primary-700 transition-all shadow-lg shadow-primary-100 active:scale-[0.98]">Sonuçları Göster</button>
+                                        </div>
+                                    </div>
+
+                                    <style dangerouslySetInnerHTML={{ __html: `.custom-scrollbar::-webkit-scrollbar{width:4px}.custom-scrollbar::-webkit-scrollbar-track{background:transparent}.custom-scrollbar::-webkit-scrollbar-thumb{background:#e5e7eb;border-radius:10px}.custom-scrollbar::-webkit-scrollbar-thumb:hover{background:#d1d5db}` }} />
+                                </>
+                            )}
                         </div>
 
-                        <div className="w-px h-4 bg-gray-200 shrink-0 mx-1"></div>
-                        <button
-                            onClick={() => toggleTag('kadin')}
-                            className={`font-semibold transition-colors py-3 border-b-2 shrink-0 whitespace-nowrap text-[13px] sm:text-sm mx-2 sm:mx-2.5 ${activeTags.includes('kadin') ? 'text-primary-700 border-primary-600' : 'text-gray-800 hover:text-primary-700 border-transparent'}`}
-                        >
-                            Kadın
-                        </button>
-                        <div className="w-px h-4 bg-gray-200 shrink-0"></div>
-                        <button
-                            onClick={() => toggleTag('erkek')}
-                            className={`font-semibold transition-colors py-3 border-b-2 shrink-0 whitespace-nowrap text-[13px] sm:text-sm mx-2 sm:mx-2.5 ${activeTags.includes('erkek') ? 'text-primary-700 border-primary-600' : 'text-gray-800 hover:text-primary-700 border-transparent'}`}
-                        >
-                            Erkek
-                        </button>
-                        <div className="w-px h-4 bg-gray-200 shrink-0"></div>
-                        <button
-                            onClick={() => toggleTag('low-price')}
-                            className={`transition-colors py-3 border-b-2 shrink-0 whitespace-nowrap text-[13px] sm:text-sm mx-2 sm:mx-2.5 ${activeTags.includes('low-price') ? 'text-primary-700 border-primary-600 font-bold' : 'text-gray-600 hover:text-primary-700 border-transparent'}`}
-                        >
-                            Düşük Fiyatlar
-                        </button>
-                        <div className="w-px h-4 bg-gray-200 shrink-0"></div>
-                        <button
-                            onClick={() => toggleTag('high-price')}
-                            className={`transition-colors py-3 border-b-2 shrink-0 whitespace-nowrap text-[13px] sm:text-sm mx-2 sm:mx-2.5 ${activeTags.includes('high-price') ? 'text-primary-700 border-primary-600 font-bold' : 'text-gray-600 hover:text-primary-700 border-transparent'}`}
-                        >
-                            Yüksek Fiyatlar
-                        </button>
-                        <div className="w-px h-4 bg-gray-200 shrink-0"></div>
-                        <button
-                            onClick={() => toggleTag('rating')}
-                            className={`transition-colors py-3 border-b-2 shrink-0 whitespace-nowrap text-[13px] sm:text-sm mx-2 sm:mx-2.5 ${activeTags.includes('rating') ? 'text-primary-700 border-primary-600 font-bold' : 'text-gray-600 hover:text-primary-700 border-transparent'}`}
-                        >
-                            En Yüksek Puanlılar
-                        </button>
-                        <div className="w-px h-4 bg-gray-200 shrink-0"></div>
-                        <button
-                            onClick={() => setMinRating(prev => prev === 4 ? null : 4)}
-                            className={`transition-colors py-3 border-b-2 shrink-0 whitespace-nowrap text-[13px] sm:text-sm mx-2 sm:mx-2.5 ${minRating === 4 ? 'text-primary-700 border-primary-600 font-bold' : 'text-gray-600 hover:text-primary-700 border-transparent'}`}
-                        >
-                            4★ ve Üzeri
-                        </button>
-                        <div className="w-px h-4 bg-gray-200 shrink-0"></div>
-                        <button
-                            onClick={() => toggleTag('campaign')}
-                            className={`transition-colors py-3 border-b-2 shrink-0 whitespace-nowrap text-[13px] sm:text-sm mx-2 sm:mx-2.5 ${activeTags.includes('campaign') ? 'text-primary-700 border-primary-600 font-bold' : 'text-gray-600 hover:text-primary-700 border-transparent'}`}
-                        >
-                            Kampanyalılar
-                        </button>
-                        <div className="w-px h-4 bg-gray-200 shrink-0"></div>
-                        <button
-                            onClick={() => toggleTag('reviews')}
-                            className={`transition-colors py-3 border-b-2 shrink-0 whitespace-nowrap text-[13px] sm:text-sm mx-2 sm:mx-2.5 ${activeTags.includes('reviews') ? 'text-primary-700 border-primary-600 font-bold' : 'text-gray-600 hover:text-primary-700 border-transparent'}`}
-                        >
-                            En Çok Yorum Alanlar
-                        </button>
-                        <div className="w-px h-4 bg-gray-200 shrink-0"></div>
-                        <button
-                            onClick={() => toggleTag('newest')}
-                            className={`transition-colors py-3 border-b-2 shrink-0 whitespace-nowrap text-[13px] sm:text-sm mx-2 sm:mx-2.5 ${activeTags.includes('newest') ? 'text-primary-700 border-primary-600 font-bold' : 'text-gray-600 hover:text-primary-700 border-transparent'}`}
-                        >
-                            En Yeniler
-                        </button>
+                        {/* ── Filter Tabs — evenly distributed on desktop, scrollable on mobile ── */}
+                        <div className="flex-1 flex items-center overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] min-w-0 sm:justify-evenly">
+                            {[
+                                { label: 'Kadın', active: activeTags.includes('kadin'), onClick: () => toggleTag('kadin') },
+                                { label: 'Erkek', active: activeTags.includes('erkek'), onClick: () => toggleTag('erkek') },
+                                { label: 'Düşük Fiyatlar', active: activeTags.includes('low-price'), onClick: () => toggleTag('low-price') },
+                                { label: 'Yüksek Fiyatlar', active: activeTags.includes('high-price'), onClick: () => toggleTag('high-price') },
+                                { label: 'En Yüksek Puanlılar', active: activeTags.includes('rating'), onClick: () => toggleTag('rating') },
+                                { label: '4★ ve Üzeri', active: minRating === 4, onClick: () => setMinRating(prev => prev === 4 ? null : 4) },
+                                { label: 'En Çok Yorum Alanlar', active: activeTags.includes('reviews'), onClick: () => toggleTag('reviews') },
+                                { label: 'En Yeniler', active: activeTags.includes('newest'), onClick: () => toggleTag('newest') },
+                            ].map((tab) => (
+                                <button key={tab.label} onClick={tab.onClick}
+                                    className={`transition-colors py-3 border-b-2 shrink-0 whitespace-nowrap text-[13px] sm:text-sm px-2 sm:px-3 ${tab.active ? 'text-primary-700 border-primary-600 font-bold' : 'text-gray-600 hover:text-primary-700 border-transparent'}`}>
+                                    {tab.label}
+                                </button>
+                            ))}
+                        </div>
+
                     </div>
                 </div>
             </div>
+
 
 
             {/* Kategori Yuvarlakları */}

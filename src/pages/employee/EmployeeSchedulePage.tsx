@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { employeeService } from '../../api/employee.service';
 import { Button } from '../../components/Button';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
@@ -7,11 +7,37 @@ import { Clock } from 'lucide-react';
 import { getApiError } from '../../utils/storage';
 import { ScheduleEditor, SCHEDULE_DAYS } from '../../components/ScheduleEditor';
 import type { DaySchedule } from '../../components/ScheduleEditor';
+import { useUnsavedChanges } from '../../context/UnsavedChangesContext';
 
 export const EmployeeSchedulePage: React.FC = () => {
     const [schedule, setSchedule] = useState<DaySchedule[]>([]);
+    const [savedSchedule, setSavedSchedule] = useState<DaySchedule[]>([]);
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
+
+    const { setIsDirty } = useUnsavedChanges();
+
+    const isDirty = JSON.stringify(schedule) !== JSON.stringify(savedSchedule);
+
+    // Senkronize context dirty durumunu
+    useEffect(() => {
+        setIsDirty(isDirty);
+    }, [isDirty, setIsDirty]);
+
+    // Sayfa unmount olunca dirty'yi temizle
+    useEffect(() => {
+        return () => setIsDirty(false);
+    }, [setIsDirty]);
+
+    // Tarayıcı kapat / sekme kapat / yenile
+    useEffect(() => {
+        const handler = (e: BeforeUnloadEvent) => {
+            if (!isDirty) return;
+            e.preventDefault();
+        };
+        window.addEventListener('beforeunload', handler);
+        return () => window.removeEventListener('beforeunload', handler);
+    }, [isDirty]);
 
     useEffect(() => {
         const load = async () => {
@@ -38,6 +64,7 @@ export const EmployeeSchedulePage: React.FC = () => {
                           };
                 });
                 setSchedule(full);
+                setSavedSchedule(full);
             } catch (err) {
                 toast.error(getApiError(err, 'Çalışma saatleri yüklenemedi.'));
             } finally {
@@ -51,13 +78,18 @@ export const EmployeeSchedulePage: React.FC = () => {
         setSaving(true);
         try {
             await employeeService.updateMySchedule({ schedules: schedule });
-            toast.success('Çalışma saatleri başarıyla güncellendi.');
+            setSavedSchedule(schedule);
+            toast.success('Çalışma saatleri güncellendi.');
         } catch (err) {
             toast.error(getApiError(err, 'Çalışma saatleri güncellenemedi.'));
         } finally {
             setSaving(false);
         }
     };
+
+    const handleScheduleChange = useCallback((updated: DaySchedule[]) => {
+        setSchedule(updated);
+    }, []);
 
     if (loading) return <LoadingSpinner />;
 
@@ -68,17 +100,19 @@ export const EmployeeSchedulePage: React.FC = () => {
                     <Clock className="h-7 w-7 text-primary-600" />
                     Çalışma Saatlerim
                 </h1>
-                <Button onClick={handleSave} isLoading={saving}>
-                    Kaydet
-                </Button>
+                {isDirty && (
+                    <span className="text-xs text-amber-600 font-medium bg-amber-50 border border-amber-200 px-2.5 py-1 rounded-full">
+                        Kaydedilmemiş değişiklikler
+                    </span>
+                )}
             </div>
 
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-                <ScheduleEditor schedule={schedule} onChange={setSchedule} />
+                <ScheduleEditor schedule={schedule} onChange={handleScheduleChange} />
             </div>
 
             <div className="flex justify-end">
-                <Button onClick={handleSave} isLoading={saving}>
+                <Button onClick={handleSave} isLoading={saving} disabled={!isDirty}>
                     Kaydet
                 </Button>
             </div>

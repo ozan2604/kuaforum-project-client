@@ -6,7 +6,6 @@ import {
     LayoutDashboard,
     Store,
     Calendar,
-    Clock,
     Settings,
     LogOut,
     Menu,
@@ -38,7 +37,6 @@ export const SalonOwnerLayout: React.FC = () => {
 
     const userRoles = user ? (Array.isArray(user.role) ? user.role : [user.role]) : [];
     const isSalonOwner = userRoles.includes('SalonOwner');
-    const isEmployee = userRoles.includes('Employee');
 
     const fetchNotifications = async () => {
         if (!isSalonOwner) return;
@@ -83,11 +81,11 @@ export const SalonOwnerLayout: React.FC = () => {
         return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
     }
 
-    if (!user || (!isSalonOwner && !isEmployee)) {
+    if (!user || !isSalonOwner) {
         return <Navigate to="/" replace />;
     }
 
-    const ownerNavigation = [
+    const navigation = [
         { name: 'Anasayfa',   href: '/',                        icon: Store },
         { name: 'Dashboard',  href: '/salon-panel',             icon: LayoutDashboard },
         { name: 'Randevular', href: '/salon-panel/appointments', icon: Calendar },
@@ -95,15 +93,7 @@ export const SalonOwnerLayout: React.FC = () => {
         { name: 'Ayarlar',    href: '/salon-panel/settings',     icon: Settings },
     ];
 
-    const employeeNavigation = [
-        { name: 'Anasayfa',          href: '/',                                  icon: Store },
-        { name: 'Dashboard',         href: '/salon-panel',                       icon: LayoutDashboard },
-        { name: 'Randevular',        href: '/salon-panel/employee-appointments',  icon: Calendar },
-        { name: 'Çalışma Saatlerim', href: '/salon-panel/employee-schedule',      icon: Clock },
-    ];
-
-    const navigation = isSalonOwner ? ownerNavigation : employeeNavigation;
-    const panelTitle = isSalonOwner ? 'Salon Paneli' : 'Personel Paneli';
+    const panelTitle = 'Salon Paneli';
 
     const actionCount = notifications.filter(n => n.type === 'action').length;
 

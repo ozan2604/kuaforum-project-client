@@ -97,4 +97,18 @@ export const employeeService = {
         const res = await api.get<EmployeeLeaveDate[]>(`/employee/${employeeId}/leave-dates/public`);
         return res.data;
     },
+
+    // Leave dates (self-managed by employee)
+    getMyLeaveDates: async (): Promise<EmployeeLeaveDate[]> => {
+        const res = await api.get<EmployeeLeaveDate[]>('/employee/me/leave-dates');
+        return res.data;
+    },
+
+    addMyLeaveDate: async (leaveDate: string, reason?: string): Promise<void> => {
+        await api.post('/employee/me/leave-dates', { leaveDate, reason });
+    },
+
+    removeMyLeaveDate: async (leaveDateId: string): Promise<void> => {
+        await api.delete(`/employee/me/leave-dates/${leaveDateId}`);
+    },
 };

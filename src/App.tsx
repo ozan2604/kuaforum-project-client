@@ -5,6 +5,7 @@ import { CookieBanner } from './components/CookieBanner';
 
 import { MainLayout } from './layouts/MainLayout';
 import { SalonOwnerLayout } from './layouts/SalonOwnerLayout';
+import { EmployeeLayout } from './layouts/EmployeeLayout';
 import { AdminLayout } from './layouts/AdminLayout';
 import { AuthLayout } from './layouts/AuthLayout';
 
@@ -35,6 +36,9 @@ import { MyShopPage } from './pages/salon/MyShopPage';
 
 import { EmployeeAppointmentsPage } from './pages/employee/EmployeeAppointmentsPage';
 import { EmployeeSchedulePage } from './pages/employee/EmployeeSchedulePage';
+import { EmployeeDashboardPage } from './pages/employee/EmployeeDashboardPage';
+import { EmployeeProfilePage } from './pages/employee/EmployeeProfilePage';
+import { EmployeeLeavePage } from './pages/employee/EmployeeLeavePage';
 
 function App() {
   return (
@@ -120,16 +124,18 @@ function App() {
 
         {/* ── Çalışan Paneli ── */}
         <Route element={<ProtectedRoute roles={['Employee']} />}>
-          <Route element={<SalonOwnerLayout />}>
-            <Route path="/salon-panel/employee-appointments" element={<EmployeeAppointmentsPage />} />
-            <Route path="/salon-panel/employee-schedule" element={<EmployeeSchedulePage />} />
+          <Route element={<EmployeeLayout />}>
+            <Route path="/employee-panel" element={<EmployeeDashboardPage />} />
+            <Route path="/employee-panel/appointments" element={<EmployeeAppointmentsPage />} />
+            <Route path="/employee-panel/schedule" element={<EmployeeSchedulePage />} />
+            <Route path="/employee-panel/profile" element={<EmployeeProfilePage />} />
+            <Route path="/employee-panel/leave" element={<EmployeeLeavePage />} />
           </Route>
         </Route>
 
         {/* ── Eski URL Yönlendirmeleri ── */}
-        <Route path="/employee-panel" element={<Navigate to="/salon-panel/employee-appointments" replace />} />
-        <Route path="/employee-panel/appointments" element={<Navigate to="/salon-panel/employee-appointments" replace />} />
-        <Route path="/employee-panel/profile" element={<Navigate to="/profile" replace />} />
+        <Route path="/salon-panel/employee-appointments" element={<Navigate to="/employee-panel/appointments" replace />} />
+        <Route path="/salon-panel/employee-schedule" element={<Navigate to="/employee-panel/schedule" replace />} />
 
       </Routes>
     </>

@@ -73,6 +73,7 @@ export interface EmployeeProfile {
     averageRating: number;
     reviewCount: number;
     isActive: boolean;
+    bookingDaysAhead: number;
 }
 
 export interface UpdateEmployeeProfileDto {

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useForm } from 'react-hook-form';
 import { Button } from '../../components/Button';
@@ -10,7 +10,7 @@ import {
     Camera, Store, ChevronDown, ChevronUp, ArrowRight, AlertTriangle, CalendarClock, UserX,
     Scissors, Users, CheckCircle, CheckCircle2, Circle, ChevronRight
 } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { ConfirmationModal } from '../../components/ConfirmationModal';
 import { ServicesPage } from './ServicesPage';
 import { EmployeesPage } from './EmployeesPage';
@@ -112,17 +112,19 @@ interface AccordionCardProps {
     isOpen: boolean;
     onToggle: () => void;
     children: React.ReactNode;
+    infoText?: string;
+    onInfoClick?: () => void;
 }
 
 const AccordionCard: React.FC<AccordionCardProps> = ({
-    icon, iconBg, iconColor, title, subtitle, isOpen, onToggle, children
+    icon, iconBg, iconColor, title, subtitle, isOpen, onToggle, children, infoText, onInfoClick
 }) => (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-200">
         <div
             onClick={onToggle}
             className="p-5 sm:p-6 flex justify-between items-center hover:bg-gray-50 cursor-pointer transition-colors relative select-none"
         >
-            <div className="flex items-center gap-3 pr-10">
+            <div className="flex items-center gap-3 pr-20">
                 <div className={`p-2.5 ${iconBg} ${iconColor} rounded-xl shrink-0`}>
                     {icon}
                 </div>
@@ -131,8 +133,20 @@ const AccordionCard: React.FC<AccordionCardProps> = ({
                     {subtitle && <p className="text-xs text-gray-400 mt-0.5">{subtitle}</p>}
                 </div>
             </div>
-            <div className="absolute right-5 sm:right-6 top-1/2 -translate-y-1/2 p-1 bg-gray-50 rounded-full text-gray-400">
-                {isOpen ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+            <div className="absolute right-5 sm:right-6 top-1/2 -translate-y-1/2 flex items-center gap-2">
+                {infoText && onInfoClick && (
+                    <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); onInfoClick(); }}
+                        className="w-5 h-5 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center text-[11px] font-bold hover:bg-amber-200 transition-colors flex-shrink-0 leading-none"
+                        title="Bu bölüm hakkında bilgi al"
+                    >
+                        !
+                    </button>
+                )}
+                <div className="p-1 bg-gray-50 rounded-full text-gray-400">
+                    {isOpen ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
+                </div>
             </div>
         </div>
         {isOpen && (
@@ -187,6 +201,7 @@ export const MyShopPage: React.FC = () => {
     const [selectedDistrictId, setSelectedDistrictId] = useState<number | null>(null);
 
     const [confirmUpdate, setConfirmUpdate] = useState<ConfirmUpdateState | null>(null);
+    const [infoPopup, setInfoPopup] = useState<string | null>(null);
 
     const [openCards, setOpenCards] = useState({
         setup: false,
@@ -203,6 +218,88 @@ export const MyShopPage: React.FC = () => {
 
     const toggleCard = (card: keyof typeof openCards) =>
         setOpenCards(prev => ({ ...prev, [card]: !prev[card] }));
+
+    // ─── UNSAVED CHANGES TRACKING ────────────────────────────────────────────
+
+    const watchedValues = watch();
+
+    const infoIsDirty = useMemo(() => {
+        if (!savedSnapshot) return false;
+        const v = watchedValues;
+        const catA = [...selectedCategories].sort().join(',');
+        const catB = [...savedSnapshot.categoryIds].sort().join(',');
+        return (
+            v.name !== savedSnapshot.name ||
+            v.description !== savedSnapshot.description ||
+            v.phoneNumber !== savedSnapshot.phoneNumber ||
+            Number(v.genderPreference) !== savedSnapshot.genderPreference ||
+            catA !== catB
+        );
+    }, [watchedValues, savedSnapshot, selectedCategories]);
+
+    const locationIsDirty = useMemo(() => {
+        if (!savedSnapshot) return false;
+        const v = watchedValues;
+        return (
+            v.city !== savedSnapshot.city ||
+            v.district !== savedSnapshot.district ||
+            v.neighborhood !== savedSnapshot.neighborhood ||
+            v.street !== savedSnapshot.street ||
+            v.buildingNumber !== savedSnapshot.buildingNumber ||
+            v.address !== savedSnapshot.address ||
+            (v.latitude ?? undefined) !== savedSnapshot.latitude ||
+            (v.longitude ?? undefined) !== savedSnapshot.longitude
+        );
+    }, [watchedValues, savedSnapshot]);
+
+    const hoursIsDirty = useMemo(() => {
+        if (!savedSnapshot) return false;
+        const v = watchedValues;
+        const wA = [...weeklyOffDays].sort().join(',');
+        const wB = [...(savedSnapshot.weeklyOffDays ?? [])].sort().join(',');
+        return (
+            v.openTime !== savedSnapshot.openTime ||
+            v.closeTime !== savedSnapshot.closeTime ||
+            Number(v.bookingDaysAhead) !== (savedSnapshot.bookingDaysAhead ?? 30) ||
+            Number(v.cancellationHours) !== (savedSnapshot.cancellationHours ?? 2) ||
+            wA !== wB
+        );
+    }, [watchedValues, savedSnapshot, weeklyOffDays]);
+
+    const anyDirty = infoIsDirty || locationIsDirty || hoursIsDirty;
+    const [navTarget, setNavTarget] = useState<string | null>(null);
+    const navigate = useNavigate();
+
+    useEffect(() => {
+        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+            if (anyDirty) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        };
+        window.addEventListener('beforeunload', handleBeforeUnload);
+        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+    }, [anyDirty]);
+
+    // Uygulama içi tıklamaları yakala (sidebar linkleri)
+    useEffect(() => {
+        const handleClick = (e: MouseEvent) => {
+            if (!anyDirty) return;
+            const anchor = (e.target as HTMLElement).closest('a[href]') as HTMLAnchorElement | null;
+            if (!anchor) return;
+            const href = anchor.getAttribute('href') ?? '';
+            if (!href || href.startsWith('#') || href.startsWith('http') || href.startsWith('mailto')) return;
+            const currentPath = window.location.pathname;
+            if (href === currentPath) return;
+            e.preventDefault();
+            e.stopPropagation();
+            setNavTarget(href);
+        };
+        document.addEventListener('click', handleClick, true);
+        return () => document.removeEventListener('click', handleClick, true);
+    }, [anyDirty]);
+
+    // ─────────────────────────────────────────────────────────────────────────
 
     useEffect(() => {
         loadProvinces();
@@ -793,6 +890,8 @@ export const MyShopPage: React.FC = () => {
                         subtitle="Kapak ve galeri fotoğraflarını yönetin"
                         isOpen={openCards.images}
                         onToggle={() => toggleCard('images')}
+                        infoText="Kapak fotoğrafı, müşterilerin sizi keşfettiğinde gördüğü ilk görseldir. Galeri fotoğraflarına etiket ekleyerek (örn. 'saç boyama', 'erkek kesim') içerik aramasında öne çıkabilirsiniz."
+                        onInfoClick={() => setInfoPopup("Kapak fotoğrafı, müşterilerin sizi keşfettiğinde gördüğü ilk görseldir. Galeri fotoğraflarına etiket ekleyerek (örn. 'saç boyama', 'erkek kesim') içerik aramasında öne çıkabilirsiniz.")}
                     >
                         <div className="space-y-5">
                             {/* Kapak Fotoğrafı */}
@@ -962,6 +1061,8 @@ export const MyShopPage: React.FC = () => {
                         subtitle="Dükkan adı, kategori, cinsiyet tercihi ve açıklama"
                         isOpen={openCards.info}
                         onToggle={() => toggleCard('info')}
+                        infoText="Salonunuzun adı, kategorisi (erkek berberi, kadın kuaförü vb.), hizmet verilen cinsiyet ve iletişim bilgilerini yönetin. Doğru kategori seçimi, müşterilerin sizi arama sonuçlarında bulmasını doğrudan etkiler."
+                        onInfoClick={() => setInfoPopup("Salonunuzun adı, kategorisi (erkek berberi, kadın kuaförü vb.), hizmet verilen cinsiyet ve iletişim bilgilerini yönetin. Doğru kategori seçimi, müşterilerin sizi arama sonuçlarında bulmasını doğrudan etkiler.")}
                     >
                         <div className="space-y-5">
                             <div>
@@ -1090,6 +1191,8 @@ export const MyShopPage: React.FC = () => {
                         subtitle="İl, ilçe, mahalle ve adres bilgileri"
                         isOpen={openCards.location}
                         onToggle={() => toggleCard('location')}
+                        infoText="Salonunuzun fiziksel adresi ve harita konumu. Müşteriler şehir, ilçe ve mahalle bazlı arama yaptığında bu bilgiler kullanılır. Harita pinini de ayarlarsanız müşteriler yol tarifi alabilir."
+                        onInfoClick={() => setInfoPopup("Salonunuzun fiziksel adresi ve harita konumu. Müşteriler şehir, ilçe ve mahalle bazlı arama yaptığında bu bilgiler kullanılır. Harita pinini de ayarlarsanız müşteriler yol tarifi alabilir.")}
                     >
                         <div className="space-y-4">
                             <div className="flex items-start gap-2 text-sm text-indigo-600 bg-indigo-50 px-4 py-3 rounded-xl border border-indigo-100">
@@ -1220,6 +1323,8 @@ export const MyShopPage: React.FC = () => {
                         subtitle="Kategoriler ve hizmet tanımları"
                         isOpen={openCards.services}
                         onToggle={() => toggleCard('services')}
+                        infoText="Sunduğunuz hizmetleri (kesim, boya, bakım vb.) fiyat ve süreleriyle tanımlayın. Tanımladığınız hizmetler daha sonra uzmanlara atanır; uzmanın yapabildiği hizmetler için müşteriler randevu alabilir."
+                        onInfoClick={() => setInfoPopup("Sunduğunuz hizmetleri (kesim, boya, bakım vb.) fiyat ve süreleriyle tanımlayın. Tanımladığınız hizmetler daha sonra uzmanlara atanır; uzmanın yapabildiği hizmetler için müşteriler randevu alabilir.")}
                     >
                         <ServicesPage embedded />
                     </AccordionCard>
@@ -1233,6 +1338,8 @@ export const MyShopPage: React.FC = () => {
                         subtitle="Çalışan yönetimi, hizmet atamaları ve çalışma saatleri"
                         isOpen={openCards.employees}
                         onToggle={() => toggleCard('employees')}
+                        infoText="Salondaki çalışanları ekleyin, hangi hizmetleri verdiklerini ve günlük çalışma saatlerini ayarlayın. Müşteriler randevu alırken uzman seçimi yapar; uzmanın takvimi ve uzmanlık alanları bu ayarlara göre belirlenir."
+                        onInfoClick={() => setInfoPopup("Salondaki çalışanları ekleyin, hangi hizmetleri verdiklerini ve günlük çalışma saatlerini ayarlayın. Müşteriler randevu alırken uzman seçimi yapar; uzmanın takvimi ve uzmanlık alanları bu ayarlara göre belirlenir.")}
                     >
                         <EmployeesPage embedded />
                     </AccordionCard>
@@ -1246,6 +1353,8 @@ export const MyShopPage: React.FC = () => {
                         subtitle="Salonunuzun genel açılış ve kapanış saatleri"
                         isOpen={openCards.hours}
                         onToggle={() => toggleCard('hours')}
+                        infoText="Salonunuzun genel açılış/kapanış saati, kaç gün öncesine kadar randevu alınabileceği ve iptal politikası bu bölümde belirlenir. Haftalık tatil günleri burada seçilir; tatil günlerinde hiçbir uzman için randevu alınamaz."
+                        onInfoClick={() => setInfoPopup("Salonunuzun genel açılış/kapanış saati, kaç gün öncesine kadar randevu alınabileceği ve iptal politikası bu bölümde belirlenir. Haftalık tatil günleri burada seçilir; tatil günlerinde hiçbir uzman için randevu alınamaz.")}
                     >
                         <div className="space-y-5">
                             <p className="text-sm text-gray-500">
@@ -1384,6 +1493,8 @@ export const MyShopPage: React.FC = () => {
                         subtitle="Bayram, tatil gibi özel kapalı günleri yönetin"
                         isOpen={openCards.closureDates}
                         onToggle={() => toggleCard('closureDates')}
+                        infoText="Resmi tatiller, özel kapanış günleri veya bakım günleri gibi tarihleri buraya ekleyin. Bu tarihlerde hiçbir müşteri, hiçbir uzman için randevu alamaz. Haftalık tatilden farklı olarak tek seferlik kapamalardır."
+                        onInfoClick={() => setInfoPopup("Resmi tatiller, özel kapanış günleri veya bakım günleri gibi tarihleri buraya ekleyin. Bu tarihlerde hiçbir müşteri, hiçbir uzman için randevu alamaz. Haftalık tatilden farklı olarak tek seferlik kapamalardır.")}
                     >
                         <div className="space-y-5">
                             <p className="text-sm text-gray-500">
@@ -1480,6 +1591,8 @@ export const MyShopPage: React.FC = () => {
                                 loadAllEmployees();
                             }
                         }}
+                        infoText="Belirli bir çalışanın izinli olduğu günleri girin. İzin günlerinde yalnızca o çalışan için randevu alınamaz; diğer uzmanlar etkilenmez. Salon geneli kapamaları için 'Kapalı Günler' bölümünü kullanın."
+                        onInfoClick={() => setInfoPopup("Belirli bir çalışanın izinli olduğu günleri girin. İzin günlerinde yalnızca o çalışan için randevu alınamaz; diğer uzmanlar etkilenmez. Salon geneli kapamaları için 'Kapalı Günler' bölümünü kullanın.")}
                     >
                         <div className="space-y-5">
                             <p className="text-sm text-gray-500">
@@ -1727,6 +1840,71 @@ export const MyShopPage: React.FC = () => {
             )}
 
             {/* ── Değişiklik Onay Modalı ── */}
+            {/* ── Bilgi popup'ı ── */}
+            {infoPopup && createPortal(
+                <div
+                    className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+                    onClick={() => setInfoPopup(null)}
+                >
+                    <div
+                        className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        <div className="flex items-start gap-3 mb-4">
+                            <div className="w-7 h-7 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0 mt-0.5">!</div>
+                            <p className="text-sm text-gray-700 leading-relaxed">{infoPopup}</p>
+                        </div>
+                        <div className="flex justify-end">
+                            <button
+                                type="button"
+                                onClick={() => setInfoPopup(null)}
+                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
+                            >
+                                Tamam
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* ── Kaydedilmemiş değişiklik uyarısı ── */}
+            {navTarget && createPortal(
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6">
+                        <div className="flex items-start gap-3 mb-4">
+                            <div className="p-2 bg-amber-50 rounded-xl shrink-0">
+                                <AlertTriangle className="w-5 h-5 text-amber-600" />
+                            </div>
+                            <div>
+                                <h3 className="text-base font-bold text-gray-900 mb-1">Kaydedilmemiş değişiklikler</h3>
+                                <p className="text-sm text-gray-500">
+                                    {[infoIsDirty && 'Salon Bilgileri', locationIsDirty && 'Konum Detayları', hoursIsDirty && 'Çalışma Saatleri']
+                                        .filter(Boolean).join(', ')} bölümünde yaptığınız değişiklikler henüz kaydedilmedi. Sayfadan ayrılırsanız bu değişiklikler kaybolur.
+                                </p>
+                            </div>
+                        </div>
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                type="button"
+                                onClick={() => setNavTarget(null)}
+                                className="px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 rounded-xl transition-colors"
+                            >
+                                Geri Dön
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => { navigate(navTarget); setNavTarget(null); }}
+                                className="px-4 py-2.5 text-sm font-semibold text-white bg-red-500 hover:bg-red-600 rounded-xl transition-colors"
+                            >
+                                Evet, Çık
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
             {confirmUpdate && createPortal(
                 <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[85vh] flex flex-col">

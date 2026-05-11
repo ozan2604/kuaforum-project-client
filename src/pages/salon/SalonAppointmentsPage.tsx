@@ -11,7 +11,7 @@ import { toast } from 'react-hot-toast';
 import { getApiError } from '../../utils/storage';
 import {
     Calendar, Clock, User, CheckCircle, XCircle, AlertCircle,
-    Scissors, ChevronLeft, ChevronRight, Zap, ChevronDown, Filter, Phone, MessageSquare
+    Scissors, ChevronLeft, ChevronRight, Zap, ChevronDown, Filter, Phone, MessageSquare, X
 } from 'lucide-react';
 import { format, addDays } from 'date-fns';
 import { tr } from 'date-fns/locale';
@@ -370,6 +370,17 @@ export const SalonAppointmentsPage: React.FC = () => {
                                 />
                             </div>
                         </div>
+                        {(searchTerm || filterDate || filterEmployeeId || filterServiceId || statusFilter !== undefined) && (
+                            <div className="mt-3 flex justify-end">
+                                <button
+                                    onClick={() => { setSearchTerm(''); setFilterDate(''); setFilterEmployeeId(''); setFilterServiceId(''); setStatusFilter(undefined); setPage(1); }}
+                                    className="inline-flex items-center gap-1.5 text-xs font-medium text-gray-500 hover:text-red-600 bg-gray-100 hover:bg-red-50 border border-gray-200 hover:border-red-200 px-3 py-1.5 rounded-lg transition-colors"
+                                >
+                                    <X className="w-3.5 h-3.5" />
+                                    Filtreleri Temizle
+                                </button>
+                            </div>
+                        )}
                     </div>
 
                     {/* Status Tabs */}
@@ -561,7 +572,6 @@ export const SalonAppointmentsPage: React.FC = () => {
                                                                                         {new Date(apt.startTime) <= new Date() && (
                                                                                             <Button size="sm" variant="outline" onClick={() => requestSingleUpdate(apt.id, AppointmentStatus.Completed, 'Randevuyu Tamamla', 'Bu hizmetin tamamlandığını onaylıyor musunuz?', apt.startTime)}>Tamamlandı</Button>
                                                                                         )}
-                                                                                        <Button size="sm" variant="danger" onClick={() => requestSingleUpdate(apt.id, AppointmentStatus.Rejected, 'Randevuyu Reddet', 'Bu hizmet reddedilecek. Müşteriye gösterilecek sebebi girin.', apt.startTime)}>Reddet</Button>
                                                                                         <Button size="sm" variant="danger" onClick={() => requestSingleUpdate(apt.id, AppointmentStatus.Cancelled, 'Randevuyu İptal Et', 'Bu hizmet iptal edilecek. İsterseniz müşteriye bir sebep bırakabilirsiniz.', apt.startTime)}>İptal</Button>
                                                                                     </>
                                                                                 )}
@@ -604,7 +614,7 @@ export const SalonAppointmentsPage: React.FC = () => {
                                                                                 isMulti && gId
                                                                                     ? requestGroupUpdate(gId, AppointmentStatus.Rejected, 'Grubu Reddet', `${group.length} hizmet reddedilecek. Müşteriye gösterilecek sebebi girin.`, first.startTime)
                                                                                     : requestSingleUpdate(first.id, AppointmentStatus.Rejected, 'Randevuyu Reddet', 'Bu randevu reddedilecek. Müşteriye gösterilecek sebebi girin.', first.startTime)
-                                                                            }>{isMulti ? 'Tümünü Reddet' : 'Reddet'}</Button>
+                                                                            }>Reddet</Button>
                                                                         </>
                                                                     )}
                                                                     {hasAnyConfirmed && new Date(last.startTime) <= new Date() && (
