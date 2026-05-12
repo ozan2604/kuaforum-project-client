@@ -247,8 +247,8 @@ export const MyShopPage: React.FC = () => {
             v.street !== savedSnapshot.street ||
             v.buildingNumber !== savedSnapshot.buildingNumber ||
             v.address !== savedSnapshot.address ||
-            (v.latitude ?? undefined) !== savedSnapshot.latitude ||
-            (v.longitude ?? undefined) !== savedSnapshot.longitude
+            (v.latitude ?? null) !== (savedSnapshot.latitude ?? null) ||
+            (v.longitude ?? null) !== (savedSnapshot.longitude ?? null)
         );
     }, [watchedValues, savedSnapshot]);
 

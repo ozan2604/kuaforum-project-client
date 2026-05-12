@@ -1,5 +1,5 @@
 import api from './axios';
-import type { Appointment, CreateAppointmentDto, UpdateAppointmentStatusDto, AppointmentStatus } from '../types/appointment';
+import type { Appointment, CreateAppointmentDto, CreateManualAppointmentDto, UpdateAppointmentStatusDto, AppointmentStatus, NoShowResultDto } from '../types/appointment';
 
 export interface PagedResult<T> {
     items: T[];
@@ -40,10 +40,16 @@ export const appointmentService = {
         await api.post('/Appointment', data);
     },
 
+    // Create manual appointment (SalonOwner or Employee)
+    createManualAppointment: async (data: CreateManualAppointmentDto): Promise<void> => {
+        await api.post('/Appointment/manual', data);
+    },
+
     // Update status (Salon Owner)
-    updateStatus: async (id: string, status: AppointmentStatus, reason?: string): Promise<void> => {
+    updateStatus: async (id: string, status: AppointmentStatus, reason?: string): Promise<NoShowResultDto | null> => {
         const payload: UpdateAppointmentStatusDto = { status, reason };
-        await api.put(`/Appointment/${id}/status`, payload);
+        const response = await api.put<{ noShowResult?: NoShowResultDto }>(`/Appointment/${id}/status`, payload);
+        return response.data.noShowResult ?? null;
     },
 
     // Get Employee Availability
@@ -80,9 +86,10 @@ export const appointmentService = {
         return response.data;
     },
 
-    updateStatusByEmployee: async (id: string, status: AppointmentStatus): Promise<void> => {
+    updateStatusByEmployee: async (id: string, status: AppointmentStatus): Promise<NoShowResultDto | null> => {
         const payload: UpdateAppointmentStatusDto = { status };
-        await api.put(`/Appointment/employee/${id}/status`, payload);
+        const response = await api.put<{ noShowResult?: NoShowResultDto }>(`/Appointment/employee/${id}/status`, payload);
+        return response.data.noShowResult ?? null;
     },
 
     cancelAppointment: async (id: string, reason?: string): Promise<void> => {
@@ -97,8 +104,9 @@ export const appointmentService = {
         await api.delete(url);
     },
 
-    updateGroupStatus: async (groupId: string, status: AppointmentStatus, reason?: string): Promise<void> => {
+    updateGroupStatus: async (groupId: string, status: AppointmentStatus, reason?: string): Promise<NoShowResultDto | null> => {
         const payload: UpdateAppointmentStatusDto = { status, reason };
-        await api.put(`/Appointment/group/${groupId}/status`, payload);
+        const response = await api.put<{ noShowResult?: NoShowResultDto }>(`/Appointment/group/${groupId}/status`, payload);
+        return response.data.noShowResult ?? null;
     },
 };

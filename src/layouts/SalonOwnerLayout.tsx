@@ -14,6 +14,7 @@ import {
     AlertCircle,
     CheckCircle2,
     ChevronRight,
+    Users,
 } from 'lucide-react';
 
 interface NotificationItem {
@@ -86,11 +87,12 @@ export const SalonOwnerLayout: React.FC = () => {
     }
 
     const navigation = [
-        { name: 'Anasayfa',   href: '/',                        icon: Store },
-        { name: 'Dashboard',  href: '/salon-panel',             icon: LayoutDashboard },
-        { name: 'Randevular', href: '/salon-panel/appointments', icon: Calendar },
-        { name: 'Salonum',    href: '/salon-panel/shop',         icon: Store },
-        { name: 'Ayarlar',    href: '/salon-panel/settings',     icon: Settings },
+        { name: 'Anasayfa',   href: '/',                                  icon: Store },
+        { name: 'Dashboard',  href: '/salon-panel',                        icon: LayoutDashboard },
+        { name: 'Randevular', href: '/salon-panel/appointments',            icon: Calendar },
+        { name: 'Salonum',    href: '/salon-panel/shop',                    icon: Store },
+        { name: 'Müşteriler', href: '/salon-panel/blocked-customers',       icon: Users },
+        { name: 'Ayarlar',    href: '/salon-panel/settings',                icon: Settings },
     ];
 
     const panelTitle = 'Salon Paneli';

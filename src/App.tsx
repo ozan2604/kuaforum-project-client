@@ -33,6 +33,7 @@ import { SmsTestPage } from './pages/admin/SmsTestPage';
 import { SalonDashboard } from './pages/salon/SalonDashboard';
 import { SalonAppointmentsPage } from './pages/salon/SalonAppointmentsPage';
 import { MyShopPage } from './pages/salon/MyShopPage';
+import { BlockedCustomersPage } from './pages/salon/BlockedCustomersPage';
 
 import { EmployeeAppointmentsPage } from './pages/employee/EmployeeAppointmentsPage';
 import { EmployeeSchedulePage } from './pages/employee/EmployeeSchedulePage';
@@ -119,6 +120,7 @@ function App() {
             <Route path="/salon-panel/services" element={<Navigate to="/salon-panel/shop" replace />} />
             <Route path="/salon-panel/employees" element={<Navigate to="/salon-panel/shop" replace />} />
             <Route path="/salon-panel/settings" element={<div className="p-8">Ayarlar Sayfası (Yakında)</div>} />
+            <Route path="/salon-panel/blocked-customers" element={<BlockedCustomersPage />} />
           </Route>
         </Route>
 

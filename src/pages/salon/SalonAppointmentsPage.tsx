@@ -11,8 +11,11 @@ import { toast } from 'react-hot-toast';
 import { getApiError } from '../../utils/storage';
 import {
     Calendar, Clock, User, CheckCircle, XCircle, AlertCircle,
-    Scissors, ChevronLeft, ChevronRight, Zap, ChevronDown, Filter, Phone, MessageSquare, X
+    Scissors, ChevronLeft, ChevronRight, Zap, ChevronDown, Filter, Phone, MessageSquare, X, Plus, UserX
 } from 'lucide-react';
+import { blockService } from '../../api/block.service';
+import type { NoShowResultDto } from '../../types/appointment';
+import { ManualBookingModal } from '../../components/ManualBookingModal';
 import { format, addDays } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { CustomSelect } from '../../components/CustomSelect';
@@ -27,6 +30,9 @@ export const SalonAppointmentsPage: React.FC = () => {
     const [bookingDaysAhead, setBookingDaysAhead] = useState(7);
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [services, setServices] = useState<{ id: string; name: string }[]>([]);
+
+    const [weeklyOffDays, setWeeklyOffDays] = useState<number[]>([]);
+    const [manualModalOpen, setManualModalOpen] = useState(false);
 
     // ── Main tab ───────────────────────────────────────────────────────────
     const [activeMainTab, setActiveMainTab] = useState<MainTab>('calendar');
@@ -60,6 +66,11 @@ export const SalonAppointmentsPage: React.FC = () => {
         reason: string;
         firstStartTime?: string;
     } | null>(null);
+    const [blockOffer, setBlockOffer] = useState<{
+        customerId: string;
+        customerName: string;
+        noShowCount: number;
+    } | null>(null);
 
     // ── Load shop info + employees + services on mount ─────────────────────
     useEffect(() => {
@@ -74,6 +85,7 @@ export const SalonAppointmentsPage: React.FC = () => {
                 setShopId(shop.id);
                 setIsAutoProcessEnabled(shop.isAutoProcessEnabled || false);
                 setBookingDaysAhead(shop.bookingDaysAhead ?? 7);
+                setWeeklyOffDays(shop.weeklyOffDays ?? []);
                 setEmployees(emps);
                 setServices(cats.flatMap(c => c.services || []).map(s => ({ id: s.id, name: s.name })));
             } catch (err) {
@@ -183,17 +195,35 @@ export const SalonAppointmentsPage: React.FC = () => {
             [AppointmentStatus.Completed]:  confirmAction.isGroup ? 'Tüm randevular tamamlandı olarak işaretlendi.' : 'Randevu tamamlandı olarak işaretlendi.',
             [AppointmentStatus.Cancelled]:  confirmAction.isGroup ? 'Tüm randevular iptal edildi.' : 'Randevu iptal edildi.',
             [AppointmentStatus.Rejected]:   confirmAction.isGroup ? 'Tüm randevular reddedildi.' : 'Randevu reddedildi.',
+            [AppointmentStatus.NoShow]:     confirmAction.isGroup ? 'Tüm randevular "Gelmedi" olarak işaretlendi.' : 'Randevu "Gelmedi" olarak işaretlendi.',
         };
         try {
+            let noShowResult = null;
             if (confirmAction.isGroup && confirmAction.groupId) {
-                await appointmentService.updateGroupStatus(confirmAction.groupId, confirmAction.status, reason);
+                noShowResult = await appointmentService.updateGroupStatus(confirmAction.groupId, confirmAction.status, reason);
             } else if (confirmAction.appointmentId) {
-                await appointmentService.updateStatus(confirmAction.appointmentId, confirmAction.status, reason);
+                noShowResult = await appointmentService.updateStatus(confirmAction.appointmentId, confirmAction.status, reason);
             }
             toast.success(successMessages[confirmAction.status] ?? 'Randevu güncellendi.');
             await refreshManagement();
+            if (confirmAction.status === AppointmentStatus.NoShow && noShowResult && noShowResult.noShowCount >= 2 && noShowResult.customerId) {
+                setBlockOffer({
+                    customerId: noShowResult.customerId,
+                    customerName: noShowResult.customerName ?? 'Müşteri',
+                    noShowCount: noShowResult.noShowCount,
+                });
+            }
         } catch (err) { toast.error(getApiError(err, 'İşlem gerçekleştirilemedi, lütfen tekrar deneyin.')); }
         finally { setConfirmAction(null); }
+    };
+
+    const handleBlockFromOffer = async () => {
+        if (!blockOffer || !shopId) return;
+        try {
+            await blockService.blockCustomer(shopId, blockOffer.customerId);
+            toast.success(`${blockOffer.customerName} engellendi. Bu müşteri artık salona randevu alamaz.`);
+        } catch (err) { toast.error(getApiError(err, 'Engelleme işlemi başarısız.')); }
+        finally { setBlockOffer(null); }
     };
 
     // ── Status badge ───────────────────────────────────────────────────────
@@ -204,6 +234,7 @@ export const SalonAppointmentsPage: React.FC = () => {
             case AppointmentStatus.Completed: return <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold inline-flex items-center gap-1 shadow-sm"><CheckCircle className="w-3.5 h-3.5" /> Tamamlandı</span>;
             case AppointmentStatus.Cancelled: return <span className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-semibold inline-flex items-center gap-1 shadow-sm"><XCircle className="w-3.5 h-3.5" /> İptal Edildi</span>;
             case AppointmentStatus.Rejected:  return <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-semibold inline-flex items-center gap-1 shadow-sm"><XCircle className="w-3.5 h-3.5" /> Reddedildi</span>;
+            case AppointmentStatus.NoShow:    return <span className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-semibold inline-flex items-center gap-1 shadow-sm"><UserX className="w-3.5 h-3.5" /> Gelmedi</span>;
             default: return null;
         }
     };
@@ -215,6 +246,7 @@ export const SalonAppointmentsPage: React.FC = () => {
         { label: 'Tamamlandı', value: AppointmentStatus.Completed },
         { label: 'İptal', value: AppointmentStatus.Cancelled },
         { label: 'Reddedildi', value: AppointmentStatus.Rejected },
+        { label: 'Gelmedi', value: AppointmentStatus.NoShow },
     ];
 
     const employeeOptions = [
@@ -224,6 +256,7 @@ export const SalonAppointmentsPage: React.FC = () => {
 
     // ── Render ─────────────────────────────────────────────────────────────
     return (
+        <>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-4">
 
             {/* Page Header */}
@@ -236,6 +269,15 @@ export const SalonAppointmentsPage: React.FC = () => {
                     <p className="mt-1 text-sm text-gray-500">Salonunuzdaki tüm randevuları buradan yönetebilirsiniz.</p>
                 </div>
 
+                <div className="flex items-center gap-3">
+                <button
+                    onClick={() => setManualModalOpen(true)}
+                    disabled={!shopId}
+                    className="flex items-center gap-2 px-4 py-2.5 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm"
+                >
+                    <Plus className="w-4 h-4" />
+                    Manuel Randevu
+                </button>
                 <div className="flex items-center bg-white p-3 rounded-2xl shadow-sm border border-gray-100 gap-3">
                     <div>
                         <p className="text-sm font-medium text-gray-900 flex items-center gap-1">
@@ -254,6 +296,7 @@ export const SalonAppointmentsPage: React.FC = () => {
                     >
                         <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isAutoProcessEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
                     </button>
+                </div>
                 </div>
             </div>
 
@@ -478,6 +521,7 @@ export const SalonAppointmentsPage: React.FC = () => {
                                         // Mixed-status aware bulk action flags
                                         const hasAnyPending   = group.some(a => a.status === AppointmentStatus.Pending);
                                         const hasAnyConfirmed = group.some(a => a.status === AppointmentStatus.Confirmed);
+                                        const hasAnyCompleted = group.some(a => a.status === AppointmentStatus.Completed);
 
                                             return (
                                             <div key={cardKey} className="bg-white">
@@ -550,35 +594,51 @@ export const SalonAppointmentsPage: React.FC = () => {
 
                                                             {/* Hizmet listesi */}
                                                             <div className="bg-white rounded-xl border border-gray-100 divide-y divide-gray-50 overflow-hidden">
-                                                                {group.map(apt => (
-                                                                    <div key={apt.id} className="px-3 py-2.5">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <Scissors className="w-3.5 h-3.5 text-gray-300 shrink-0" />
-                                                                            <span className="text-sm text-gray-700 flex-1 min-w-0 truncate">{apt.serviceName}</span>
-                                                                            <span className="text-xs text-gray-500 shrink-0 whitespace-nowrap">{apt.duration}dk · ₺{apt.price}</span>
-                                                                            <div className="shrink-0">{getStatusBadge(apt.status)}</div>
-                                                                        </div>
-                                                                        {/* Bireysel aksiyon butonları — sadece çok-hizmetli grupta */}
-                                                                        {isMulti && (apt.status === AppointmentStatus.Pending || apt.status === AppointmentStatus.Confirmed) && (
-                                                                            <div className="flex gap-1.5 mt-2 ml-5 flex-wrap">
-                                                                                {apt.status === AppointmentStatus.Pending && (
-                                                                                    <>
-                                                                                        <Button size="sm" onClick={() => requestSingleUpdate(apt.id, AppointmentStatus.Confirmed, 'Randevuyu Onayla', 'Bu hizmeti onaylamak istediğinizden emin misiniz?', apt.startTime)}>Onayla</Button>
-                                                                                        <Button size="sm" variant="danger" onClick={() => requestSingleUpdate(apt.id, AppointmentStatus.Rejected, 'Randevuyu Reddet', 'Bu hizmet reddedilecek. Müşteriye gösterilecek sebebi girin.', apt.startTime)}>Reddet</Button>
-                                                                                    </>
+                                                                {group.map(apt => {
+                                                                    const aptBtns = isMulti && (
+                                                                        <>
+                                                                            {apt.status === AppointmentStatus.Pending && (
+                                                                                <>
+                                                                                    <Button size="sm" onClick={() => requestSingleUpdate(apt.id, AppointmentStatus.Confirmed, 'Randevuyu Onayla', 'Bu hizmeti onaylamak istediğinizden emin misiniz?', apt.startTime)}>Onayla</Button>
+                                                                                    <Button size="sm" variant="danger" onClick={() => requestSingleUpdate(apt.id, AppointmentStatus.Rejected, 'Randevuyu Reddet', 'Bu hizmet reddedilecek. Müşteriye gösterilecek sebebi girin.', apt.startTime)}>Reddet</Button>
+                                                                                </>
+                                                                            )}
+                                                                            {apt.status === AppointmentStatus.Confirmed && (
+                                                                                <>
+                                                                                    {new Date(apt.startTime) <= new Date() && (
+                                                                                        <>
+                                                                                            <Button size="sm" variant="success" onClick={() => requestSingleUpdate(apt.id, AppointmentStatus.Completed, 'Randevuyu Tamamla', 'Bu hizmetin tamamlandığını onaylıyor musunuz?', apt.startTime)}>Tamamlandı</Button>
+                                                                                            <Button size="sm" variant="warning" onClick={() => requestSingleUpdate(apt.id, AppointmentStatus.NoShow, 'Müşteri Gelmedi Mi?', 'Bu randevuyu "Gelmedi" olarak işaretlemek istediğinize emin misiniz?', apt.startTime)}>Gelmedi</Button>
+                                                                                        </>
+                                                                                    )}
+                                                                                    <Button size="sm" variant="danger" onClick={() => requestSingleUpdate(apt.id, AppointmentStatus.Cancelled, 'Randevuyu İptal Et', 'Bu hizmet iptal edilecek. İsterseniz müşteriye bir sebep bırakabilirsiniz.', apt.startTime)}>İptal</Button>
+                                                                                </>
+                                                                            )}
+                                                                            {apt.status === AppointmentStatus.Completed && (
+                                                                                <Button size="sm" variant="warning" onClick={() => requestSingleUpdate(apt.id, AppointmentStatus.NoShow, 'Müşteri Gelmedi Mi?', 'Bu randevuyu "Gelmedi" olarak işaretlemek istediğinize emin misiniz?', apt.startTime)}>Gelmedi</Button>
+                                                                            )}
+                                                                        </>
+                                                                    );
+                                                                    const hasAptBtns = isMulti && (apt.status === AppointmentStatus.Pending || apt.status === AppointmentStatus.Confirmed || apt.status === AppointmentStatus.Completed);
+                                                                    return (
+                                                                        <div key={apt.id} className="px-3 py-2">
+                                                                            {/* Tek satır: ikon | isim | [PC butonlar] | fiyat | badge */}
+                                                                            <div className="flex items-center gap-2 min-w-0">
+                                                                                <Scissors className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                                                                                <span className="text-sm text-gray-700 flex-1 min-w-0 truncate">{apt.serviceName}</span>
+                                                                                {hasAptBtns && (
+                                                                                    <div className="hidden sm:flex items-center gap-1 shrink-0">{aptBtns}</div>
                                                                                 )}
-                                                                                {apt.status === AppointmentStatus.Confirmed && (
-                                                                                    <>
-                                                                                        {new Date(apt.startTime) <= new Date() && (
-                                                                                            <Button size="sm" variant="outline" onClick={() => requestSingleUpdate(apt.id, AppointmentStatus.Completed, 'Randevuyu Tamamla', 'Bu hizmetin tamamlandığını onaylıyor musunuz?', apt.startTime)}>Tamamlandı</Button>
-                                                                                        )}
-                                                                                        <Button size="sm" variant="danger" onClick={() => requestSingleUpdate(apt.id, AppointmentStatus.Cancelled, 'Randevuyu İptal Et', 'Bu hizmet iptal edilecek. İsterseniz müşteriye bir sebep bırakabilirsiniz.', apt.startTime)}>İptal</Button>
-                                                                                    </>
-                                                                                )}
+                                                                                <span className="text-xs text-gray-400 shrink-0 whitespace-nowrap">{apt.duration}dk · ₺{apt.price}</span>
+                                                                                <div className="shrink-0">{getStatusBadge(apt.status)}</div>
                                                                             </div>
-                                                                        )}
-                                                                    </div>
-                                                                ))}
+                                                                            {/* Mobil: butonlar alt satırda */}
+                                                                            {hasAptBtns && (
+                                                                                <div className="sm:hidden flex gap-1.5 mt-2 ml-5 flex-wrap">{aptBtns}</div>
+                                                                            )}
+                                                                        </div>
+                                                                    );
+                                                                })}
                                                             </div>
 
                                                             {/* Müşteri notu */}
@@ -597,40 +657,49 @@ export const SalonAppointmentsPage: React.FC = () => {
                                                                 </div>
                                                             )}
 
-                                                            {/* Toplu aksiyon butonları — karışık statüde dahi doğru çalışır */}
-                                                            {(hasAnyPending || hasAnyConfirmed) && (
-                                                                <div className="flex flex-wrap gap-2 pt-1 border-t border-gray-100">
+                                                            {/* Toplu aksiyon butonları */}
+                                                            {(hasAnyPending || hasAnyConfirmed || hasAnyCompleted) && (
+                                                                <div className="flex items-center gap-2 pt-2 border-t border-gray-100 flex-wrap">
                                                                     {isMulti && (
-                                                                        <span className="w-full text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Toplu İşlem</span>
+                                                                        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider shrink-0">Toplu İşlem</span>
                                                                     )}
-                                                                    {hasAnyPending && (
-                                                                        <>
-                                                                            <Button size="sm" onClick={() =>
+                                                                    <div className="flex flex-wrap gap-1.5 sm:ml-auto">
+                                                                        {hasAnyPending && (
+                                                                            <>
+                                                                                <Button size="sm" onClick={() =>
+                                                                                    isMulti && gId
+                                                                                        ? requestGroupUpdate(gId, AppointmentStatus.Confirmed, 'Grubu Onayla', `${group.length} hizmetin tamamını onaylamak istediğinize emin misiniz?`, first.startTime)
+                                                                                        : requestSingleUpdate(first.id, AppointmentStatus.Confirmed, 'Randevuyu Onayla', 'Bu randevuyu onaylamak istediğinize emin misiniz?', first.startTime)
+                                                                                }>{isMulti ? 'Tümünü Onayla' : 'Onayla'}</Button>
+                                                                                <Button size="sm" variant="danger" onClick={() =>
+                                                                                    isMulti && gId
+                                                                                        ? requestGroupUpdate(gId, AppointmentStatus.Rejected, 'Grubu Reddet', `${group.length} hizmet reddedilecek. Müşteriye gösterilecek sebebi girin.`, first.startTime)
+                                                                                        : requestSingleUpdate(first.id, AppointmentStatus.Rejected, 'Randevuyu Reddet', 'Bu randevu reddedilecek. Müşteriye gösterilecek sebebi girin.', first.startTime)
+                                                                                }>Reddet</Button>
+                                                                            </>
+                                                                        )}
+                                                                        {hasAnyConfirmed && new Date(last.startTime) <= new Date() && (
+                                                                            <Button size="sm" variant="success" onClick={() =>
                                                                                 isMulti && gId
-                                                                                    ? requestGroupUpdate(gId, AppointmentStatus.Confirmed, 'Grubu Onayla', `${group.length} hizmetin tamamını onaylamak istediğinize emin misiniz?`, first.startTime)
-                                                                                    : requestSingleUpdate(first.id, AppointmentStatus.Confirmed, 'Randevuyu Onayla', 'Bu randevuyu onaylamak istediğinize emin misiniz?', first.startTime)
-                                                                            }>{isMulti ? 'Tümünü Onayla' : 'Onayla'}</Button>
+                                                                                    ? requestGroupUpdate(gId, AppointmentStatus.Completed, 'Grubu Tamamla', `${group.length} hizmetin tamamını tamamlamak istediğinize emin misiniz?`, first.startTime)
+                                                                                    : requestSingleUpdate(first.id, AppointmentStatus.Completed, 'Randevuyu Tamamla', 'Bu randevunun tamamlandığını onaylıyor musunuz?', first.startTime)
+                                                                            }>{isMulti ? 'Tümünü Tamamla' : 'Tamamlandı'}</Button>
+                                                                        )}
+                                                                        {((hasAnyConfirmed && new Date(last.startTime) <= new Date()) || hasAnyCompleted) && (
+                                                                            <Button size="sm" variant="warning" onClick={() =>
+                                                                                isMulti && gId
+                                                                                    ? requestGroupUpdate(gId, AppointmentStatus.NoShow, 'Müşteri Gelmedi Mi?', `${group.length} randevu "Gelmedi" olarak işaretlenecek. Devam etmek istiyor musunuz?`, first.startTime)
+                                                                                    : requestSingleUpdate(first.id, AppointmentStatus.NoShow, 'Müşteri Gelmedi Mi?', 'Bu randevuyu "Gelmedi" olarak işaretlemek istediğinize emin misiniz?', first.startTime)
+                                                                            }>Gelmedi</Button>
+                                                                        )}
+                                                                        {hasAnyConfirmed && (
                                                                             <Button size="sm" variant="danger" onClick={() =>
                                                                                 isMulti && gId
-                                                                                    ? requestGroupUpdate(gId, AppointmentStatus.Rejected, 'Grubu Reddet', `${group.length} hizmet reddedilecek. Müşteriye gösterilecek sebebi girin.`, first.startTime)
-                                                                                    : requestSingleUpdate(first.id, AppointmentStatus.Rejected, 'Randevuyu Reddet', 'Bu randevu reddedilecek. Müşteriye gösterilecek sebebi girin.', first.startTime)
-                                                                            }>Reddet</Button>
-                                                                        </>
-                                                                    )}
-                                                                    {hasAnyConfirmed && new Date(last.startTime) <= new Date() && (
-                                                                        <Button size="sm" variant="outline" onClick={() =>
-                                                                            isMulti && gId
-                                                                                ? requestGroupUpdate(gId, AppointmentStatus.Completed, 'Grubu Tamamla', `${group.length} hizmetin tamamını tamamlamak istediğinize emin misiniz?`, first.startTime)
-                                                                                : requestSingleUpdate(first.id, AppointmentStatus.Completed, 'Randevuyu Tamamla', 'Bu randevunun tamamlandığını onaylıyor musunuz?', first.startTime)
-                                                                        }>{isMulti ? 'Tümünü Tamamla' : 'Tamamlandı'}</Button>
-                                                                    )}
-                                                                    {hasAnyConfirmed && (
-                                                                        <Button size="sm" variant="danger" onClick={() =>
-                                                                            isMulti && gId
-                                                                                ? requestGroupUpdate(gId, AppointmentStatus.Cancelled, 'Grubu İptal Et', `${group.length} hizmet iptal edilecek. İsterseniz müşteriye bir sebep bırakabilirsiniz.`, first.startTime)
-                                                                                : requestSingleUpdate(first.id, AppointmentStatus.Cancelled, 'Randevuyu İptal Et', 'Bu randevu iptal edilecek. İsterseniz müşteriye bir sebep bırakabilirsiniz.', first.startTime)
-                                                                        }>{isMulti ? 'Tümünü İptal Et' : 'İptal'}</Button>
-                                                                    )}
+                                                                                    ? requestGroupUpdate(gId, AppointmentStatus.Cancelled, 'Grubu İptal Et', `${group.length} hizmet iptal edilecek. İsterseniz müşteriye bir sebep bırakabilirsiniz.`, first.startTime)
+                                                                                    : requestSingleUpdate(first.id, AppointmentStatus.Cancelled, 'Randevuyu İptal Et', 'Bu randevu iptal edilecek. İsterseniz müşteriye bir sebep bırakabilirsiniz.', first.startTime)
+                                                                            }>{isMulti ? 'Tümünü İptal Et' : 'İptal'}</Button>
+                                                                        )}
+                                                                    </div>
                                                                 </div>
                                                             )}
                                                         </div>
@@ -696,11 +765,15 @@ export const SalonAppointmentsPage: React.FC = () => {
                                 onClick={handleStatusUpdate}
                                 className={`px-4 py-2 text-sm font-semibold rounded-xl text-white transition-colors ${
                                     confirmAction.status === AppointmentStatus.Rejected || confirmAction.status === AppointmentStatus.Cancelled
-                                        ? 'bg-red-600 hover:bg-red-700' : 'bg-indigo-600 hover:bg-indigo-700'
+                                        ? 'bg-red-600 hover:bg-red-700'
+                                        : confirmAction.status === AppointmentStatus.NoShow
+                                        ? 'bg-orange-500 hover:bg-orange-600'
+                                        : 'bg-indigo-600 hover:bg-indigo-700'
                                 }`}
                             >
                                 {confirmAction.status === AppointmentStatus.Rejected ? 'Reddet'
                                     : confirmAction.status === AppointmentStatus.Cancelled ? 'İptal Et'
+                                    : confirmAction.status === AppointmentStatus.NoShow ? 'Gelmedi Olarak İşaretle'
                                     : 'Onayla'}
                             </button>
                         </div>
@@ -709,5 +782,43 @@ export const SalonAppointmentsPage: React.FC = () => {
                 document.body
             )}
         </div>
+
+        {blockOffer && createPortal(
+            <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50">
+                <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2.5 bg-orange-100 rounded-xl">
+                            <UserX className="w-5 h-5 text-orange-600" />
+                        </div>
+                        <h3 className="text-lg font-bold text-gray-900">Müşteriyi Engelle?</h3>
+                    </div>
+                    <p className="text-sm text-gray-600">
+                        <span className="font-semibold">{blockOffer.customerName}</span> bu salona{' '}
+                        <span className="font-semibold text-orange-600">{blockOffer.noShowCount} kez</span> gelmedi.
+                        Bu müşteriyi engellemek ister misiniz? Engellenen müşteri salona randevu alamaz.
+                    </p>
+                    <div className="flex gap-3 justify-end pt-1">
+                        <button onClick={() => setBlockOffer(null)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl">Hayır, Geç</button>
+                        <button onClick={handleBlockFromOffer} className="px-4 py-2 text-sm font-semibold rounded-xl text-white bg-orange-500 hover:bg-orange-600 transition-colors flex items-center gap-2">
+                            <UserX className="w-4 h-4" />
+                            Evet, Engelle
+                        </button>
+                    </div>
+                </div>
+            </div>,
+            document.body
+        )}
+
+        {shopId && (
+            <ManualBookingModal
+                isOpen={manualModalOpen}
+                onClose={() => setManualModalOpen(false)}
+                shopId={shopId}
+                bookingDaysAhead={bookingDaysAhead}
+                weeklyOffDays={weeklyOffDays}
+                onSuccess={refreshManagement}
+            />
+        )}
+        </>
     );
 };

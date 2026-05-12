@@ -112,10 +112,12 @@ export const EmployeesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fal
         setIsScheduleModalOpen(true);
         try {
             const data = await employeeService.getSchedule(employee.id);
+            const t5 = (v: string | null | undefined, fallback = '') =>
+                (v ?? fallback).substring(0, 5);
             const fullSchedule = SCHEDULE_DAYS.map((d) => {
                 const existing = data.find((s: any) => s.dayOfWeek === d.index);
                 return existing
-                    ? { dayOfWeek: d.index, isWorking: existing.isWorking, startTime: existing.startTime ?? '09:00', endTime: existing.endTime ?? '18:00', breakStartTime: existing.breakStartTime ?? '', breakEndTime: existing.breakEndTime ?? '' }
+                    ? { dayOfWeek: d.index, isWorking: existing.isWorking, startTime: t5(existing.startTime, '09:00'), endTime: t5(existing.endTime, '18:00'), breakStartTime: t5(existing.breakStartTime), breakEndTime: t5(existing.breakEndTime) }
                     : { dayOfWeek: d.index, isWorking: false, startTime: '09:00', endTime: '18:00', breakStartTime: '', breakEndTime: '' };
             });
             setSchedule(fullSchedule);
@@ -127,7 +129,14 @@ export const EmployeesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fal
     const handleSaveSchedule = async () => {
         if (!selectedEmployee) return;
         try {
-            await employeeService.updateSchedule(selectedEmployee.id, { schedules: schedule });
+            const sanitized = schedule.map(d => ({
+                ...d,
+                startTime:      d.startTime      || '09:00',
+                endTime:        d.endTime        || '18:00',
+                breakStartTime: d.breakStartTime || '',
+                breakEndTime:   d.breakEndTime   || '',
+            }));
+            await employeeService.updateSchedule(selectedEmployee.id, { schedules: sanitized });
             toast.success('Çalışma saatleri başarıyla güncellendi');
             setIsScheduleModalOpen(false);
         } catch (error) {
@@ -480,14 +489,14 @@ export const EmployeesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fal
                                                 <div
                                                     key={service.id}
                                                     onClick={() => toggleService(service.id)}
-                                                    className={`p-3 rounded-lg border cursor-pointer transition-colors flex justify-between items-center ${assignedServiceIds.includes(service.id)
-                                                        ? 'bg-primary-50 border-primary-500 text-primary-700'
-                                                        : 'border-gray-200 hover:bg-gray-50'
+                                                    className={`p-3 rounded-lg border-2 cursor-pointer transition-all flex justify-between items-center ${assignedServiceIds.includes(service.id)
+                                                        ? 'bg-green-50 border-green-500 shadow-sm'
+                                                        : 'border-gray-200 hover:bg-gray-50 hover:border-gray-300'
                                                         }`}
                                                 >
-                                                    <span className="text-sm font-medium">{service.name}</span>
+                                                    <span className={`text-sm font-medium ${assignedServiceIds.includes(service.id) ? 'text-green-800' : 'text-gray-900'}`}>{service.name}</span>
                                                     {assignedServiceIds.includes(service.id) && (
-                                                        <div className="h-2 w-2 rounded-full bg-primary-600"></div>
+                                                        <div className="h-2.5 w-2.5 rounded-full bg-green-500"></div>
                                                     )}
                                                 </div>
                                             ))}

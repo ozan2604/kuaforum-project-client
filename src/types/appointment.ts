@@ -3,7 +3,8 @@ export const AppointmentStatus = {
     Confirmed: 1,
     Completed: 2,
     Cancelled: 3,
-    Rejected: 4
+    Rejected: 4,
+    NoShow: 5
 } as const;
 
 export type AppointmentStatus = typeof AppointmentStatus[keyof typeof AppointmentStatus];
@@ -18,9 +19,10 @@ export interface AppointmentDto {
     duration: number;
     shopEmployeeId: string;
     employeeName: string;
-    userId: string;
+    userId?: string;
     customerName: string;
     customerPhone?: string;
+    isManual: boolean;
     startTime: string;
     endTime: string;
     status: AppointmentStatus;
@@ -42,6 +44,16 @@ export interface CreateAppointmentDto {
     note?: string;
 }
 
+export interface CreateManualAppointmentDto {
+    shopId: string;
+    serviceIds: string[];
+    shopEmployeeId: string;
+    startTime: string;
+    note?: string;
+    guestCustomerName?: string;
+    guestCustomerPhone?: string;
+}
+
 export interface UpdateAppointmentStatusDto {
     status: AppointmentStatus;
     reason?: string;
@@ -50,6 +62,12 @@ export interface UpdateAppointmentStatusDto {
 export interface TimeSlotDto {
     startTime: string;
     endTime: string;
+}
+
+export interface NoShowResultDto {
+    noShowCount: number;
+    customerId?: string;
+    customerName?: string;
 }
 
 export interface EmployeeAvailabilityDto {

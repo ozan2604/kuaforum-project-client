@@ -43,16 +43,18 @@ export const EmployeeSchedulePage: React.FC = () => {
         const load = async () => {
             try {
                 const data = await employeeService.getMySchedule();
+                const t5 = (v: string | null | undefined, fallback = '') =>
+                    (v ?? fallback).substring(0, 5);
                 const full = SCHEDULE_DAYS.map((d) => {
                     const existing = data.find((s) => s.dayOfWeek === d.index);
                     return existing
                         ? {
                               dayOfWeek: d.index,
                               isWorking: existing.isWorking,
-                              startTime: existing.startTime ?? '09:00',
-                              endTime: existing.endTime ?? '18:00',
-                              breakStartTime: existing.breakStartTime ?? '',
-                              breakEndTime: existing.breakEndTime ?? '',
+                              startTime: t5(existing.startTime, '09:00'),
+                              endTime: t5(existing.endTime, '18:00'),
+                              breakStartTime: t5(existing.breakStartTime),
+                              breakEndTime: t5(existing.breakEndTime),
                           }
                         : {
                               dayOfWeek: d.index,
@@ -77,8 +79,15 @@ export const EmployeeSchedulePage: React.FC = () => {
     const handleSave = async () => {
         setSaving(true);
         try {
-            await employeeService.updateMySchedule({ schedules: schedule });
-            setSavedSchedule(schedule);
+            const sanitized = schedule.map(d => ({
+                ...d,
+                startTime:      d.startTime      || '09:00',
+                endTime:        d.endTime        || '18:00',
+                breakStartTime: d.breakStartTime || '',
+                breakEndTime:   d.breakEndTime   || '',
+            }));
+            await employeeService.updateMySchedule({ schedules: sanitized });
+            setSavedSchedule(sanitized);
             toast.success('Çalışma saatleri güncellendi.');
         } catch (err) {
             toast.error(getApiError(err, 'Çalışma saatleri güncellenemedi.'));

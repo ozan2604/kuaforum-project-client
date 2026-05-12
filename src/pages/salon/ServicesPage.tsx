@@ -3,9 +3,11 @@ import { useForm } from 'react-hook-form';
 import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { serviceManagementService } from '../../api/service.service';
+import { employeeService } from '../../api/employee.service';
 import type { ServiceCategoryDto, CreateServiceDto, CreateCategoryDto } from '../../types/service';
+import type { Employee } from '../../types/employee';
 import { toast } from 'react-hot-toast';
-import { Plus, Scissors, Tag, Clock, DollarSign, Edit, Trash2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, Scissors, Tag, Clock, DollarSign, Edit, Trash2, ChevronDown, ChevronUp, Users } from 'lucide-react';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { EmptyState } from '../../components/EmptyState';
 import type { UpdateServiceCategoryDto, UpdateShopServiceDto } from '../../types/service';
@@ -26,6 +28,13 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
     const [isDeleteServiceModalOpen, setIsDeleteServiceModalOpen] = useState(false);
     const [selectedService, setSelectedService] = useState<any>(null);
     const [activeTab, setActiveTab] = useState<'active' | 'deleted'>('active');
+
+    // Assign employees to service
+    const [isEmployeesModalOpen, setIsEmployeesModalOpen] = useState(false);
+    const [employeesLoading, setEmployeesLoading] = useState(false);
+    const [availableEmployees, setAvailableEmployees] = useState<Employee[]>([]);
+    const [assignedEmployeeIds, setAssignedEmployeeIds] = useState<string[]>([]);
+    const [originalEmployeeServiceMap, setOriginalEmployeeServiceMap] = useState<Record<string, string[]>>({});
     const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({});
 
     const toggleCategory = (id: string) =>
@@ -257,6 +266,83 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
         }
     };
 
+    const getSafeArrayIds = (arr: any): string[] => {
+        if (Array.isArray(arr)) return arr.map((s: any) => s.id);
+        if (arr && Array.isArray(arr.$values)) return arr.$values.map((s: any) => s.id);
+        return [];
+    };
+
+    const handleOpenEmployeesModal = async (service: any) => {
+        setSelectedService(service);
+        setIsEmployeesModalOpen(true);
+        setEmployeesLoading(true);
+        try {
+            const allEmployees = await employeeService.getEmployees();
+            const activeEmployees = allEmployees.filter((e: Employee) => !e.isDeleted && e.isActive);
+
+            const serviceLists = await Promise.all(
+                activeEmployees.map((e: Employee) =>
+                    employeeService.getEmployeeServices(e.id).then(services => ({
+                        employeeId: e.id,
+                        serviceIds: getSafeArrayIds(services),
+                    }))
+                )
+            );
+
+            const serviceMap: Record<string, string[]> = {};
+            serviceLists.forEach(({ employeeId, serviceIds }) => {
+                serviceMap[employeeId] = serviceIds;
+            });
+
+            setAvailableEmployees(activeEmployees);
+            setOriginalEmployeeServiceMap(serviceMap);
+            setAssignedEmployeeIds(
+                activeEmployees
+                    .filter((e: Employee) => serviceMap[e.id]?.includes(service.id))
+                    .map((e: Employee) => e.id)
+            );
+        } catch {
+            toast.error('Uzman verileri yüklenemedi');
+        } finally {
+            setEmployeesLoading(false);
+        }
+    };
+
+    const handleAssignEmployees = async () => {
+        if (!selectedService) return;
+        try {
+            const changedEmployees = availableEmployees.filter(e => {
+                const hadService = originalEmployeeServiceMap[e.id]?.includes(selectedService.id) ?? false;
+                const hasService = assignedEmployeeIds.includes(e.id);
+                return hadService !== hasService;
+            });
+
+            await Promise.all(
+                changedEmployees.map(e => {
+                    const currentServices = originalEmployeeServiceMap[e.id] ?? [];
+                    const hasService = assignedEmployeeIds.includes(e.id);
+                    const newServices = hasService
+                        ? [...currentServices, selectedService.id]
+                        : currentServices.filter(id => id !== selectedService.id);
+                    return employeeService.assignServices(e.id, newServices);
+                })
+            );
+
+            toast.success('Uzman atamaları başarıyla güncellendi');
+            setIsEmployeesModalOpen(false);
+        } catch {
+            toast.error('Uzman ataması başarısız oldu');
+        }
+    };
+
+    const toggleEmployee = (employeeId: string) => {
+        setAssignedEmployeeIds(prev =>
+            prev.includes(employeeId)
+                ? prev.filter(id => id !== employeeId)
+                : [...prev, employeeId]
+        );
+    };
+
     if (loading) return <LoadingSpinner />;
 
     const getSafeArray = (arr: any) => {
@@ -440,6 +526,14 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
                                                         <div className="flex gap-1 shrink-0">
                                                             <button
                                                                 type="button"
+                                                                onClick={() => handleOpenEmployeesModal(service)}
+                                                                className="p-1.5 text-gray-400 hover:text-blue-600 transition-colors rounded-lg hover:bg-blue-50"
+                                                                title="Uzman Ata"
+                                                            >
+                                                                <Users className="h-4 w-4" />
+                                                            </button>
+                                                            <button
+                                                                type="button"
                                                                 onClick={() => { setSelectedService(service); setIsEditServiceModalOpen(true); }}
                                                                 className="p-1.5 text-gray-400 hover:text-primary-600 transition-colors rounded-lg hover:bg-primary-50"
                                                                 title="Hizmeti Düzenle"
@@ -587,6 +681,54 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
                             <Button onClick={handleDeleteService} className="bg-red-600 hover:bg-red-700 text-white border-transparent">
                                 Evet, Sil
                             </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {isEmployeesModalOpen && selectedService && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+                    <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+                        <h2 className="text-xl font-bold mb-1">{selectedService.name} — Uzman Ata</h2>
+                        <p className="text-sm text-gray-500 mb-4">Bu hizmeti yapabilecek uzmanları seçin.</p>
+
+                        {employeesLoading ? (
+                            <div className="py-8 flex justify-center"><LoadingSpinner size="md" /></div>
+                        ) : availableEmployees.length === 0 ? (
+                            <div className="py-8 text-center text-sm text-gray-400">
+                                Aktif uzman bulunmuyor. Önce uzman ekleyin.
+                            </div>
+                        ) : (
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                {availableEmployees.map((employee) => {
+                                    const isAssigned = assignedEmployeeIds.includes(employee.id);
+                                    return (
+                                        <div
+                                            key={employee.id}
+                                            onClick={() => toggleEmployee(employee.id)}
+                                            className={`p-3 rounded-lg border-2 cursor-pointer transition-all flex items-center gap-3 ${
+                                                isAssigned
+                                                    ? 'bg-green-50 border-green-500 shadow-sm'
+                                                    : 'border-gray-200 hover:bg-gray-50 hover:border-gray-300'
+                                            }`}
+                                        >
+                                            <div className={`h-9 w-9 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${isAssigned ? 'bg-green-200 text-green-800' : 'bg-gray-100 text-gray-600'}`}>
+                                                {employee.firstName[0]}{employee.lastName[0]}
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <p className={`text-sm font-semibold truncate ${isAssigned ? 'text-green-800' : 'text-gray-900'}`}>{employee.firstName} {employee.lastName}</p>
+                                                <p className="text-xs text-gray-500 truncate">{employee.title}</p>
+                                            </div>
+                                            {isAssigned && <div className="h-2.5 w-2.5 rounded-full bg-green-500 shrink-0" />}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        )}
+
+                        <div className="flex justify-end space-x-2 mt-6 pt-4 border-t border-gray-100">
+                            <Button variant="outline" onClick={() => setIsEmployeesModalOpen(false)}>İptal</Button>
+                            <Button onClick={handleAssignEmployees} disabled={employeesLoading}>Atamaları Kaydet</Button>
                         </div>
                     </div>
                 </div>
