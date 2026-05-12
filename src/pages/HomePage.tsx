@@ -1,12 +1,12 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { shopService } from '../api/shop.service';
 import { favoriteService } from '../services/favorite.service';
 import { type Shop, TargetGender, ShopCategory, ShopCategoryLabels } from '../types/shop';
 import { useSearchParams } from 'react-router-dom';
 import { ShopCard } from '../components/ShopCard';
 import { useAuth } from '../context/AuthContext';
-import { MapPin, ChevronDown, ChevronLeft, ChevronRight, Map, XCircle } from 'lucide-react';
-import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import { MapPin, ChevronDown, ChevronLeft, ChevronRight, Map, XCircle, Navigation } from 'lucide-react';
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 
@@ -30,6 +30,27 @@ L.Icon.Default.mergeOptions({
 
 
 const TURKIYE_API = 'https://turkiyeapi.dev/api/v1';
+
+const MapFocuser: React.FC<{ center: [number, number] | null; shopId: string | null }> = ({ center, shopId }) => {
+    const map = useMap();
+    useEffect(() => {
+        if (!center) return;
+        map.flyTo(center, 16, { duration: 1.2 });
+        if (!shopId) return;
+        const timer = setTimeout(() => {
+            map.eachLayer((layer) => {
+                if (layer instanceof L.Marker) {
+                    const pos = layer.getLatLng();
+                    if (Math.abs(pos.lat - center[0]) < 0.0001 && Math.abs(pos.lng - center[1]) < 0.0001) {
+                        layer.openPopup();
+                    }
+                }
+            });
+        }, 1400);
+        return () => clearTimeout(timer);
+    }, [center, shopId, map]);
+    return null;
+};
 
 const escapeHtml = (s: string) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
@@ -94,6 +115,18 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
     const [totalPages, setTotalPages] = useState(1);
     const [searchParams] = useSearchParams();
     const searchTerm = searchParams.get('search') || '';
+
+    useEffect(() => {
+        const lat = searchParams.get('mapLat');
+        const lng = searchParams.get('mapLng');
+        const shopId = searchParams.get('mapShopId');
+        if (lat && lng) {
+            setIsMapModalOpen(true);
+            setMapFocusCenter([parseFloat(lat), parseFloat(lng)]);
+            setMapFocusShopId(shopId);
+            setTimeout(() => mapSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200);
+        }
+    }, [searchParams]);
     const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
     const { isAuthenticated, user } = useAuth();
     const [favoriteIds, setFavoriteIds] = useState<Set<string>>(new Set());
@@ -112,11 +145,15 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
     const [selectedDistrict, setSelectedDistrict] = useState<string | null>(_saved.selectedDistrict ?? null);
     const [selectedNeighborhood, setSelectedNeighborhood] = useState<string | null>(_saved.selectedNeighborhood ?? null);
     const [activeTags, setActiveTags] = useState<string[]>(_saved.activeTags ?? []);
+    const [activeSortTag, setActiveSortTag] = useState<string | null>(_saved.activeSortTag ?? null);
     const [selectedCategory, setSelectedCategory] = useState<ShopCategory | null>(_saved.selectedCategory ?? null);
     const [minRating, setMinRating] = useState<number | null>(_saved.minRating ?? null);
 
     const [isLocationDropdownOpen, setIsLocationDropdownOpen] = useState(false);
     const [isMapModalOpen, setIsMapModalOpen] = useState(false);
+    const [mapFocusCenter, setMapFocusCenter] = useState<[number, number] | null>(null);
+    const [mapFocusShopId, setMapFocusShopId] = useState<string | null>(null);
+    const mapSectionRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const loadProvinces = async () => {
@@ -157,7 +194,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
 
     // ── Persist all filter state whenever it changes ────────────────────────
     useEffect(() => {
-        saveFilters({ selectedProvince, selectedDistrict, selectedNeighborhood, activeTags, selectedCategory, minRating });
+        saveFilters({ selectedProvince, selectedDistrict, selectedNeighborhood, activeTags, activeSortTag, selectedCategory, minRating });
     }, [selectedProvince, selectedDistrict, selectedNeighborhood, activeTags, selectedCategory, minRating]);
 
     const handleProvinceChange = (provinceName: string) => {
@@ -264,6 +301,10 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
         setActiveTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
     };
 
+    const toggleSortTag = (tag: string) => {
+        setActiveSortTag(prev => prev === tag ? null : tag);
+    };
+
     useEffect(() => {
         if (!shops) return;
 
@@ -287,10 +328,11 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
             });
         }
 
-        if (activeTags.includes('kadin')) {
+        const hasKadin = activeTags.includes('kadin');
+        const hasErkek = activeTags.includes('erkek');
+        if (hasKadin && !hasErkek) {
             results = results.filter(shop => shop.genderPreference === TargetGender.Kadin || shop.genderPreference === TargetGender.Unisex);
-        }
-        if (activeTags.includes('erkek')) {
+        } else if (hasErkek && !hasKadin) {
             results = results.filter(shop => shop.genderPreference === TargetGender.Erkek || shop.genderPreference === TargetGender.Unisex);
         }
 
@@ -298,20 +340,20 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
             results = results.filter(shop => (shop.averageRating || 0) >= minRating);
         }
 
-        if (activeTags.includes('rating')) {
+        if (activeSortTag === 'rating') {
             results.sort((a, b) => (b.averageRating || 0) - (a.averageRating || 0));
-        } else if (activeTags.includes('low-price')) {
+        } else if (activeSortTag === 'low-price') {
             results.sort((a, b) => (a.minServicePrice ?? Infinity) - (b.minServicePrice ?? Infinity));
-        } else if (activeTags.includes('high-price')) {
+        } else if (activeSortTag === 'high-price') {
             results.sort((a, b) => (b.minServicePrice ?? -Infinity) - (a.minServicePrice ?? -Infinity));
-        } else if (activeTags.includes('reviews')) {
+        } else if (activeSortTag === 'reviews') {
             results.sort((a, b) => (b.reviewCount || 0) - (a.reviewCount || 0));
-        } else if (activeTags.includes('newest')) {
+        } else if (activeSortTag === 'newest') {
             results.sort((a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
         }
 
         setFilteredShops(results);
-    }, [searchTerm, shops, activeTags, selectedCategory, minRating]);
+    }, [searchTerm, shops, activeTags, activeSortTag, selectedCategory, minRating]);
 
     useEffect(() => {
         if (navigator.geolocation) {
@@ -505,12 +547,12 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                             {[
                                 { label: 'Kadın', active: activeTags.includes('kadin'), onClick: () => toggleTag('kadin') },
                                 { label: 'Erkek', active: activeTags.includes('erkek'), onClick: () => toggleTag('erkek') },
-                                { label: 'Düşük Fiyatlar', active: activeTags.includes('low-price'), onClick: () => toggleTag('low-price') },
-                                { label: 'Yüksek Fiyatlar', active: activeTags.includes('high-price'), onClick: () => toggleTag('high-price') },
-                                { label: 'En Yüksek Puanlılar', active: activeTags.includes('rating'), onClick: () => toggleTag('rating') },
+                                { label: 'Düşük Fiyatlar', active: activeSortTag === 'low-price', onClick: () => toggleSortTag('low-price') },
+                                { label: 'Yüksek Fiyatlar', active: activeSortTag === 'high-price', onClick: () => toggleSortTag('high-price') },
+                                { label: 'En Yüksek Puanlılar', active: activeSortTag === 'rating', onClick: () => toggleSortTag('rating') },
                                 { label: '4★ ve Üzeri', active: minRating === 4, onClick: () => setMinRating(prev => prev === 4 ? null : 4) },
-                                { label: 'En Çok Yorum Alanlar', active: activeTags.includes('reviews'), onClick: () => toggleTag('reviews') },
-                                { label: 'En Yeniler', active: activeTags.includes('newest'), onClick: () => toggleTag('newest') },
+                                { label: 'En Çok Yorum Alanlar', active: activeSortTag === 'reviews', onClick: () => toggleSortTag('reviews') },
+                                { label: 'En Yeniler', active: activeSortTag === 'newest', onClick: () => toggleSortTag('newest') },
                             ].map((tab) => (
                                 <button key={tab.label} onClick={tab.onClick}
                                     className={`transition-colors py-3 border-b-2 shrink-0 whitespace-nowrap text-[13px] sm:text-sm px-2 sm:px-3 ${tab.active ? 'text-primary-700 border-primary-600 font-bold' : 'text-gray-600 hover:text-primary-700 border-transparent'}`}>
@@ -616,7 +658,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
 
                     {/* Inline Harita Alanı */}
                     {isMapModalOpen && (
-                        <div className="w-full h-[400px] sm:h-[450px] mb-8 rounded-[2rem] overflow-hidden shadow-sm border border-gray-200 relative shrink-0 z-0 fade-in-0 animate-in zoom-in-95 duration-300">
+                        <div ref={mapSectionRef} className="w-full h-[400px] sm:h-[450px] mb-8 rounded-[2rem] overflow-hidden shadow-sm border border-gray-200 relative shrink-0 z-0 fade-in-0 animate-in zoom-in-95 duration-300">
                             <MapContainer
                                 center={userLocation ? [userLocation.lat, userLocation.lng] : [39.9, 32.8]}
                                 zoom={userLocation ? 14 : 6}
@@ -627,6 +669,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                                     attribution='&copy; OpenStreetMap'
                                     url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
                                 />
+                                <MapFocuser center={mapFocusCenter} shopId={mapFocusShopId} />
 
                                 {/* User Location Marker */}
                                 {userLocation && (
@@ -670,8 +713,17 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                                                             <MapPin className="w-3.5 h-3.5 shrink-0" />
                                                             <span className="truncate">{shop.district}, {shop.city}</span>
                                                         </div>
-                                                        <a href={`/shop/${shop.id}`} className="block w-full py-2 bg-gray-900 text-white text-center rounded-lg font-bold text-[13px] hover:bg-black transition-colors">
+                                                        <a href={`/shop/${shop.id}`} className="block w-full py-2.5 bg-gray-900 text-white text-center rounded-xl font-bold text-[13px] hover:bg-black transition-colors mb-2">
                                                             Detayları Gör
+                                                        </a>
+                                                        <a
+                                                            href={`https://www.google.com/maps?q=${shop.latitude},${shop.longitude}`}
+                                                            target="_blank"
+                                                            rel="noopener noreferrer"
+                                                            className="flex items-center justify-center gap-1.5 w-full py-2 text-blue-600 text-[12px] font-semibold hover:text-blue-700 transition-colors"
+                                                        >
+                                                            <Navigation className="w-3.5 h-3.5" />
+                                                            Yol Tarifi Al
                                                         </a>
                                                     </div>
                                                 </div>

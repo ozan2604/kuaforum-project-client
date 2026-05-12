@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
-import { MapPin, Star, Calendar, Heart } from 'lucide-react';
+import { Link, useNavigate } from 'react-router-dom';
+import { MapPin, Star, Calendar, Heart, Map } from 'lucide-react';
 import { Button } from './Button';
 import { ShopCategoryLabels, type Shop, type ShopCategory } from '../types/shop';
 import { useAuth } from '../context/AuthContext';
@@ -26,6 +26,7 @@ function isOpenNow(openTime?: string, closeTime?: string): boolean | null {
 
 export const ShopCard: React.FC<ShopCardProps> = ({ shop, initialIsFavorite = false, onToggleFavorite }) => {
     const { isAuthenticated } = useAuth();
+    const navigate = useNavigate();
     const [isFavorite, setIsFavorite] = useState(initialIsFavorite);
     const [isLoading, setIsLoading] = useState(false);
     const openStatus = isOpenNow(shop.openTime, shop.closeTime);
@@ -120,9 +121,20 @@ export const ShopCard: React.FC<ShopCardProps> = ({ shop, initialIsFavorite = fa
                     </h3>
                 </Link>
 
-                <div className="flex items-center text-gray-500 text-[11px] sm:text-xs mb-1.5 sm:mb-2">
-                    <MapPin className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-0.5 sm:mr-1 text-secondary-400 shrink-0" />
-                    <span className="line-clamp-1">{shop.district}, {shop.city}</span>
+                <div className="flex items-center justify-between text-gray-500 text-[11px] sm:text-xs mb-1.5 sm:mb-2 gap-2">
+                    <div className="flex items-center min-w-0">
+                        <MapPin className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-0.5 sm:mr-1 text-secondary-400 shrink-0" />
+                        <span className="truncate">{shop.district}, {shop.city}</span>
+                    </div>
+                    {shop.latitude && shop.longitude && (
+                        <button
+                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/?mapLat=${shop.latitude}&mapLng=${shop.longitude}&mapShopId=${shop.id}`); }}
+                            className="flex items-center gap-0.5 sm:gap-1 text-primary-600 hover:text-primary-700 font-semibold shrink-0 transition-colors"
+                        >
+                            <Map className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                            <span>Haritada Gör</span>
+                        </button>
+                    )}
                 </div>
 
                 <div className="flex items-center justify-between pt-2 sm:pt-3 border-t border-gray-100 mt-auto">
