@@ -6,7 +6,7 @@ import { authService } from '../api/auth.service';
 import type { AppointmentDto } from '../types/appointment';
 
 import { Button } from '../components/Button';
-import { Calendar, User, LogOut, CheckCircle, Clock, XCircle, AlertCircle, Trash2, Lock, Heart, ChevronRight, MessageSquare, Camera, Edit2, Store } from 'lucide-react';
+import { Calendar, User, LogOut, CheckCircle, Clock, XCircle, AlertCircle, Trash2, Lock, Heart, ChevronRight, MessageSquare, Camera, Edit2, Store, UserX } from 'lucide-react';
 import { favoriteService } from '../services/favorite.service';
 import { ShopCard } from '../components/ShopCard';
 import type { Shop } from '../types/shop';
@@ -167,6 +167,11 @@ export const ProfilePage: React.FC = () => {
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
+        if (file.size > 5 * 1024 * 1024) {
+            showResult('error', 'Dosya boyutu 5 MB\'ı geçemez.');
+            e.target.value = '';
+            return;
+        }
         setUploadingImage(true);
         try {
             const { imageUrl } = await authService.updateProfileImage(file);
@@ -261,6 +266,7 @@ export const ProfilePage: React.FC = () => {
             2: <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1"><CheckCircle className="h-3 w-3" /> Tamamlandı</span>,
             3: <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1"><AlertCircle className="h-3 w-3" /> İptal Edildi</span>,
             4: <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1"><XCircle className="h-3 w-3" /> Reddedildi</span>,
+            5: <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1"><UserX className="h-3 w-3" /> Gelmedi</span>,
         };
         return map[status] ?? null;
     };
@@ -269,6 +275,12 @@ export const ProfilePage: React.FC = () => {
     const upcomingApps = appointments.filter(a => a.status === 1);
     const completedApps = appointments.filter(a => a.status === 2);
     const cancelledApps = appointments.filter(a => a.status === 3 || a.status === 4);
+    const noShowApps    = appointments.filter(a => a.status === 5);
+
+    const noShowCountByShop = noShowApps.reduce((map, a) => {
+        map.set(a.shopId, (map.get(a.shopId) ?? 0) + 1);
+        return map;
+    }, new Map<string, number>());
     const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Kullanıcı';
 
     const inputCls = "block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none";
@@ -306,7 +318,7 @@ export const ProfilePage: React.FC = () => {
                             </div>
                             <label className="absolute bottom-1 right-1 bg-primary-600 shadow-xl rounded-full p-2.5 cursor-pointer hover:bg-primary-700 border-2 border-white transition-all hover:scale-110 active:scale-95 z-20 group">
                                 <Camera className="h-5 w-5 text-white" />
-                                <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} disabled={uploadingImage} />
+                                <input type="file" className="hidden" accept="image/jpeg,image/jpg,image/png,image/webp" onChange={handleImageUpload} disabled={uploadingImage} />
                             </label>
                         </div>
 
@@ -453,6 +465,42 @@ export const ProfilePage: React.FC = () => {
                                                 {openGroups.has('cancelled') && (
                                                     <div className="p-2 space-y-2">
                                                         {cancelledApps.map((app: AppointmentDto) => <AppCard key={app.id} app={app} badge={getStatusBadge(app.status)} />)}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        )}
+                                        {noShowApps.length > 0 && (
+                                            <div className="border border-orange-200 rounded-xl overflow-hidden">
+                                                <button onClick={() => toggleGroup('noshow')} className="w-full flex items-center justify-between px-4 py-3 bg-orange-50 hover:bg-orange-100 transition-colors">
+                                                    <div className="flex items-center gap-2">
+                                                        <UserX className="h-3.5 w-3.5 text-orange-600" />
+                                                        <span className="text-xs font-bold text-orange-700 uppercase tracking-wider">Gitmediğim</span>
+                                                        <span className="text-xs bg-orange-200 text-orange-800 rounded-full px-2 py-0.5 font-semibold">{noShowApps.length}</span>
+                                                    </div>
+                                                    <ChevronRight className={`h-4 w-4 text-orange-500 transition-transform duration-200 ${openGroups.has('noshow') ? 'rotate-90' : ''}`} />
+                                                </button>
+                                                {openGroups.has('noshow') && (
+                                                    <div className="p-2 space-y-2">
+                                                        <div className="flex items-start gap-2 bg-orange-50 border border-orange-100 rounded-lg px-3 py-2.5">
+                                                            <AlertCircle className="h-4 w-4 text-orange-500 shrink-0 mt-0.5" />
+                                                            <p className="text-xs text-orange-700 leading-relaxed">
+                                                                Bu randevulara gittiğiniz salon tarafından tespit edilemedi.{' '}
+                                                                {noShowApps.length >= 2
+                                                                    ? <><strong>Birden fazla salona gitmediğiniz</strong> için ilgili salonlar tarafından engellenebilirsiniz. Engellendikten sonra o salona randevu oluşturamazsınız. Salonlarla iletişime geçmenizi öneririz.</>
+                                                                    : <>Tekrarlanması durumunda salon sizi engelleyebilir; randevu oluşturamazsınız hale gelebilirsiniz.</>
+                                                                }
+                                                            </p>
+                                                        </div>
+                                                        {noShowApps.map((app: AppointmentDto) => (
+                                                            <div key={app.id} className="space-y-1">
+                                                                <AppCard app={app} badge={getStatusBadge(app.status)} />
+                                                                {(noShowCountByShop.get(app.shopId) ?? 0) >= 2 && (
+                                                                    <p className="text-xs text-orange-600 px-2">
+                                                                        ⚠ Bu salona <strong>{noShowCountByShop.get(app.shopId)}</strong> kez gitmediniz — salon sizi engelleyebilir.
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        ))}
                                                     </div>
                                                 )}
                                             </div>

@@ -606,6 +606,10 @@ export const MyShopPage: React.FC = () => {
 
     const handleCoverImageUpload = async (file: File) => {
         if (!shopId) return;
+        if (file.size > 5 * 1024 * 1024) {
+            toast.error('Dosya boyutu 5 MB\'ı geçemez.');
+            return;
+        }
         try {
             const toastId = toast.loading('Kapak fotoğrafı yükleniyor...');
             await shopService.uploadCoverImage(shopId, file);
@@ -619,6 +623,11 @@ export const MyShopPage: React.FC = () => {
 
     const handleGalleryUpload = async (files: FileList) => {
         if (!shopId) return;
+        const oversized = Array.from(files).some(f => f.size > 5 * 1024 * 1024);
+        if (oversized) {
+            toast.error('Her fotoğraf en fazla 5 MB olabilir.');
+            return;
+        }
         try {
             const toastId = toast.loading(`${files.length} fotoğraf yükleniyor...`);
             await shopService.uploadGalleryImages(shopId, Array.from(files));
@@ -918,7 +927,7 @@ export const MyShopPage: React.FC = () => {
                                             type="file"
                                             id="coverImageInput"
                                             className="hidden"
-                                            accept="image/*"
+                                            accept="image/jpeg,image/jpg,image/png,image/webp"
                                             onChange={(e) => { if (e.target.files?.[0]) handleCoverImageUpload(e.target.files[0]); }}
                                         />
                                         <Button
@@ -941,7 +950,7 @@ export const MyShopPage: React.FC = () => {
                                                 {deletingCover ? 'Siliniyor…' : 'Fotoğrafı Sil'}
                                             </Button>
                                         )}
-                                        <p className="text-xs text-gray-400">Önerilen: 1200×400 piksel</p>
+                                        <p className="text-xs text-gray-400">Önerilen: 1200×400 piksel • JPG, PNG veya WebP</p>
                                     </div>
                                 </div>
                             </div>
@@ -955,7 +964,7 @@ export const MyShopPage: React.FC = () => {
                                         id="galleryInput"
                                         className="hidden"
                                         multiple
-                                        accept="image/*"
+                                        accept="image/jpeg,image/jpg,image/png,image/webp"
                                         onChange={(e) => { if (e.target.files && e.target.files.length > 0) handleGalleryUpload(e.target.files); }}
                                     />
                                     <Button
