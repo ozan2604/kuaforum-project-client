@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { salonApplicationService } from '../../api/salon-application.service';
-import { Check, X, Building2, Phone, Mail, Calendar, User, Search, MapPin } from 'lucide-react';
+import { Check, X, Building2, Phone, Mail, Calendar, User, Search, MapPin, Tag } from 'lucide-react';
+import { ShopCategoryLabels, type ShopCategory } from '../../types/shop';
 import { toast } from 'react-hot-toast';
 import { useSearchParams } from 'react-router-dom';
 
@@ -11,10 +12,14 @@ interface SalonApplication {
     shopName: string;
     description: string;
     userName: string;
+    userFirstName?: string;
+    userLastName?: string;
     phoneNumber?: string;
     contactEmail?: string;
     city?: string;
     district?: string;
+    neighborhood?: string;
+    categories?: number[];
     createdAt: string;
     status: number;
 }
@@ -217,7 +222,12 @@ export const SalonApplicationsPage: React.FC = () => {
                                         </div>
                                         <div className="flex items-center gap-2 text-sm text-gray-600">
                                             <User className="h-4 w-4 text-gray-400" />
-                                            <span className="font-medium text-gray-800">{app.userName}</span>
+                                            <span className="font-medium text-gray-800">
+                                                {[app.userFirstName, app.userLastName].filter(Boolean).join(' ') || app.userName}
+                                            </span>
+                                            {(app.userFirstName || app.userLastName) && (
+                                                <span className="text-gray-400 text-xs">@{app.userName}</span>
+                                            )}
                                             <span className="text-gray-400 mx-1">•</span>
                                             <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">Başvuran</span>
                                         </div>
@@ -234,8 +244,22 @@ export const SalonApplicationsPage: React.FC = () => {
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <MapPin className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                                            <span className="truncate">{[app.district, app.city].filter(Boolean).join(' / ') || 'Lokasyon Belirtilmedi'}</span>
+                                            <span className="truncate">
+                                                {[app.neighborhood, app.district, app.city].filter(Boolean).join(' / ') || 'Lokasyon Belirtilmedi'}
+                                            </span>
                                         </div>
+                                        {app.categories && app.categories.length > 0 && (
+                                            <div className="flex items-start gap-2 sm:col-span-2">
+                                                <Tag className="h-4 w-4 text-gray-400 flex-shrink-0 mt-0.5" />
+                                                <div className="flex flex-wrap gap-1">
+                                                    {app.categories.map(c => (
+                                                        <span key={c} className="inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium bg-primary-50 text-primary-700 border border-primary-100">
+                                                            {ShopCategoryLabels[c as ShopCategory] ?? 'Diğer'}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
 
                                     {app.description && (

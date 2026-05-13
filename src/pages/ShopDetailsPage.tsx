@@ -367,7 +367,7 @@ export const ShopDetailsPage: React.FC = () => {
                     {/* Content with Tabs */}
                     <div className="space-y-5">
                         {/* Sticky Tab Bar */}
-                        <div className="sticky top-[80px] z-30 py-2.5">
+                        <div className="sticky top-[96px] z-30 py-2.5">
                             <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-1.5 flex overflow-x-auto gap-1 scrollbar-hide">
                                 {(['about', 'services', 'gallery', 'reviews', 'hours'] as const).map((tab) => {
                                     const icons = {

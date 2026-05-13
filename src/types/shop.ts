@@ -13,38 +13,34 @@ export const TargetGenderLabels: { [key in TargetGender]: string } = {
 };
 
 export const ShopCategory = {
-    Berber: 1,
+    ErkekKuafor: 1,
     Kuafor: 2,
     GuzellikMerkezi: 3,
     SpaMerkezi: 4,
-    DovmeStudyosu: 5,
-    PiercingStudyosu: 6,
-    NailArt: 7,
+    DovmePiercingStudyosu: 5,
+    TirnakSalonu: 7,
     CiltBakimMerkezi: 8,
     LazerEpilasyon: 9,
     MasajSalonu: 10,
     Solaryum: 11,
-    MakyajStudyosu: 12,
-    KasKirpikStudyosu: 13,
+    MakyajKasKirpikStudyosu: 12,
     Diger: 99
 } as const;
 
 export type ShopCategory = typeof ShopCategory[keyof typeof ShopCategory];
 
 export const ShopCategoryLabels: { [key in ShopCategory]: string } = {
-    [ShopCategory.Berber]: "Berber",
+    [ShopCategory.ErkekKuafor]: "Erkek Kuaför",
     [ShopCategory.Kuafor]: "Kadın Kuaför",
     [ShopCategory.GuzellikMerkezi]: "Güzellik Merkezi",
     [ShopCategory.SpaMerkezi]: "Spa Merkezi",
-    [ShopCategory.DovmeStudyosu]: "Dövme Stüdyosu",
-    [ShopCategory.PiercingStudyosu]: "Piercing Stüdyosu",
-    [ShopCategory.NailArt]: "Nail Art / Tırnak Salonu",
+    [ShopCategory.DovmePiercingStudyosu]: "Dövme & Piercing",
+    [ShopCategory.TirnakSalonu]: "Tırnak Salonu",
     [ShopCategory.CiltBakimMerkezi]: "Cilt Bakım Merkezi",
-    [ShopCategory.LazerEpilasyon]: "Lazer Epilasyon Merkezi",
+    [ShopCategory.LazerEpilasyon]: "Lazer Epilasyon",
     [ShopCategory.MasajSalonu]: "Masaj Salonu",
     [ShopCategory.Solaryum]: "Solaryum",
-    [ShopCategory.MakyajStudyosu]: "Makyaj Stüdyosu",
-    [ShopCategory.KasKirpikStudyosu]: "Kaş & Kirpik Stüdyosu",
+    [ShopCategory.MakyajKasKirpikStudyosu]: "Makyaj & Kaş/Kirpik",
     [ShopCategory.Diger]: "Diğer"
 };
 

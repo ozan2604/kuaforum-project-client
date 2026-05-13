@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { shopService } from '../api/shop.service';
-import { TargetGender } from '../types/shop';
+import { TargetGender, ShopCategoryLabels } from '../types/shop';
 
 export const CreateShopPage: React.FC = () => {
     const navigate = useNavigate();
@@ -124,15 +124,16 @@ export const CreateShopPage: React.FC = () => {
                         Kategori <span className="text-xs font-normal text-gray-400">(Birden fazla seçebilirsiniz)</span>
                     </label>
                     <div className="grid grid-cols-2 gap-2">
-                        {[{id:1,name:'Berber'},{id:2,name:'Kadın Kuaför'},{id:3,name:'Güzellik Merkezi'},{id:4,name:'Spa Merkezi'},{id:5,name:'Dövme Stüdyosu'},{id:6,name:'Piercing Stüdyosu'},{id:7,name:'Nail Art / Tırnak Salonu'},{id:8,name:'Cilt Bakım Merkezi'},{id:9,name:'Lazer Epilasyon Merkezi'},{id:10,name:'Masaj Salonu'},{id:11,name:'Solaryum'},{id:12,name:'Makyaj Stüdyosu'},{id:13,name:'Kaş & Kirpik Stüdyosu'},{id:99,name:'Diğer'}].map(cat => {
-                            const selected = formData.categoryIds.includes(cat.id);
+                        {Object.entries(ShopCategoryLabels).map(([id, name]) => {
+                            const catId = Number(id);
+                            const selected = formData.categoryIds.includes(catId);
                             return (
-                                <label key={cat.id} className={`cursor-pointer flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${selected ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-gray-200 text-gray-600 hover:border-primary-200'}`}
-                                    onClick={() => setFormData(f => ({ ...f, categoryIds: selected ? f.categoryIds.filter(c => c !== cat.id) : [...f.categoryIds, cat.id] }))}>
+                                <label key={catId} className={`cursor-pointer flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${selected ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-gray-200 text-gray-600 hover:border-primary-200'}`}
+                                    onClick={() => setFormData(f => ({ ...f, categoryIds: selected ? f.categoryIds.filter(c => c !== catId) : [...f.categoryIds, catId] }))}>
                                     <div className={`w-4 h-4 rounded flex-shrink-0 border-2 flex items-center justify-center ${selected ? 'bg-primary-500 border-primary-500' : 'border-gray-300'}`}>
                                         {selected && <svg className="w-2.5 h-2.5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}><path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" /></svg>}
                                     </div>
-                                    {cat.name}
+                                    {name}
                                 </label>
                             );
                         })}

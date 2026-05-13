@@ -5,7 +5,7 @@ import { ReviewModal } from '../components/ReviewModal';
 import type { AppointmentDto } from '../types/appointment';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
-import { Calendar, Clock, User, Scissors, MessageSquare, XCircle, Layers } from 'lucide-react';
+import { Calendar, Clock, User, Scissors, MessageSquare, XCircle, Layers, UserX } from 'lucide-react';
 import { Button } from '../components/Button';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { EmptyState } from '../components/EmptyState';
@@ -60,6 +60,14 @@ export const MyAppointmentsPage: React.FC = () => {
         return [...groups.values()].sort((a, b) =>
             new Date(b[0].startTime).getTime() - new Date(a[0].startTime).getTime()
         );
+    }, [appointments]);
+
+    const noShowCountByShop = useMemo(() => {
+        const counts = new Map<string, number>();
+        appointments.forEach(apt => {
+            if (apt.status === 5) counts.set(apt.shopId, (counts.get(apt.shopId) ?? 0) + 1);
+        });
+        return counts;
     }, [appointments]);
 
     // Gruptaki ilk aktif randevunun başlangıç saatine göre toplu iptal kontrolü
@@ -130,6 +138,7 @@ export const MyAppointmentsPage: React.FC = () => {
             case 2: return <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 whitespace-nowrap">Tamamlandı</span>;
             case 3: return <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-gray-100 text-gray-600 whitespace-nowrap">İptal Edildi</span>;
             case 4: return <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-red-100 text-red-700 whitespace-nowrap">Reddedildi</span>;
+            case 5: return <span className="px-2 py-0.5 rounded-full text-xs font-semibold bg-orange-100 text-orange-700 whitespace-nowrap inline-flex items-center gap-1"><UserX className="w-3 h-3" />Gelmedi</span>;
             default: return null;
         }
     };
@@ -157,6 +166,8 @@ export const MyAppointmentsPage: React.FC = () => {
                         const isMulti    = group.length > 1;
                         const canCancel  = canCancelGroup(group);
                         const reviewable = group.find(a => a.status === 2 && !a.hasReview) ?? null;
+                        const hasNoShow  = group.some(a => a.status === 5);
+                        const noShowCount = noShowCountByShop.get(first.shopId) ?? 0;
 
                         return (
                             <div key={first.groupId ?? first.id} className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
@@ -244,6 +255,20 @@ export const MyAppointmentsPage: React.FC = () => {
                                         <div>
                                             <p className="font-semibold text-xs text-red-500 mb-0.5">Salon tarafından belirtilen sebep</p>
                                             <p>{first.cancellationReason}</p>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* ── Gelmedi Uyarısı ── */}
+                                {hasNoShow && (
+                                    <div className="flex items-start gap-2 mx-5 my-3 text-sm text-orange-800 bg-orange-50 border border-orange-200 rounded-xl px-3 py-2.5">
+                                        <UserX className="w-4 h-4 text-orange-500 mt-0.5 shrink-0" />
+                                        <div>
+                                            <p className="font-semibold text-xs text-orange-600 mb-1">Bu randevuya gidilmedi</p>
+                                            {noShowCount >= 2
+                                                ? <p>Bu salona <strong>{noShowCount} kez</strong> randevuya gitmediniz. Salon tarafından engellenebilirsiniz — engellendikten sonra bu salona randevu oluşturamazsınız. Lütfen salonla iletişime geçin.</p>
+                                                : <p>Bu randevuya gitmediniz. Tekrarlanması durumunda salon sizi engelleyebilir; randevu oluşturamazsınız hale gelebilirsiniz.</p>
+                                            }
                                         </div>
                                     </div>
                                 )}

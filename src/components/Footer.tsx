@@ -9,16 +9,15 @@ export const Footer: React.FC = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
                     {/* Brand */}
                     <div className="space-y-4">
-                        <Link to="/" className="flex items-center gap-3 group">
-                            <img 
-                                src="/salonyolu-logo.png" 
-                                alt="Salonyolu Logo" 
-                                className="h-12 w-12 rounded-full object-cover border-2 border-gray-100 shadow-sm transition-all aspect-square" 
-                            />
-                            <span className="text-2xl font-black italic bg-gradient-to-br from-gray-900 via-gray-800 to-gray-500 bg-clip-text text-transparent tracking-tighter">
-                                Salonyolu
-                            </span>
-                        </Link>
+                        <div className="overflow-hidden h-24 w-[130px] sm:w-[280px] relative -ml-2 sm:-ml-4">
+                            <Link to="/" className="absolute inset-0 flex items-center justify-center group">
+                                <img
+                                    src="/logo.png"
+                                    alt="SALONBİR Logo"
+                                    className="w-[130px] sm:w-[280px] max-w-none transition-transform duration-300 group-hover:scale-105"
+                                />
+                            </Link>
+                        </div>
                         <p className="text-gray-500 text-sm max-w-xs">
                             Güzelliğinize değer katmak için en iyi kuaför ve güzellik salonlarını sizlerle buluşturuyoruz.
                         </p>
@@ -69,7 +68,7 @@ export const Footer: React.FC = () => {
                 </div>
 
                 <div className="border-t border-gray-100 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center text-sm text-gray-500">
-                    <p>&copy; {new Date().getFullYear()} Salonyolu. Tüm hakları saklıdır.</p>
+                    <p>&copy; {new Date().getFullYear()} SALONBİR. Tüm hakları saklıdır.</p>
                     <div className="flex flex-wrap justify-center gap-4 mt-4 md:mt-0">
                         <Link to="/kvkk" className="hover:text-gray-900 transition-colors">KVKK Aydınlatma Metni</Link>
                         <Link to="/gizlilik-politikasi" className="hover:text-gray-900 transition-colors">Gizlilik Politikası</Link>

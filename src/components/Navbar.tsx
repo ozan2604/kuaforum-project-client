@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './Button';
-import { Scissors, Search, Heart, User } from 'lucide-react';
+import { Search, Heart, User } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
     const { user, isAuthenticated } = useAuth();
@@ -27,22 +27,16 @@ export const Navbar: React.FC = () => {
     return (
         <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
             <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
-                <div className="flex justify-between items-center h-20 gap-2 sm:gap-4">
+                <div className="flex justify-between items-center h-24 gap-2 sm:gap-4">
 
                     {/* Left: Logo */}
-                    <div className="flex items-center shrink-0 gap-2 sm:gap-4">
-                        <Link to="/" className="flex-shrink-0 flex items-center gap-3 group">
-                            <div className="relative">
-                                <img 
-                                    src="/salonyolu-logo.png" 
-                                    alt="Salonyolu Logo" 
-                                    className="h-12 w-12 rounded-full object-cover border-2 border-gray-100 shadow-sm group-hover:border-primary-400 transition-all duration-300 aspect-square" 
-                                />
-                                <div className="absolute inset-0 rounded-full bg-primary-500/5 group-hover:bg-transparent transition-colors" />
-                            </div>
-                            <span className="font-black text-2xl tracking-tighter bg-gradient-to-br from-gray-900 via-gray-800 to-gray-500 bg-clip-text text-transparent hidden sm:block italic">
-                                Salonyolu
-                            </span>
+                    <div className="flex items-center shrink-0 overflow-hidden h-24 w-[130px] sm:w-[280px] relative -ml-2 sm:-ml-4">
+                        <Link to="/" className="absolute inset-0 flex items-center justify-center group">
+                            <img 
+                                src="/logo.png" 
+                                alt="SALONBİR Logo" 
+                                className="w-[130px] sm:w-[280px] max-w-none transition-transform duration-300 group-hover:scale-105" 
+                            />
                         </Link>
                     </div>
 
