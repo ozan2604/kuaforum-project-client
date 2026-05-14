@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { shopService } from '../../api/shop.service';
 import { QRCodeCanvas, QRCodeSVG } from 'qrcode.react';
-import { Download, QrCode, X, Phone, Tag, Loader2, ImageDown, FileCode2 } from 'lucide-react';
+import { QrCode, X, Phone, Tag, Loader2, ImageDown, FileCode2 } from 'lucide-react';
 import { ShopCategoryLabels } from '../../types/shop';
 import type { Shop } from '../../types/shop';
 import { toast } from 'react-hot-toast';
