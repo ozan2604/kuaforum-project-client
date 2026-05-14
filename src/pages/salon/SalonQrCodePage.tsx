@@ -17,9 +17,9 @@ const getAbsImageUrl = (path: string | null | undefined): string | null => {
     return `http://localhost:5000${path}`;
 };
 
-const PHONE_SVG = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.73 12.9a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.64 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.16 6.16l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`;
+const PHONE_SVG = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.73 12.9a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.64 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.16 6.16l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`;
 
-const TAG_SVG = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>`;
+const TAG_SVG = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>`;
 
 export const SalonQrCodePage: React.FC = () => {
     const [shop, setShop] = useState<Shop | null>(null);
@@ -86,7 +86,12 @@ export const SalonQrCodePage: React.FC = () => {
                </div>`
             : '';
 
-        // A4 = 297mm. Fixed heights: cover=88mm, info=72mm, qr=117mm, footer=20mm → total=297mm
+        /*
+         * A4 = 210×297mm.
+         * Body padding 7mm each side → card area = 196×283mm.
+         * Section heights: cover=84 + info=70 + qr=109 + footer=20 = 283mm ✓
+         * border-radius + overflow:hidden on .card clips cover & footer corners.
+         */
         const html = `<!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -98,62 +103,68 @@ export const SalonQrCodePage: React.FC = () => {
   html, body {
     width: 210mm; height: 297mm;
     overflow: hidden;
-    background: #fff;
+    background: #eef0f3;
     font-family: 'Segoe UI', Arial, sans-serif;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
-  }
-  .page {
-    width: 210mm; height: 297mm;
-    display: flex; flex-direction: column;
-    overflow: hidden;
-    page-break-inside: avoid;
-    page-break-after: avoid;
+    display: flex; align-items: center; justify-content: center;
   }
 
-  /* Cover — 88mm */
-  .cover-img { width: 100%; height: 88mm; object-fit: cover; display: block; flex-shrink: 0; }
+  /* Card — 196×283mm, rounded corners */
+  .card {
+    width: 196mm; height: 283mm;
+    border-radius: 8mm;
+    overflow: hidden;
+    display: flex; flex-direction: column;
+    page-break-inside: avoid;
+    page-break-after: avoid;
+    box-shadow: 0 0 0 0.4mm #d1d5db;
+  }
+
+  /* Cover — 84mm */
+  .cover-img { width: 100%; height: 84mm; object-fit: cover; display: block; flex-shrink: 0; }
   .cover-ph {
-    width: 100%; height: 88mm; flex-shrink: 0;
+    width: 100%; height: 84mm; flex-shrink: 0;
     background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
     display: flex; align-items: center; justify-content: center;
   }
-  .cover-ph span { font-size: 72pt; font-weight: 900; color: rgba(255,255,255,.08); letter-spacing: 8pt; }
+  .cover-ph span { font-size: 68pt; font-weight: 900; color: rgba(255,255,255,.08); letter-spacing: 8pt; }
 
-  /* Info — 72mm FIXED */
+  /* Info — 70mm FIXED */
   .info {
-    height: 72mm; flex-shrink: 0;
-    padding: 0 11mm;
-    display: flex; flex-direction: column; justify-content: center; gap: 4.5mm;
+    height: 70mm; flex-shrink: 0;
+    padding: 0 10mm;
+    background: #ffffff;
+    display: flex; flex-direction: column; justify-content: center; gap: 5mm;
     overflow: hidden;
     border-bottom: 0.3mm solid #e2e8f0;
   }
   .shop-name {
-    font-size: 22pt; font-weight: 900; color: #0f172a; line-height: 1.15;
+    font-size: 25pt; font-weight: 900; color: #0f172a; line-height: 1.15;
     overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
   }
-  .detail { display: flex; align-items: center; gap: 3mm; }
+  .detail { display: flex; align-items: center; gap: 3.5mm; }
   .icon-box {
-    width: 7.5mm; height: 7.5mm; min-width: 7.5mm;
-    background: #f1f5f9; border-radius: 2mm;
+    width: 8mm; height: 8mm; min-width: 8mm;
+    background: #f1f5f9; border-radius: 2.5mm;
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
   }
-  .val { font-size: 11pt; color: #334155; font-weight: 700; }
-  .cats { display: flex; flex-wrap: wrap; gap: 1.5mm; }
-  .badge { padding: 1mm 3.5mm; background: #e2e8f0; border-radius: 10pt; font-size: 7.5pt; font-weight: 800; color: #334155; }
+  .val { font-size: 13pt; color: #334155; font-weight: 700; }
+  .cats { display: flex; flex-wrap: wrap; gap: 2mm; }
+  .badge { padding: 1.2mm 4mm; background: #e2e8f0; border-radius: 10pt; font-size: 9pt; font-weight: 800; color: #334155; }
 
-  /* QR section — 117mm FIXED */
+  /* QR section — 109mm FIXED */
   .qr-section {
-    height: 117mm; flex-shrink: 0;
+    height: 109mm; flex-shrink: 0;
     background: #f8fafc;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 4.5mm;
-    padding: 0 11mm;
+    gap: 5mm;
+    padding: 0 10mm;
   }
-  .qr-lbl { font-size: 6.5pt; font-weight: 900; letter-spacing: 2.5pt; text-transform: uppercase; color: #64748b; text-align: center; }
-  .qr-frame { padding: 4mm; border: 0.4mm solid #e2e8f0; border-radius: 4mm; background: #fff; }
-  .qr-frame img { width: 70mm; height: 70mm; display: block; }
+  .qr-lbl { font-size: 7pt; font-weight: 900; letter-spacing: 3pt; text-transform: uppercase; color: #64748b; text-align: center; }
+  .qr-frame { padding: 4.5mm; border: 0.4mm solid #e2e8f0; border-radius: 5mm; background: #fff; }
+  .qr-frame img { width: 72mm; height: 72mm; display: block; }
   .qr-url { font-size: 5.5pt; color: #94a3b8; font-family: monospace; word-break: break-all; text-align: center; max-width: 100mm; line-height: 1.6; }
 
   /* Footer — 20mm FIXED */
@@ -162,7 +173,7 @@ export const SalonQrCodePage: React.FC = () => {
 </style>
 </head>
 <body>
-<div class="page">
+<div class="card">
   ${coverHtml}
   <div class="info">
     <div class="shop-name">${escHtml(shop.name)}</div>
@@ -181,11 +192,11 @@ export const SalonQrCodePage: React.FC = () => {
   var count = 0, total = imgs.length;
   function tryPrint() {
     if (++count >= total) {
-      setTimeout(function () { window.print(); setTimeout(function () { window.close(); }, 1500); }, 200);
+      setTimeout(function () { window.print(); setTimeout(function () { window.close(); }, 1500); }, 250);
     }
   }
   if (total === 0) {
-    setTimeout(function () { window.print(); setTimeout(function () { window.close(); }, 1500); }, 200);
+    setTimeout(function () { window.print(); setTimeout(function () { window.close(); }, 1500); }, 250);
   } else {
     imgs.forEach(function (img) {
       if (img.complete) { tryPrint(); }
@@ -196,7 +207,7 @@ export const SalonQrCodePage: React.FC = () => {
 </body>
 </html>`;
 
-        const pw = window.open('', '_blank', 'width=620,height=900');
+        const pw = window.open('', '_blank', 'width=640,height=920');
         if (!pw) { toast.error('Popup engelleyici aktif — lütfen izin verin.'); return; }
         pw.document.open();
         pw.document.write(html);
@@ -260,40 +271,42 @@ export const SalonQrCodePage: React.FC = () => {
                             <X className="w-4 h-4" />
                         </button>
 
-                        {/* Flyer preview — scrollable */}
-                        <div className="overflow-y-auto rounded-2xl shadow-2xl flex-1">
-                            <div className="bg-white overflow-hidden">
+                        {/* Flyer preview card — rounded everywhere, scrollable */}
+                        <div className="overflow-y-auto rounded-3xl shadow-2xl flex-1 bg-[#eef0f3] p-2">
+                            <div className="bg-white rounded-2xl overflow-hidden shadow-sm ring-1 ring-gray-200">
 
-                                {/* Cover — proportional to PDF 88/297 ≈ 30% */}
+                                {/* Cover — ~30% of card */}
                                 {coverUrl ? (
-                                    <img src={coverUrl} alt="" className="w-full h-44 object-cover block" />
+                                    <img src={coverUrl} alt="" className="w-full h-48 object-cover block" />
                                 ) : (
-                                    <div className="w-full h-44 bg-gradient-to-br from-primary-800 to-primary-700 flex items-center justify-center">
+                                    <div className="w-full h-48 bg-gradient-to-br from-primary-800 to-primary-700 flex items-center justify-center">
                                         <span className="text-5xl font-black text-white/10 tracking-widest">
                                             {shop.name.slice(0, 2).toUpperCase()}
                                         </span>
                                     </div>
                                 )}
 
-                                {/* Info — proportional to PDF 72/297 ≈ 24% */}
-                                <div className="px-5 py-5 flex flex-col justify-center gap-3 border-b border-gray-100">
-                                    <h3 className="text-2xl font-black text-primary-900 leading-tight line-clamp-2">{shop.name}</h3>
+                                {/* Info — ~25% of card */}
+                                <div className="px-5 py-5 flex flex-col justify-center gap-3.5 border-b border-gray-100 bg-white">
+                                    <h3 className="text-[1.45rem] font-black text-primary-900 leading-tight line-clamp-2">
+                                        {shop.name}
+                                    </h3>
                                     {shop.phoneNumber && (
                                         <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-lg bg-primary-100 flex items-center justify-center shrink-0">
+                                            <div className="w-9 h-9 rounded-xl bg-primary-100 flex items-center justify-center shrink-0">
                                                 <Phone className="w-4 h-4 text-primary-700" />
                                             </div>
-                                            <span className="text-sm font-bold text-primary-800">{shop.phoneNumber}</span>
+                                            <span className="text-base font-bold text-primary-800">{shop.phoneNumber}</span>
                                         </div>
                                     )}
                                     {categoryNames.length > 0 && (
                                         <div className="flex items-start gap-3">
-                                            <div className="w-8 h-8 rounded-lg bg-primary-100 flex items-center justify-center shrink-0 mt-0.5">
+                                            <div className="w-9 h-9 rounded-xl bg-primary-100 flex items-center justify-center shrink-0 mt-0.5">
                                                 <Tag className="w-4 h-4 text-primary-700" />
                                             </div>
-                                            <div className="flex flex-wrap gap-1.5 mt-1">
+                                            <div className="flex flex-wrap gap-1.5 mt-1.5">
                                                 {categoryNames.map(cat => (
-                                                    <span key={cat} className="px-2.5 py-1 bg-primary-100 text-primary-800 rounded-full text-xs font-bold">
+                                                    <span key={cat} className="px-3 py-1 bg-primary-100 text-primary-800 rounded-full text-xs font-bold">
                                                         {cat}
                                                     </span>
                                                 ))}
@@ -302,16 +315,16 @@ export const SalonQrCodePage: React.FC = () => {
                                     )}
                                 </div>
 
-                                {/* QR section — proportional to PDF 117/297 ≈ 39% */}
-                                <div className="px-5 py-6 flex flex-col items-center gap-3.5 bg-primary-50">
-                                    <p className="text-[9px] font-bold tracking-[3px] uppercase text-primary-500 text-center">
+                                {/* QR section — ~39% of card */}
+                                <div className="px-5 py-7 flex flex-col items-center gap-4 bg-[#f8fafc]">
+                                    <p className="text-[9px] font-black tracking-[3px] uppercase text-primary-500 text-center">
                                         Rezervasyon İçin QR Kodu Okutun
                                     </p>
-                                    <div className="bg-white p-3 rounded-xl border border-primary-200 shadow-sm">
+                                    <div className="bg-white p-3.5 rounded-2xl border border-primary-200 shadow-sm">
                                         <QRCodeCanvas
                                             ref={canvasRef}
                                             value={shopUrl}
-                                            size={185}
+                                            size={196}
                                             fgColor="#0f172a"
                                             bgColor="#ffffff"
                                             level="H"
@@ -323,7 +336,7 @@ export const SalonQrCodePage: React.FC = () => {
                                     </p>
                                 </div>
 
-                                {/* Footer */}
+                                {/* Footer — ~7% of card */}
                                 <div className="bg-primary-800 py-4 text-center">
                                     <span className="text-[9px] font-bold tracking-[4px] uppercase text-primary-500">
                                         www.salonbir.com
