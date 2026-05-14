@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { shopService } from '../../api/shop.service';
 import { QRCodeCanvas } from 'qrcode.react';
-import { QrCode, X, Loader2, Printer, Phone, Tag } from 'lucide-react';
+import { QrCode, X, Loader2, Printer, Phone } from 'lucide-react';
 import { ShopCategoryLabels } from '../../types/shop';
 import type { Shop } from '../../types/shop';
 import { toast } from 'react-hot-toast';
@@ -16,10 +16,6 @@ const getAbsImageUrl = (path: string | null | undefined): string | null => {
     if (path.startsWith('http')) return path;
     return `http://localhost:5000${path}`;
 };
-
-const PHONE_SVG = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.73 12.9a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.64 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.16 6.16l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`;
-
-const TAG_SVG = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>`;
 
 export const SalonQrCodePage: React.FC = () => {
     const [shop, setShop] = useState<Shop | null>(null);
