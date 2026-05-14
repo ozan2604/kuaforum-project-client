@@ -521,6 +521,10 @@ export const SalonAppointmentsPage: React.FC = () => {
                                         const hasAnyPending   = group.some(a => a.status === AppointmentStatus.Pending);
                                         const hasAnyConfirmed = group.some(a => a.status === AppointmentStatus.Confirmed);
                                         const hasAnyCompleted = group.some(a => a.status === AppointmentStatus.Completed);
+                                        // Gelmedi penceresi: randevu başladıktan 90 dk içinde işaretlenebilir
+                                        const nowMs = Date.now();
+                                        const groupNoShowWindowOpen = nowMs >= new Date(first.startTime).getTime() && nowMs <= new Date(first.startTime).getTime() + 90 * 60 * 1000;
+                                        const groupNoShowWindowExpired = nowMs > new Date(first.startTime).getTime() + 90 * 60 * 1000;
 
                                             return (
                                             <div key={cardKey} className="bg-white">
@@ -594,6 +598,7 @@ export const SalonAppointmentsPage: React.FC = () => {
                                                             {/* Hizmet listesi */}
                                                             <div className="bg-white rounded-xl border border-gray-100 divide-y divide-gray-50 overflow-hidden">
                                                                 {group.map(apt => {
+                                                                    const aptNoShowWindowOpen = Date.now() >= new Date(apt.startTime).getTime() && Date.now() <= new Date(apt.startTime).getTime() + 90 * 60 * 1000;
                                                                     const aptBtns = isMulti && (
                                                                         <>
                                                                             {apt.status === AppointmentStatus.Pending && (
@@ -607,13 +612,15 @@ export const SalonAppointmentsPage: React.FC = () => {
                                                                                     {new Date(apt.startTime) <= new Date() && (
                                                                                         <>
                                                                                             <Button size="sm" variant="success" onClick={() => requestSingleUpdate(apt.id, AppointmentStatus.Completed, 'Randevuyu Tamamla', 'Bu hizmetin tamamlandığını onaylıyor musunuz?', apt.startTime)}>Tamamlandı</Button>
-                                                                                            <Button size="sm" variant="warning" onClick={() => requestSingleUpdate(apt.id, AppointmentStatus.NoShow, 'Müşteri Gelmedi Mi?', 'Bu randevuyu "Gelmedi" olarak işaretlemek istediğinize emin misiniz?', apt.startTime)}>Gelmedi</Button>
+                                                                                            {aptNoShowWindowOpen && (
+                                                                                                <Button size="sm" variant="warning" onClick={() => requestSingleUpdate(apt.id, AppointmentStatus.NoShow, 'Müşteri Gelmedi Mi?', 'Bu randevuyu "Gelmedi" olarak işaretlemek istediğinize emin misiniz?', apt.startTime)}>Gelmedi</Button>
+                                                                                            )}
                                                                                         </>
                                                                                     )}
                                                                                     <Button size="sm" variant="danger" onClick={() => requestSingleUpdate(apt.id, AppointmentStatus.Cancelled, 'Randevuyu İptal Et', 'Bu hizmet iptal edilecek. İsterseniz müşteriye bir sebep bırakabilirsiniz.', apt.startTime)}>İptal</Button>
                                                                                 </>
                                                                             )}
-                                                                            {apt.status === AppointmentStatus.Completed && (
+                                                                            {apt.status === AppointmentStatus.Completed && aptNoShowWindowOpen && (
                                                                                 <Button size="sm" variant="warning" onClick={() => requestSingleUpdate(apt.id, AppointmentStatus.NoShow, 'Müşteri Gelmedi Mi?', 'Bu randevuyu "Gelmedi" olarak işaretlemek istediğinize emin misiniz?', apt.startTime)}>Gelmedi</Button>
                                                                             )}
                                                                         </>
@@ -684,12 +691,18 @@ export const SalonAppointmentsPage: React.FC = () => {
                                                                                     : requestSingleUpdate(first.id, AppointmentStatus.Completed, 'Randevuyu Tamamla', 'Bu randevunun tamamlandığını onaylıyor musunuz?', first.startTime)
                                                                             }>{isMulti ? 'Tümünü Tamamla' : 'Tamamlandı'}</Button>
                                                                         )}
-                                                                        {((hasAnyConfirmed && new Date(last.startTime) <= new Date()) || hasAnyCompleted) && (
+                                                                        {((hasAnyConfirmed && new Date(last.startTime) <= new Date()) || hasAnyCompleted) && groupNoShowWindowOpen && (
                                                                             <Button size="sm" variant="warning" onClick={() =>
                                                                                 isMulti && gId
                                                                                     ? requestGroupUpdate(gId, AppointmentStatus.NoShow, 'Müşteri Gelmedi Mi?', `${group.length} randevu "Gelmedi" olarak işaretlenecek. Devam etmek istiyor musunuz?`, first.startTime)
                                                                                     : requestSingleUpdate(first.id, AppointmentStatus.NoShow, 'Müşteri Gelmedi Mi?', 'Bu randevuyu "Gelmedi" olarak işaretlemek istediğinize emin misiniz?', first.startTime)
                                                                             }>Gelmedi</Button>
+                                                                        )}
+                                                                        {((hasAnyConfirmed && new Date(last.startTime) <= new Date()) || hasAnyCompleted) && groupNoShowWindowExpired && (
+                                                                            <div className="flex items-center gap-1.5 text-xs text-gray-400 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5">
+                                                                                <AlertCircle className="w-3.5 h-3.5 shrink-0 text-gray-400" />
+                                                                                Gelmedi işaretleme süresi doldu (randevudan 1,5 saat sonra kapanır)
+                                                                            </div>
                                                                         )}
                                                                         {hasAnyConfirmed && (
                                                                             <Button size="sm" variant="danger" onClick={() =>

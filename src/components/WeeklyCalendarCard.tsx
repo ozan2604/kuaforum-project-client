@@ -46,6 +46,7 @@ const LEGEND = [
     { label: 'Onay Bekliyor', dot: 'bg-amber-400' },
     { label: 'Onaylandı',     dot: 'bg-sky-400' },
     { label: 'Tamamlandı',    dot: 'bg-emerald-400' },
+    { label: 'Gelmedi',       dot: 'bg-orange-400' },
 ];
 
 // ─── Component ──────────────────────────────────────────────────────────────

@@ -108,6 +108,7 @@ export const ProfilePage: React.FC = () => {
     const isSalonRelated = hasRole('SalonOwner') || hasRole('Employee');
     const salonPanelPath = hasRole('SalonOwner') ? '/salon-panel' : '/salon-panel/employee-appointments';
     const roleLabel = hasRole('SalonOwner') ? 'İşletme Sahibi' : hasRole('Employee') ? 'Personel' : 'Müşteri';
+    const panelLabel = hasRole('SalonOwner') ? 'Salon Paneline Git' : 'Uzman Paneline Git';
 
     // Form State
     const [appointments, setAppointments] = useState<AppointmentDto[]>([]);
@@ -352,7 +353,7 @@ export const ProfilePage: React.FC = () => {
                                         className="flex items-center gap-1.5 px-4 py-1.5 bg-primary-50 hover:bg-primary-100 text-primary-700 text-[10px] font-black uppercase tracking-widest rounded-full border border-primary-200 transition-colors"
                                     >
                                         <Store className="h-3 w-3" />
-                                        Salonuma Git
+                                        {panelLabel}
                                         <ChevronRight className="h-3 w-3" />
                                     </button>
                                 ) : (
@@ -624,7 +625,7 @@ export const ProfilePage: React.FC = () => {
                             onClick={() => navigate(salonPanelPath)}
                             className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
                         >
-                            <div className="flex items-center gap-3"><Store className="h-5 w-5 text-gray-500" /><span className="font-medium text-sm text-gray-800">Salonuma Git</span></div>
+                            <div className="flex items-center gap-3"><Store className="h-5 w-5 text-gray-500" /><span className="font-medium text-sm text-gray-800">{panelLabel}</span></div>
                             <ChevronRight className="h-4 w-4 text-gray-400" />
                         </button>
                     </div>
