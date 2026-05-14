@@ -220,9 +220,11 @@ export const ShopDetailsPage: React.FC = () => {
                     {/* İsim + Telefon Satırı */}
                     <div className="flex items-center justify-between gap-4 mb-4 sm:mb-5">
 
-                        <h1 className="flex-1 min-w-0 text-xl sm:text-2xl lg:text-3xl font-black text-gray-900 tracking-tight leading-tight">
-                            {shop.name}
-                        </h1>
+                        <div className="flex-1 min-w-0">
+                            <h1 className="inline-flex items-center gap-2 px-4 sm:px-5 py-2 sm:py-2.5 rounded-xl bg-primary-600 text-white text-lg sm:text-xl lg:text-2xl font-black tracking-tight leading-tight shadow-md shadow-primary-500/25 max-w-full">
+                                <span className="truncate">{shop.name}</span>
+                            </h1>
+                        </div>
 
                         {shop.phoneNumber && (
                             <a
