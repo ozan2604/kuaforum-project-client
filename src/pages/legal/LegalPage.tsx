@@ -33,7 +33,7 @@ export const LegalPage: React.FC<LegalPageProps> = ({ title, content }) => {
                             <h1 className="text-3xl sm:text-4xl font-black tracking-tight">{title}</h1>
                         </div>
                         <p className="mt-4 text-primary-100 max-w-xl">
-                            Kuğulum olarak verilerinizin güvenliği ve şeffaflık ilkelerimiz gereği sizi bilgilendirmek isteriz.
+                            SalonBir olarak verilerinizin güvenliği ve şeffaflık ilkelerimiz gereği sizi bilgilendirmek isteriz.
                         </p>
                     </div>
 

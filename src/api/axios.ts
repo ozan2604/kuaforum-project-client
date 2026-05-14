@@ -35,6 +35,12 @@ api.interceptors.response.use(
             return Promise.reject(error);
         }
 
+        // Auth endpoint'leri kendi hatalarını kendisi yönetir — interceptor müdahale etmemeli
+        const authOnlyEndpoints = ['/auth/login', '/auth/register', '/auth/forgot-password'];
+        if (authOnlyEndpoints.some(ep => originalRequest.url?.includes(ep))) {
+            return Promise.reject(error);
+        }
+
         // Refresh isteğinin kendisi 401 döndürdüyse → oturum tamamen bitti
         if (originalRequest.url?.includes('/auth/refresh')) {
             clearAuth();
