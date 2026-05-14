@@ -106,7 +106,7 @@ export const ProfilePage: React.FC = () => {
 
     const hasRole = (r: string) => Array.isArray(user?.role) ? user!.role.includes(r) : user?.role === r;
     const isSalonRelated = hasRole('SalonOwner') || hasRole('Employee');
-    const salonPanelPath = hasRole('SalonOwner') ? '/salon-panel' : '/salon-panel/employee-appointments';
+    const salonPanelPath = hasRole('SalonOwner') ? '/salon-panel' : '/employee-panel';
     const roleLabel = hasRole('SalonOwner') ? 'İşletme Sahibi' : hasRole('Employee') ? 'Personel' : 'Müşteri';
     const panelLabel = hasRole('SalonOwner') ? 'Salon Paneline Git' : 'Uzman Paneline Git';
 
