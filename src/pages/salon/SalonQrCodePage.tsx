@@ -68,7 +68,7 @@ export const SalonQrCodePage: React.FC = () => {
             ? `<img class="cover-img" src="${escHtml(coverUrl)}" alt="">`
             : `<div class="cover-ph"><span>${escHtml(shop.name.slice(0, 2).toUpperCase())}</span></div>`;
 
-        const PHONE_SVG_WHITE = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.73 12.9a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.64 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.16 6.16l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`;
+        const PHONE_SVG_WHITE = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.73 12.9a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.64 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.16 6.16l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`;
 
         const phoneHtml = shop.phoneNumber
             ? `<div class="phone-btn">
@@ -81,12 +81,6 @@ export const SalonQrCodePage: React.FC = () => {
             ? `<div class="cats">${categoryNames.map(c => `<span class="badge">${escHtml(c)}</span>`).join('')}</div>`
             : '';
 
-        /*
-         * A4 = 210×297mm. iOS Safari adds ~20mm margins even with @page{margin:0}.
-         * Fix: body min-height:297mm (fills page background), card only 258mm.
-         * Centering adds (297-258)/2 = 19.5mm on each side — safe from any browser margin.
-         * Section heights: cover=76 + info=62 + qr=100 + footer=20 = 258mm ✓
-         */
         const html = `<!DOCTYPE html>
 <html lang="tr">
 <head>
@@ -110,86 +104,133 @@ export const SalonQrCodePage: React.FC = () => {
     display: flex; align-items: center; justify-content: center;
   }
 
-  /* Card — 196×258mm, rounded all corners */
   .card {
     width: 196mm; height: 258mm;
     border-radius: 8mm;
     overflow: hidden;
     display: flex; flex-direction: column;
-    page-break-inside: avoid;
-    page-break-after: avoid;
     box-shadow: 0 0 0 0.4mm #d1d5db;
+    background: #ffffff;
+    position: relative;
   }
-
-  /* Cover — 76mm */
-  .cover-img { width: 100%; height: 76mm; object-fit: cover; display: block; flex-shrink: 0; }
+  
+  .cover-container {
+    position: relative;
+    height: 85mm;
+    width: 100%;
+    flex-shrink: 0;
+  }
+  .cover-img { width: 100%; height: 100%; object-fit: cover; display: block; }
   .cover-ph {
-    width: 100%; height: 76mm; flex-shrink: 0;
-    background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
+    width: 100%; height: 100%;
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
     display: flex; align-items: center; justify-content: center;
   }
-  .cover-ph span { font-size: 64pt; font-weight: 900; color: rgba(255,255,255,.08); letter-spacing: 8pt; }
+  .cover-ph span { font-size: 72pt; font-weight: 900; color: rgba(255,255,255,.05); letter-spacing: 10pt; }
+  .cover-overlay {
+    position: absolute; bottom: 0; left: 0; right: 0; height: 30mm;
+    background: linear-gradient(to top, rgba(0,0,0,0.4), transparent);
+  }
 
-  /* Info — 62mm FIXED */
-  .info {
-    height: 62mm; flex-shrink: 0;
-    padding: 0 9mm;
-    background: #ffffff;
-    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3.5mm;
-    overflow: hidden;
-    border-bottom: 0.3mm solid #e2e8f0;
+  .content-wrapper {
+    position: relative;
+    margin-top: -12mm;
+    padding: 0 12mm;
+    display: flex; flex-direction: column; align-items: center;
+    flex: 1;
   }
-  .shop-name-btn {
-    background: #1e293b; color: #ffffff;
-    font-size: 16pt; font-weight: 800;
-    padding: 2.5mm 7mm; border-radius: 4mm;
+
+  .shop-name-card {
+    background: rgba(255, 255, 255, 0.98);
+    padding: 5mm 10mm;
+    border-radius: 6mm;
+    box-shadow: 0 4mm 10mm rgba(0,0,0,0.12);
+    width: 92%;
     text-align: center;
-    max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    margin-bottom: 8mm;
   }
+  .shop-name {
+    font-size: 22pt; font-weight: 900; color: #0f172a;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    letter-spacing: -0.5pt;
+  }
+
+  .buttons-row {
+    display: flex; flex-direction: column; align-items: center; gap: 4mm;
+    margin-bottom: 8mm;
+    width: 100%;
+  }
+  
   .phone-btn {
     background: #1e293b; color: #ffffff;
-    font-size: 11pt; font-weight: 700;
-    padding: 1.8mm 5mm; border-radius: 3mm;
-    display: flex; align-items: center; gap: 2mm;
+    font-size: 13pt; font-weight: 800;
+    padding: 3.5mm 8mm; border-radius: 12mm;
+    display: inline-flex; align-items: center; gap: 3mm;
+    box-shadow: 0 2mm 6mm rgba(30, 41, 59, 0.3);
   }
-  .phone-btn svg { stroke: #ffffff; width: 14px; height: 14px; }
-  .cats { display: flex; flex-wrap: wrap; justify-content: center; gap: 2mm; }
+
+  .cats { display: flex; flex-wrap: wrap; justify-content: center; gap: 2.5mm; }
   .badge { 
-    background: #1e293b; color: #ffffff;
-    padding: 1.5mm 4mm; border-radius: 3mm; font-size: 8.5pt; font-weight: 700; 
+    background: #f8fafc; color: #0f172a;
+    border: 1.5px solid #1e293b;
+    padding: 2.5mm 5mm; border-radius: 8mm; font-size: 10pt; font-weight: 800; 
   }
 
-  /* QR section — 100mm FIXED */
   .qr-section {
-    height: 100mm; flex-shrink: 0;
-    background: #f8fafc;
+    width: 100%;
+    background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
+    border-radius: 8mm;
+    padding: 6mm;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 4mm;
-    padding: 0 9mm;
+    border: 1px solid #f1f5f9;
+    flex: 1;
+    margin-bottom: 6mm;
   }
-  .qr-lbl { font-size: 6.5pt; font-weight: 900; letter-spacing: 3pt; text-transform: uppercase; color: #64748b; text-align: center; }
-  .qr-frame { padding: 4mm; border: 0.4mm solid #e2e8f0; border-radius: 4.5mm; background: #fff; }
-  .qr-frame img { width: 65mm; height: 65mm; display: block; }
-  .qr-url { font-size: 5.5pt; color: #94a3b8; font-family: monospace; word-break: break-all; text-align: center; max-width: 95mm; line-height: 1.6; }
+  .qr-lbl { 
+    font-size: 8pt; font-weight: 900; letter-spacing: 4pt; 
+    text-transform: uppercase; color: #475569; text-align: center; 
+    margin-bottom: 5mm;
+  }
+  .qr-frame { 
+    padding: 5mm; border-radius: 6mm; background: #fff; 
+    box-shadow: 0 4mm 15mm rgba(0,0,0,0.08);
+    margin-bottom: 4mm;
+  }
+  .qr-frame img { width: 75mm; height: 75mm; display: block; }
+  .qr-url { font-size: 7.5pt; color: #94a3b8; font-family: monospace; word-break: break-all; text-align: center; max-width: 120mm; }
 
-  /* Footer — 20mm FIXED */
-  .footer { height: 20mm; flex-shrink: 0; background: #1e293b; display: flex; align-items: center; justify-content: center; }
-  .footer-text { font-size: 7pt; letter-spacing: 4pt; text-transform: uppercase; color: #64748b; font-weight: 800; }
+  .footer { 
+    height: 18mm; flex-shrink: 0; background: #0f172a; 
+    display: flex; align-items: center; justify-content: center; 
+    width: 100%;
+  }
+  .footer-text { font-size: 8pt; letter-spacing: 6pt; text-transform: uppercase; color: rgba(255,255,255,0.6); font-weight: 800; }
 </style>
 </head>
 <body>
 <div class="card">
-  ${coverHtml}
-  <div class="info">
-    <div class="shop-name-btn">${escHtml(shop.name)}</div>
-    ${phoneHtml}
-    ${catsHtml}
+  <div class="cover-container">
+    ${coverHtml}
+    <div class="cover-overlay"></div>
   </div>
-  <div class="qr-section">
-    <div class="qr-lbl">Rezervasyon İçin QR Kodu Okutun</div>
-    <div class="qr-frame"><img src="${qrDataUrl}" alt="QR"></div>
-    <div class="qr-url">${escHtml(shopUrl)}</div>
+  
+  <div class="content-wrapper">
+    <div class="shop-name-card">
+      <div class="shop-name">${escHtml(shop.name)}</div>
+    </div>
+    
+    <div class="buttons-row">
+      ${phoneHtml}
+      ${catsHtml}
+    </div>
+    
+    <div class="qr-section">
+      <div class="qr-lbl">Rezervasyon İçin QR Kodu Okutun</div>
+      <div class="qr-frame"><img src="${qrDataUrl}" alt="QR"></div>
+      <div class="qr-url">${escHtml(shopUrl)}</div>
+    </div>
   </div>
+  
   <div class="footer"><div class="footer-text">www.salonbir.com</div></div>
 </div>
 <script>
@@ -266,8 +307,7 @@ export const SalonQrCodePage: React.FC = () => {
                 >
                     <div className="absolute inset-0 bg-black/65 backdrop-blur-sm" />
 
-                    <div className="relative z-10 w-full max-w-sm flex flex-col max-h-[92dvh]">
-
+                    <div className="relative z-10 w-full max-w-md flex flex-col max-h-[92dvh]">
                         {/* Close */}
                         <button
                             onClick={() => setIsModalOpen(false)}
@@ -276,81 +316,92 @@ export const SalonQrCodePage: React.FC = () => {
                             <X className="w-4 h-4" />
                         </button>
 
-                        {/* Flyer preview card — rounded everywhere, scrollable */}
+                        {/* Flyer preview card */}
                         <div className="overflow-y-auto rounded-3xl shadow-2xl flex-1 bg-[#eef0f3] p-2">
-                            <div className="bg-white rounded-2xl overflow-hidden shadow-sm ring-1 ring-gray-200">
+                            <div className="bg-white rounded-[1.25rem] overflow-hidden shadow-sm ring-1 ring-gray-200 flex flex-col relative pb-4">
+                                
+                                {/* Cover */}
+                                <div className="relative h-44 sm:h-52 shrink-0 w-full">
+                                    {coverUrl ? (
+                                        <img src={coverUrl} alt="" className="w-full h-full object-cover block" />
+                                    ) : (
+                                        <div className="w-full h-full bg-gradient-to-br from-primary-800 to-primary-900 flex items-center justify-center">
+                                            <span className="text-6xl font-black text-white/10 tracking-widest">
+                                                {shop.name.slice(0, 2).toUpperCase()}
+                                            </span>
+                                        </div>
+                                    )}
+                                    <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/40 to-transparent"></div>
+                                </div>
 
-                                {/* Cover — ~30% of card */}
-                                {coverUrl ? (
-                                    <img src={coverUrl} alt="" className="w-full h-48 object-cover block" />
-                                ) : (
-                                    <div className="w-full h-48 bg-gradient-to-br from-primary-800 to-primary-700 flex items-center justify-center">
-                                        <span className="text-5xl font-black text-white/10 tracking-widest">
-                                            {shop.name.slice(0, 2).toUpperCase()}
-                                        </span>
-                                    </div>
-                                )}
-
-                                {/* Info — ~25% of card */}
-                                <div className="px-5 py-5 flex flex-col items-center justify-center gap-3 border-b border-gray-100 bg-white">
-                                    <div className="bg-[#1e293b] text-white px-5 py-2.5 rounded-2xl max-w-full truncate">
-                                        <h3 className="text-[1.3rem] font-bold leading-none">
+                                {/* Content overlaying the cover */}
+                                <div className="relative -mt-8 px-4 sm:px-6 flex flex-col items-center flex-1">
+                                    
+                                    {/* Shop Name Card */}
+                                    <div className="bg-white/95 backdrop-blur-md px-6 py-4 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-white/50 w-[92%] text-center mb-5">
+                                        <h3 className="text-xl sm:text-2xl font-black text-primary-950 truncate">
                                             {shop.name}
                                         </h3>
                                     </div>
-                                    {shop.phoneNumber && (
-                                        <div className="bg-[#1e293b] text-white px-4 py-2 rounded-xl flex items-center gap-2">
-                                            <Phone className="w-4 h-4 text-white" />
-                                            <span className="text-[0.95rem] font-bold">{shop.phoneNumber}</span>
-                                        </div>
-                                    )}
-                                    {categoryNames.length > 0 && (
-                                        <div className="flex flex-wrap items-center justify-center gap-2 mt-1">
-                                            {categoryNames.map(cat => (
-                                                <span key={cat} className="px-4 py-1.5 bg-[#1e293b] text-white rounded-xl text-xs font-bold">
-                                                    {cat}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
 
-                                {/* QR section — ~39% of card */}
-                                <div className="px-5 py-7 flex flex-col items-center gap-4 bg-[#f8fafc]">
-                                    <p className="text-[9px] font-black tracking-[3px] uppercase text-primary-500 text-center">
-                                        Rezervasyon İçin QR Kodu Okutun
-                                    </p>
-                                    <div className="bg-white p-3.5 rounded-2xl border border-primary-200 shadow-sm">
-                                        <QRCodeCanvas
-                                            ref={canvasRef}
-                                            value={shopUrl}
-                                            size={196}
-                                            fgColor="#0f172a"
-                                            bgColor="#ffffff"
-                                            level="H"
-                                            marginSize={1}
-                                        />
+                                    {/* Buttons */}
+                                    <div className="flex flex-col gap-3 w-full items-center mb-6">
+                                        {shop.phoneNumber && (
+                                            <div className="bg-primary-900 text-white px-6 py-2.5 rounded-full flex items-center gap-2.5 shadow-lg shadow-primary-900/25">
+                                                <Phone className="w-4 h-4" />
+                                                <span className="text-[15px] font-bold tracking-wide">{shop.phoneNumber}</span>
+                                            </div>
+                                        )}
+                                        {categoryNames.length > 0 && (
+                                            <div className="flex flex-wrap items-center justify-center gap-2">
+                                                {categoryNames.map(cat => (
+                                                    <span key={cat} className="px-4 py-1.5 bg-primary-50 text-primary-950 ring-[1.5px] ring-primary-900 rounded-full text-xs font-bold">
+                                                        {cat}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
-                                    <p className="text-[9px] text-primary-400 font-mono break-all text-center max-w-[260px] leading-relaxed">
-                                        {shopUrl}
-                                    </p>
-                                </div>
 
-                                {/* Footer — ~7% of card */}
-                                <div className="bg-primary-800 py-4 text-center">
-                                    <span className="text-[9px] font-bold tracking-[4px] uppercase text-primary-500">
-                                        www.salonbir.com
-                                    </span>
+                                    {/* QR Section */}
+                                    <div className="w-full bg-gradient-to-b from-gray-50 to-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col items-center relative overflow-hidden mt-auto">
+                                        <p className="text-[10px] font-black tracking-[3px] uppercase text-gray-500 text-center mb-4 relative z-10">
+                                            Rezervasyon İçin QR Kodu Okutun
+                                        </p>
+                                        
+                                        <div className="bg-white p-3.5 rounded-[1rem] shadow-[0_4px_20px_rgb(0,0,0,0.06)] ring-1 ring-gray-100 relative z-10 mb-3">
+                                            <QRCodeCanvas
+                                                ref={canvasRef}
+                                                value={shopUrl}
+                                                size={160}
+                                                fgColor="#0f172a"
+                                                bgColor="#ffffff"
+                                                level="H"
+                                                marginSize={1}
+                                            />
+                                        </div>
+                                        
+                                        <p className="text-[9px] text-gray-400 font-mono break-all text-center max-w-[260px] relative z-10">
+                                            {shopUrl}
+                                        </p>
+                                    </div>
                                 </div>
+                            </div>
+                            
+                            {/* Footer inside the modal card wrapper but outside the white card */}
+                            <div className="bg-[#0f172a] py-3.5 text-center rounded-b-2xl mt-[-1rem] relative z-0 pt-6">
+                                <span className="text-[10px] font-bold tracking-[4px] uppercase text-white/60">
+                                    www.salonbir.com
+                                </span>
                             </div>
                         </div>
 
                         {/* PDF download button */}
                         <button
                             onClick={handlePrintFlyer}
-                            className="mt-3 w-full flex items-center justify-center gap-2 py-3.5 bg-primary-800 hover:bg-primary-900 text-white font-bold text-sm rounded-xl shadow-lg shadow-primary-700/25 transition-all duration-200 active:scale-[0.98] shrink-0"
+                            className="mt-4 w-full flex items-center justify-center gap-2 py-4 bg-primary-800 hover:bg-primary-900 text-white font-bold text-base rounded-2xl shadow-xl shadow-primary-700/25 transition-all duration-200 active:scale-[0.98] shrink-0"
                         >
-                            <Printer className="w-4 h-4" />
+                            <Printer className="w-5 h-5" />
                             PDF Olarak İndir
                         </button>
                     </div>
