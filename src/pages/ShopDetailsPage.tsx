@@ -766,13 +766,13 @@ export const ShopDetailsPage: React.FC = () => {
                                     {/* Employee Schedule Dropdown */}
                                     {employeeSchedules.length > 0 && (
                                         <div>
-                                            <div className="flex items-center justify-between mb-4">
-                                                <h3 className="font-bold text-gray-800 flex items-center gap-2">
-                                                    <Users className="w-4 h-4 text-gray-500" />
-                                                    Personel Çalışma Takvimi
-                                                </h3>
+                                            <h3 className="font-bold text-gray-800 flex items-center gap-2 mb-2">
+                                                <Users className="w-4 h-4 text-gray-500" />
+                                                Personel Çalışma Takvimi
+                                            </h3>
+                                            <div className="mb-4">
                                                 <CustomSelect
-                                                    size="compact"
+                                                    size="default"
                                                     options={employeeSchedules.map(emp => ({
                                                         value: emp.employeeId,
                                                         label: `${emp.firstName} ${emp.lastName}${emp.title ? ` — ${emp.title}` : ''}`,

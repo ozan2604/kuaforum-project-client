@@ -7,8 +7,10 @@ import { SearchableSelect } from '../components/SearchableSelect';
 import MapPicker from '../components/MapPicker';
 import { toast } from 'react-hot-toast';
 import { getApiError } from '../utils/storage';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { TargetGender, TargetGenderLabels, ShopCategory, ShopCategoryLabels } from '../types/shop';
+import { LegalModal } from '../components/LegalModal';
+import { LEGAL_TEXTS } from '../constants/legal';
 
 const TURKIYE_API = 'https://turkiyeapi.dev/api/v1';
 
@@ -57,6 +59,8 @@ export const SalonApplicationPage: React.FC = () => {
     const [selectedDistrictId, setSelectedDistrictId] = useState<number | null>(null);
 
     const [kvkkAccepted, setKvkkAccepted] = useState(false);
+    const [kvkkModalOpen, setKvkkModalOpen] = useState(false);
+    const [submitting, setSubmitting] = useState(false);
 
     useEffect(() => {
         loadSalonApplication();
@@ -173,12 +177,16 @@ export const SalonApplicationPage: React.FC = () => {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!validateStep(2)) return;
+        if (submitting) return;
+        setSubmitting(true);
         try {
             await salonApplicationService.apply(form);
             toast.success('Başvurunuz alındı! Onay bekleniyor.');
             loadSalonApplication();
         } catch (err) {
             toast.error(getApiError(err, 'Başvuru yapılamadı.'));
+        } finally {
+            setSubmitting(false);
         }
     };
 
@@ -194,7 +202,7 @@ export const SalonApplicationPage: React.FC = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-8 px-4">
+        <><div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-purple-50 py-8 px-4">
             <div className="max-w-2xl mx-auto">
                 {/* Header Banner */}
                 <div className="relative rounded-2xl overflow-hidden mb-8 shadow-xl">
@@ -465,9 +473,9 @@ export const SalonApplicationPage: React.FC = () => {
                                             className="mt-1 h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
                                         />
                                         <label htmlFor="kvkk" className="text-sm text-gray-600 cursor-pointer select-none">
-                                            <Link to="/kvkk" className="text-indigo-600 hover:underline font-semibold" target="_blank">
+                                            <button type="button" onClick={() => setKvkkModalOpen(true)} className="text-indigo-600 hover:underline font-semibold">
                                                 KVKK Aydınlatma Metnini
-                                            </Link>
+                                            </button>
                                             {' '}okudum ve kişisel verilerimin işlenmesini, başvurumun değerlendirilmesi amacıyla kabul ediyorum.
                                         </label>
                                     </div>
@@ -486,9 +494,8 @@ export const SalonApplicationPage: React.FC = () => {
                                         {isCheckingEmail ? <><Loader2 className="h-4 w-4 animate-spin" /> Kontrol ediliyor...</> : <>Devam Et <ChevronRight className="h-4 w-4" /></>}
                                     </button>
                                 ) : (
-                                    <button type="submit" className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all active:scale-95 text-base">
-                                        <CheckCircle className="h-5 w-5" />
-                                        Başvuruyu Tamamla
+                                    <button type="submit" disabled={submitting} className="flex-1 flex items-center justify-center gap-2 px-6 py-3 rounded-xl bg-indigo-600 text-white font-bold hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed shadow-lg shadow-indigo-200 transition-all active:scale-95 text-base">
+                                        {submitting ? <><Loader2 className="h-5 w-5 animate-spin" /> Gönderiliyor…</> : <><CheckCircle className="h-5 w-5" /> Başvuruyu Tamamla</>}
                                     </button>
                                 )}
                             </div>
@@ -497,5 +504,12 @@ export const SalonApplicationPage: React.FC = () => {
                 )}
             </div>
         </div>
+
+        <LegalModal
+            isOpen={kvkkModalOpen}
+            onClose={() => setKvkkModalOpen(false)}
+            title="KVKK Aydınlatma Metni"
+            content={LEGAL_TEXTS.KVKK_DETAILS}
+        /></>
     );
 };
