@@ -141,16 +141,17 @@ export const SalonQrCodePage: React.FC = () => {
   }
 
   .shop-name-card {
-    background: rgba(255, 255, 255, 0.98);
+    background: #1e293b;
     padding: 5mm 10mm;
     border-radius: 6mm;
-    box-shadow: 0 4mm 10mm rgba(0,0,0,0.12);
+    box-shadow: 0 4mm 10mm rgba(30, 41, 59, 0.25);
     width: 92%;
     text-align: center;
     margin-bottom: 8mm;
+    border: 1px solid rgba(255,255,255,0.1);
   }
   .shop-name {
-    font-size: 22pt; font-weight: 900; color: #0f172a;
+    font-size: 22pt; font-weight: 900; color: #ffffff;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     letter-spacing: -0.5pt;
   }
@@ -204,7 +205,7 @@ export const SalonQrCodePage: React.FC = () => {
     display: flex; align-items: center; justify-content: center; 
     width: 100%;
   }
-  .footer-text { font-size: 8pt; letter-spacing: 6pt; text-transform: uppercase; color: rgba(255,255,255,0.6); font-weight: 800; }
+  .footer-text { font-size: 8pt; letter-spacing: 6pt; text-transform: uppercase; color: rgba(255,255,255,0.95); font-weight: 800; }
 </style>
 </head>
 <body>
@@ -338,8 +339,8 @@ export const SalonQrCodePage: React.FC = () => {
                                 <div className="relative -mt-8 px-4 sm:px-6 flex flex-col items-center flex-1">
                                     
                                     {/* Shop Name Card */}
-                                    <div className="bg-white/95 backdrop-blur-md px-6 py-4 rounded-2xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] border border-white/50 w-[92%] text-center mb-5">
-                                        <h3 className="text-xl sm:text-2xl font-black text-primary-950 truncate">
+                                    <div className="bg-primary-900 px-6 py-4 rounded-[1rem] shadow-lg shadow-primary-900/30 border border-primary-800 w-[92%] text-center mb-5">
+                                        <h3 className="text-xl sm:text-2xl font-black text-white truncate drop-shadow-sm">
                                             {shop.name}
                                         </h3>
                                     </div>
@@ -364,7 +365,7 @@ export const SalonQrCodePage: React.FC = () => {
                                     </div>
 
                                     {/* QR Section */}
-                                    <div className="w-full bg-gradient-to-b from-gray-50 to-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col items-center relative overflow-hidden mt-auto">
+                                    <div className="w-full bg-gradient-to-b from-gray-50 to-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col items-center relative overflow-hidden mt-auto mb-6">
                                         <p className="text-[10px] font-black tracking-[3px] uppercase text-gray-500 text-center mb-4 relative z-10">
                                             Rezervasyon İçin QR Kodu Okutun
                                         </p>
@@ -386,13 +387,13 @@ export const SalonQrCodePage: React.FC = () => {
                                         </p>
                                     </div>
                                 </div>
-                            </div>
-                            
-                            {/* Footer inside the modal card wrapper but outside the white card */}
-                            <div className="bg-[#0f172a] py-3.5 text-center rounded-b-2xl mt-[-1rem] relative z-0 pt-6">
-                                <span className="text-[10px] font-bold tracking-[4px] uppercase text-white/60">
-                                    www.salonbir.com
-                                </span>
+                                
+                                {/* Footer inside the white card */}
+                                <div className="bg-[#0f172a] py-4 text-center mt-auto w-full shrink-0">
+                                    <span className="text-[10px] font-bold tracking-[4px] uppercase text-white/90">
+                                        www.salonbir.com
+                                    </span>
+                                </div>
                             </div>
                         </div>
 
