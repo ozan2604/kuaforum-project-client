@@ -4,7 +4,7 @@ import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { serviceManagementService } from '../../api/service.service';
 import { employeeService } from '../../api/employee.service';
-import type { ServiceCategoryDto, CreateServiceDto, CreateCategoryDto } from '../../types/service';
+import type { Service, ServiceCategoryDto, CreateServiceDto, CreateCategoryDto } from '../../types/service';
 import type { Employee } from '../../types/employee';
 import { toast } from 'react-hot-toast';
 import { Plus, Scissors, Tag, Clock, DollarSign, Edit, Trash2, ChevronDown, ChevronUp, Users } from 'lucide-react';
@@ -416,7 +416,7 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
                             action={<Button type="button" onClick={() => setIsCategoryModalOpen(true)}>Kategori Oluştur</Button>}
                         />
                     ) : (
-                        activeCategories.map((category) => {
+                        activeCategories.map((category: ServiceCategoryDto) => {
                             const isOpen = !!openCategories[category.id];
                             return (
                                 <div key={category.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-200">
@@ -502,7 +502,7 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
                                                     Bu kategoride henüz hizmet bulunmuyor.
                                                 </div>
                                             ) : (
-                                                category.services.map((service) => (
+                                                category.services.map((service: Service) => (
                                                     <div key={service.id} className="px-5 sm:px-6 py-3.5 flex justify-between items-center hover:bg-gray-50 transition-colors">
                                                         <div className="flex items-center gap-3">
                                                             <div className={`w-2 h-2 rounded-full shrink-0 ${service.isActive ? 'bg-green-400' : 'bg-gray-300'}`} />
@@ -566,7 +566,7 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
                                     <h3 className="font-bold text-red-900">Silinen Kategoriler</h3>
                                 </div>
                                 <div className="divide-y divide-red-50">
-                                    {deletedCategories.map((category) => (
+                                    {deletedCategories.map((category: ServiceCategoryDto) => (
                                         <div key={category.id} className="p-4 bg-red-50/30">
                                             <div className="flex justify-between items-center mb-2">
                                                 <div className="flex items-center gap-2">
@@ -586,7 +586,7 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
                                     <h3 className="font-bold text-orange-900">Silinen Hizmetler (Aktif Kategoriler İçinde)</h3>
                                 </div>
                                 <div className="divide-y divide-orange-50">
-                                    {deletedServicesInActiveCategories.map((service) => (
+                                    {deletedServicesInActiveCategories.map((service: Service & { categoryName: string }) => (
                                         <div key={service.id} className="p-4 flex justify-between items-center hover:bg-orange-50/50 transition-colors">
                                             <div className="flex items-center">
                                                 <Tag className="h-4 w-4 text-orange-400 mr-3" />

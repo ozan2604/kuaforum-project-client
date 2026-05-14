@@ -8,10 +8,9 @@ import { getApiError } from '../../utils/storage';
 import {
     MapPin, Phone, Building2, Trash2, CalendarX, Clock,
     Camera, Store, ChevronDown, ChevronUp, ArrowRight, AlertTriangle, CalendarClock, UserX,
-    Scissors, Users, CheckCircle, CheckCircle2, Circle, ChevronRight
+    Scissors, Users, CheckCircle, CheckCircle2, Circle
 } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
-import { ConfirmationModal } from '../../components/ConfirmationModal';
+import { useNavigate } from 'react-router-dom';
 import { ServicesPage } from './ServicesPage';
 import { EmployeesPage } from './EmployeesPage';
 import { SearchableSelect } from '../../components/SearchableSelect';

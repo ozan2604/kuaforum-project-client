@@ -18,7 +18,7 @@ interface Neighborhood { id: number; name: string }
 const steps = ['Genel Bilgiler', 'İletişim', 'Adres'];
 
 export const SalonApplicationPage: React.FC = () => {
-    const { user, logout } = useAuth();
+    const { user } = useAuth();
     const navigate = useNavigate();
 
     const [application, setApplication] = useState<any>(null);

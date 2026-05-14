@@ -14,7 +14,6 @@ import {
     Scissors, ChevronLeft, ChevronRight, Zap, ChevronDown, Filter, Phone, MessageSquare, X, Plus, UserX
 } from 'lucide-react';
 import { blockService } from '../../api/block.service';
-import type { NoShowResultDto } from '../../types/appointment';
 import { ManualBookingModal } from '../../components/ManualBookingModal';
 import { format, addDays } from 'date-fns';
 import { tr } from 'date-fns/locale';
