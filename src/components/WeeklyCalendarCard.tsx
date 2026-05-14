@@ -39,6 +39,7 @@ const ST: Record<AppointmentStatus, { card: string; dot: string }> = {
     [AppointmentStatus.Completed]: { card: 'bg-emerald-50 border-l-emerald-400 text-emerald-900', dot: 'bg-emerald-400' },
     [AppointmentStatus.Cancelled]: { card: 'bg-gray-50    border-l-gray-300    text-gray-500',    dot: 'bg-gray-300' },
     [AppointmentStatus.Rejected]:  { card: 'bg-red-50     border-l-red-400     text-red-900',     dot: 'bg-red-400' },
+    [AppointmentStatus.NoShow]:    { card: 'bg-orange-50  border-l-orange-400  text-orange-900',  dot: 'bg-orange-400' },
 };
 
 const LEGEND = [
