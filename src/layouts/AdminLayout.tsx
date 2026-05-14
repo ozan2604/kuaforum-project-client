@@ -1,63 +1,91 @@
-import React from 'react';
+import React, { useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, Store, Users, LogOut, Scissors, Menu, X, MessageSquare } from 'lucide-react';
+import { LayoutDashboard, Store, Users, LogOut, Scissors, Menu, X, MessageSquare, Home, AlertTriangle } from 'lucide-react';
+
+const LogoutConfirmModal: React.FC<{ onConfirm: () => void; onCancel: () => void }> = ({ onConfirm, onCancel }) =>
+    createPortal(
+        <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
+                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-4">
+                    <AlertTriangle className="h-6 w-6 text-red-600" />
+                </div>
+                <h3 className="text-lg font-bold text-gray-900 text-center mb-2">Çıkış Yap</h3>
+                <p className="text-gray-500 text-sm text-center mb-6">
+                    Admin panelinden çıkış yapmak istediğinize emin misiniz?
+                </p>
+                <div className="flex gap-3">
+                    <button
+                        onClick={onCancel}
+                        className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                    >
+                        İptal
+                    </button>
+                    <button
+                        onClick={onConfirm}
+                        className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
+                    >
+                        Çıkış Yap
+                    </button>
+                </div>
+            </div>
+        </div>,
+        document.body
+    );
 
 export const AdminLayout: React.FC = () => {
     const { logout } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
+    const [sidebarOpen, setSidebarOpen] = useState(false);
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-    const handleLogout = () => {
+    const handleLogoutConfirm = () => {
         logout();
         navigate('/login');
     };
 
     const navItems = [
-        { path: '/admin', label: 'Dashboard', icon: LayoutDashboard },
-        { path: '/admin/applications', label: 'Applications', icon: Users },
-        { path: '/admin/shops', label: 'Shops', icon: Store },
-        { path: '/admin/users', label: 'Users', icon: Users },
-        { path: '/admin/sms-test', label: 'SMS Test', icon: MessageSquare },
+        { path: '/admin',              label: 'Panel',        icon: LayoutDashboard },
+        { path: '/admin/applications', label: 'Başvurular',   icon: Users },
+        { path: '/admin/shops',        label: 'Salonlar',     icon: Store },
+        { path: '/admin/users',        label: 'Kullanıcılar', icon: Users },
+        { path: '/admin/sms-test',     label: 'SMS Test',     icon: MessageSquare },
     ];
-
-    const [sidebarOpen, setSidebarOpen] = React.useState(false);
-
-    const toggleSidebar = () => setSidebarOpen(!sidebarOpen);
 
     return (
         <div className="flex h-screen bg-gray-50">
             {/* Sidebar */}
-            <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:inset-auto ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'
-                }`}>
-                <div className="h-16 flex items-center justify-between px-6 border-b border-gray-100">
+            <div className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-lg transform transition-transform duration-300 ease-in-out md:translate-x-0 md:static md:inset-auto flex flex-col ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}`}>
+                {/* Logo */}
+                <div className="h-16 flex items-center justify-between px-6 border-b border-gray-100 shrink-0">
                     <div className="flex items-center">
                         <div className="bg-primary-600 p-1.5 rounded-lg mr-3">
                             <Scissors className="h-5 w-5 text-white" />
                         </div>
-                        <span className="font-bold text-lg text-gray-800">Kuaforum Admin</span>
+                        <span className="font-bold text-lg text-gray-800">Yönetim Paneli</span>
                     </div>
-                    <button onClick={toggleSidebar} className="md:hidden text-gray-500 hover:text-gray-700">
+                    <button onClick={() => setSidebarOpen(false)} className="md:hidden text-gray-500 hover:text-gray-700">
                         <X className="h-6 w-6" />
                     </button>
                 </div>
 
-                <nav className="p-4 space-y-1">
+                {/* Nav */}
+                <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
                     {navItems.map((item) => {
                         const Icon = item.icon;
                         const isActive = location.pathname === item.path ||
                             (item.path !== '/admin' && location.pathname.startsWith(item.path));
-
                         return (
                             <Link
                                 key={item.path}
                                 to={item.path}
                                 onClick={() => setSidebarOpen(false)}
-                                className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors
-                                    ${isActive
-                                        ? 'bg-primary-50 text-primary-600'
-                                        : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
-                                    }`}
+                                className={`flex items-center px-4 py-3 text-sm font-medium rounded-lg transition-colors ${isActive
+                                    ? 'bg-primary-50 text-primary-600'
+                                    : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                                }`}
                             >
                                 <Icon className={`h-5 w-5 mr-3 ${isActive ? 'text-primary-600' : 'text-gray-400'}`} />
                                 {item.label}
@@ -66,23 +94,29 @@ export const AdminLayout: React.FC = () => {
                     })}
                 </nav>
 
-                <div className="absolute bottom-0 w-64 p-4 border-t border-gray-100">
+                {/* Bottom: Anasayfa + Çıkış */}
+                <div className="p-4 border-t border-gray-100 space-y-1 shrink-0">
+                    <Link
+                        to="/"
+                        onClick={() => setSidebarOpen(false)}
+                        className="flex items-center px-4 py-3 text-sm font-medium rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                    >
+                        <Home className="h-5 w-5 mr-3 text-gray-400" />
+                        Anasayfa
+                    </Link>
                     <button
-                        onClick={handleLogout}
+                        onClick={() => setShowLogoutConfirm(true)}
                         className="flex items-center w-full px-4 py-3 text-sm font-medium text-red-600 rounded-lg hover:bg-red-50 transition-colors"
                     >
                         <LogOut className="h-5 w-5 mr-3" />
-                        Logout
+                        Çıkış Yap
                     </button>
                 </div>
             </div>
 
             {/* Overlay */}
             {sidebarOpen && (
-                <div
-                    className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden"
-                    onClick={() => setSidebarOpen(false)}
-                />
+                <div className="fixed inset-0 bg-black bg-opacity-50 z-40 md:hidden" onClick={() => setSidebarOpen(false)} />
             )}
 
             {/* Main Content */}
@@ -90,12 +124,12 @@ export const AdminLayout: React.FC = () => {
                 <header className="bg-white shadow-sm z-0 md:hidden">
                     <div className="flex items-center justify-between h-16 px-4">
                         <div className="flex items-center">
-                            <button onClick={toggleSidebar} className="text-gray-500 hover:text-gray-700 mr-3">
+                            <button onClick={() => setSidebarOpen(true)} className="text-gray-500 hover:text-gray-700 mr-3">
                                 <Menu className="h-6 w-6" />
                             </button>
-                            <span className="font-bold text-lg text-gray-800">Admin Panel</span>
+                            <span className="font-bold text-lg text-gray-800">Yönetim Paneli</span>
                         </div>
-                        <button onClick={handleLogout} className="text-gray-500">
+                        <button onClick={() => setShowLogoutConfirm(true)} className="text-gray-500 hover:text-red-600 transition-colors">
                             <LogOut className="h-5 w-5" />
                         </button>
                     </div>
@@ -105,6 +139,13 @@ export const AdminLayout: React.FC = () => {
                     <Outlet />
                 </main>
             </div>
+
+            {showLogoutConfirm && (
+                <LogoutConfirmModal
+                    onConfirm={handleLogoutConfirm}
+                    onCancel={() => setShowLogoutConfirm(false)}
+                />
+            )}
         </div>
     );
 };
