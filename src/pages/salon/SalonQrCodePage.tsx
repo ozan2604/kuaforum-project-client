@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { shopService } from '../../api/shop.service';
 import { QRCodeCanvas, QRCodeSVG } from 'qrcode.react';
-import { QrCode, X, Phone, Tag, Loader2, ImageDown, FileCode2, FileText } from 'lucide-react';
+import { QrCode, X, Phone, Tag, Loader2, ImageDown, FileCode2, Printer } from 'lucide-react';
 import { ShopCategoryLabels } from '../../types/shop';
 import type { Shop } from '../../types/shop';
 import { toast } from 'react-hot-toast';
@@ -10,6 +10,12 @@ const SHOP_BASE_URL = 'https://www.salonbir.com/shop';
 
 const escHtml = (s: string) =>
     s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+const getAbsImageUrl = (path: string | null | undefined): string | null => {
+    if (!path) return null;
+    if (path.startsWith('http')) return path;
+    return `http://localhost:5000${path}`;
+};
 
 export const SalonQrCodePage: React.FC = () => {
     const [shop, setShop] = useState<Shop | null>(null);
@@ -55,8 +61,7 @@ export const SalonQrCodePage: React.FC = () => {
     const handleDownloadSvg = () => {
         const svgEl = svgWrapRef.current?.querySelector('svg');
         if (!svgEl) return;
-        const serializer = new XMLSerializer();
-        const svgStr = serializer.serializeToString(svgEl);
+        const svgStr = new XMLSerializer().serializeToString(svgEl);
         const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -66,67 +71,88 @@ export const SalonQrCodePage: React.FC = () => {
         URL.revokeObjectURL(url);
     };
 
-    const handleDownloadPdf = () => {
+    const handlePrintFlyer = () => {
         if (!canvasRef.current || !shop) return;
 
         const qrDataUrl = canvasRef.current.toDataURL('image/png');
-        const catText = categoryNames.map(escHtml).join(' &nbsp;·&nbsp; ');
+        const coverUrl = getAbsImageUrl(shop.coverImagePath);
+        const catNames = (shop.categories ?? [])
+            .map((c: any) => ShopCategoryLabels[c as keyof typeof ShopCategoryLabels])
+            .filter(Boolean);
+
+        const coverHtml = coverUrl
+            ? `<img class="cover" src="${escHtml(coverUrl)}" alt="">`
+            : `<div class="cover-placeholder"><span>${escHtml(shop.name.slice(0, 2).toUpperCase())}</span></div>`;
+
+        const phoneHtml = shop.phoneNumber
+            ? `<div class="row"><div class="icon">📞</div><span class="val">${escHtml(shop.phoneNumber)}</span></div>`
+            : '';
+
+        const catsHtml = catNames.length > 0
+            ? `<div class="row cats-row"><div class="icon">✂️</div><div class="cats">${catNames.map(c => `<span class="badge">${escHtml(c)}</span>`).join('')}</div></div>`
+            : '';
 
         const html = `<!DOCTYPE html>
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <title>${escHtml(shop.name)} – QR Kod</title>
+  <title>${escHtml(shop.name)} – Rezervasyon Afişi</title>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:'Segoe UI',Arial,sans-serif;background:#f1f5f9;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:32px}
-    .card{width:380px;background:#fff;border-radius:24px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.15)}
-    .header{background:linear-gradient(135deg,#334155 0%,#1e293b 100%);color:#fff;padding:28px 28px 24px}
-    .brand{font-size:10px;letter-spacing:4px;text-transform:uppercase;color:#94a3b8;margin-bottom:8px}
-    .title{font-size:17px;font-weight:800;line-height:1.35;margin-bottom:20px}
-    .info-box{background:rgba(255,255,255,.1);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px}
-    .info-row{display:flex;align-items:flex-start;gap:10px;font-size:13px}
-    .info-label{color:#94a3b8;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;min-width:56px;padding-top:1px}
-    .info-value{color:#fff;font-weight:600;line-height:1.4}
-    .qr-area{background:#f8fafc;padding:36px 28px 20px;display:flex;flex-direction:column;align-items:center;gap:14px}
-    .qr-wrap{background:#fff;padding:16px;border-radius:16px;box-shadow:0 2px 16px rgba(0,0,0,.09)}
-    .qr-wrap img{width:216px;height:216px;display:block}
-    .url{font-size:9px;color:#94a3b8;word-break:break-all;text-align:center;max-width:300px;line-height:1.5}
-    .footer{padding:16px 28px 24px;text-align:center;background:#f8fafc}
-    .footer-text{font-size:11px;color:#cbd5e1;font-weight:600;letter-spacing:1px}
-    @media print{body{padding:0;background:#fff}.card{box-shadow:none;border-radius:0;width:100%}}
+    body{font-family:'Segoe UI',Arial,sans-serif;background:#f1f5f9;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:24px}
+    .flyer{width:400px;background:#fff;border-radius:24px;overflow:hidden;box-shadow:0 12px 48px rgba(0,0,0,.18)}
+    .cover{width:100%;height:200px;object-fit:cover;display:block}
+    .cover-placeholder{width:100%;height:200px;background:linear-gradient(135deg,#334155,#1e293b);display:flex;align-items:center;justify-content:center}
+    .cover-placeholder span{font-size:56px;font-weight:900;color:rgba(255,255,255,.18);letter-spacing:6px}
+    .info{padding:24px 28px 18px}
+    .brand{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:#94a3b8;margin-bottom:10px;font-weight:700}
+    .shop-name{font-size:24px;font-weight:900;color:#1e293b;margin-bottom:16px;line-height:1.2}
+    .row{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
+    .icon{width:30px;height:30px;background:#f1f5f9;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0}
+    .val{font-size:14px;color:#475569;font-weight:600;padding-top:5px}
+    .cats-row{align-items:flex-start}
+    .cats{display:flex;flex-wrap:wrap;gap:6px;padding-top:4px}
+    .badge{padding:4px 12px;background:#f1f5f9;border-radius:20px;font-size:11px;font-weight:700;color:#334155}
+    .divider{margin:0 28px;height:1px;background:#e2e8f0}
+    .qr-section{padding:24px 28px 20px;display:flex;flex-direction:column;align-items:center;gap:16px}
+    .qr-label{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:2px;color:#64748b;text-align:center}
+    .qr-wrap{background:#fff;padding:16px;border-radius:16px;border:2px solid #e2e8f0}
+    .qr-img{width:200px;height:200px;display:block}
+    .url{font-size:9px;color:#94a3b8;word-break:break-all;text-align:center;max-width:280px;line-height:1.6}
+    .footer{background:#1e293b;padding:14px;text-align:center}
+    .footer-text{font-size:11px;color:#475569;font-weight:700;letter-spacing:2px;text-transform:uppercase}
+    @media print{
+      body{padding:0;background:#fff}
+      .flyer{box-shadow:none;border-radius:0;width:100%}
+    }
   </style>
 </head>
 <body>
-  <div class="card">
-    <div class="header">
+  <div class="flyer">
+    ${coverHtml}
+    <div class="info">
       <div class="brand">SalonBir</div>
-      <div class="title">Rezervasyon için bu<br>QR kodu okutun</div>
-      <div class="info-box">
-        <div class="info-row">
-          <span class="info-label">Salon</span>
-          <span class="info-value">${escHtml(shop.name)}</span>
-        </div>
-        ${shop.phoneNumber ? `<div class="info-row"><span class="info-label">Tel</span><span class="info-value">${escHtml(shop.phoneNumber)}</span></div>` : ''}
-        ${catText ? `<div class="info-row"><span class="info-label">Kategori</span><span class="info-value">${catText}</span></div>` : ''}
-      </div>
+      <div class="shop-name">${escHtml(shop.name)}</div>
+      ${phoneHtml}
+      ${catsHtml}
     </div>
-    <div class="qr-area">
-      <div class="qr-wrap"><img src="${qrDataUrl}" alt="QR Kod"></div>
+    <div class="divider"></div>
+    <div class="qr-section">
+      <div class="qr-label">Rezervasyon için QR kodu okutun</div>
+      <div class="qr-wrap"><img class="qr-img" src="${qrDataUrl}" alt="QR Kod"></div>
       <div class="url">${escHtml(shopUrl)}</div>
     </div>
     <div class="footer"><div class="footer-text">www.salonbir.com</div></div>
   </div>
   <script>
     window.addEventListener('load', function() {
-      window.print();
-      setTimeout(function(){ window.close(); }, 1500);
+      setTimeout(function() { window.print(); setTimeout(function(){ window.close(); }, 1500); }, 400);
     });
   </script>
 </body>
 </html>`;
 
-        const pw = window.open('', '_blank', 'width=520,height=780');
+        const pw = window.open('', '_blank', 'width=560,height=820');
         if (!pw) {
             toast.error('Popup engelleyici aktif — lütfen izin verin ve tekrar deneyin.');
             return;
@@ -202,13 +228,11 @@ export const SalonQrCodePage: React.FC = () => {
                     className="fixed inset-0 z-50 flex items-center justify-center p-4"
                     onClick={(e) => { if (e.target === e.currentTarget) setIsModalOpen(false); }}
                 >
-                    {/* Backdrop */}
                     <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
 
-                    {/* Modal card */}
                     <div className="relative z-10 w-full max-w-md bg-white rounded-3xl shadow-2xl overflow-hidden">
 
-                        {/* Close button */}
+                        {/* Close */}
                         <button
                             onClick={() => setIsModalOpen(false)}
                             className="absolute top-4 right-4 z-20 w-8 h-8 flex items-center justify-center rounded-full bg-white/20 hover:bg-white/30 text-white transition-colors"
@@ -223,7 +247,6 @@ export const SalonQrCodePage: React.FC = () => {
                                 Rezervasyon için bu QR kodu okutun
                             </h2>
 
-                            {/* Shop info */}
                             <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-4 space-y-2.5">
                                 <div className="flex items-center gap-2.5">
                                     <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center shrink-0">
@@ -248,10 +271,7 @@ export const SalonQrCodePage: React.FC = () => {
                                         </div>
                                         <div className="flex flex-wrap gap-1.5">
                                             {categoryNames.map((cat) => (
-                                                <span
-                                                    key={cat}
-                                                    className="inline-block px-2.5 py-0.5 bg-white/20 rounded-full text-xs font-semibold text-white"
-                                                >
+                                                <span key={cat} className="inline-block px-2.5 py-0.5 bg-white/20 rounded-full text-xs font-semibold text-white">
                                                     {cat}
                                                 </span>
                                             ))}
@@ -261,7 +281,7 @@ export const SalonQrCodePage: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* QR Code area */}
+                        {/* QR Code */}
                         <div className="bg-gray-50 flex flex-col items-center py-8 px-6">
                             <div className="bg-white p-4 rounded-2xl shadow-md ring-1 ring-gray-100">
                                 <QRCodeCanvas
@@ -275,45 +295,39 @@ export const SalonQrCodePage: React.FC = () => {
                                 />
                             </div>
 
-                            {/* Hidden SVG for SVG download */}
                             <div className="hidden" ref={svgWrapRef} aria-hidden>
-                                <QRCodeSVG
-                                    value={shopUrl}
-                                    size={512}
-                                    fgColor="#334155"
-                                    bgColor="#ffffff"
-                                    level="H"
-                                    marginSize={1}
-                                />
+                                <QRCodeSVG value={shopUrl} size={512} fgColor="#334155" bgColor="#ffffff" level="H" marginSize={1} />
                             </div>
 
                             <p className="mt-3 text-xs text-gray-400 text-center font-mono break-all px-4 max-w-xs">{shopUrl}</p>
                         </div>
 
                         {/* Download buttons */}
-                        <div className="bg-white px-6 pb-6 pt-2">
-                            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 text-center">İndir</p>
-                            <div className="grid grid-cols-3 gap-2">
+                        <div className="bg-white px-6 pb-6 pt-2 space-y-3">
+                            {/* Flyer / PDF — main CTA */}
+                            <button
+                                onClick={handlePrintFlyer}
+                                className="w-full flex items-center justify-center gap-2 py-3.5 bg-primary-700 hover:bg-primary-800 text-white font-bold text-sm rounded-xl transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] shadow-sm shadow-primary-700/20"
+                            >
+                                <Printer className="w-4 h-4" />
+                                Afişi PDF Olarak İndir
+                            </button>
+
+                            {/* QR-only: PNG + SVG */}
+                            <div className="flex gap-2">
                                 <button
                                     onClick={handleDownloadPng}
-                                    className="flex flex-col items-center justify-center gap-1.5 py-3 bg-primary-700 hover:bg-primary-800 text-white font-bold text-xs rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-sm shadow-primary-700/20"
+                                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-white hover:bg-gray-50 text-primary-700 font-semibold text-xs rounded-xl border border-gray-200 hover:border-primary-300 transition-all duration-200"
                                 >
-                                    <ImageDown className="w-4 h-4" />
-                                    PNG
+                                    <ImageDown className="w-3.5 h-3.5" />
+                                    Sadece QR — PNG
                                 </button>
                                 <button
                                     onClick={handleDownloadSvg}
-                                    className="flex flex-col items-center justify-center gap-1.5 py-3 bg-white hover:bg-gray-50 text-primary-700 font-bold text-xs rounded-xl border-2 border-primary-200 hover:border-primary-400 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                                    className="flex-1 flex items-center justify-center gap-1.5 py-2.5 bg-white hover:bg-gray-50 text-primary-700 font-semibold text-xs rounded-xl border border-gray-200 hover:border-primary-300 transition-all duration-200"
                                 >
-                                    <FileCode2 className="w-4 h-4" />
-                                    SVG
-                                </button>
-                                <button
-                                    onClick={handleDownloadPdf}
-                                    className="flex flex-col items-center justify-center gap-1.5 py-3 bg-white hover:bg-gray-50 text-primary-700 font-bold text-xs rounded-xl border-2 border-primary-200 hover:border-primary-400 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-                                >
-                                    <FileText className="w-4 h-4" />
-                                    PDF
+                                    <FileCode2 className="w-3.5 h-3.5" />
+                                    Sadece QR — SVG
                                 </button>
                             </div>
                         </div>
