@@ -16,6 +16,7 @@ import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { CustomSelect } from '../../components/CustomSelect';
 import { WeeklyCalendarCard } from '../../components/WeeklyCalendarCard';
+import { LoadingSpinner } from '../../components/LoadingSpinner';
 
 export const EmployeeAppointmentsPage: React.FC = () => {
     const [appointments, setAppointments] = useState<Appointment[]>([]);
@@ -271,9 +272,8 @@ export const EmployeeAppointmentsPage: React.FC = () => {
 
                             {/* Table content */}
                             {loading ? (
-                                <div className="py-14 text-center flex justify-center items-center gap-2 text-gray-400">
-                                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-500" />
-                                    Yükleniyor...
+                                <div className="py-14 text-center">
+                                    <LoadingSpinner />
                                 </div>
                             ) : appointments.length === 0 ? (
                                 <div className="py-14 text-center flex flex-col items-center gap-3">

@@ -72,18 +72,17 @@ export const SalonQrCodePage: React.FC = () => {
             ? `<img class="cover-img" src="${escHtml(coverUrl)}" alt="">`
             : `<div class="cover-ph"><span>${escHtml(shop.name.slice(0, 2).toUpperCase())}</span></div>`;
 
+        const PHONE_SVG_WHITE = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.73 12.9a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.64 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.16 6.16l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`;
+
         const phoneHtml = shop.phoneNumber
-            ? `<div class="detail">
-                 <div class="icon-box">${PHONE_SVG}</div>
-                 <span class="val">${escHtml(shop.phoneNumber)}</span>
+            ? `<div class="phone-btn">
+                 ${PHONE_SVG_WHITE}
+                 <span>${escHtml(shop.phoneNumber)}</span>
                </div>`
             : '';
 
         const catsHtml = categoryNames.length > 0
-            ? `<div class="detail" style="align-items:flex-start">
-                 <div class="icon-box" style="margin-top:0.8mm">${TAG_SVG}</div>
-                 <div class="cats">${categoryNames.map(c => `<span class="badge">${escHtml(c)}</span>`).join('')}</div>
-               </div>`
+            ? `<div class="cats">${categoryNames.map(c => `<span class="badge">${escHtml(c)}</span>`).join('')}</div>`
             : '';
 
         /*
@@ -140,24 +139,29 @@ export const SalonQrCodePage: React.FC = () => {
     height: 62mm; flex-shrink: 0;
     padding: 0 9mm;
     background: #ffffff;
-    display: flex; flex-direction: column; justify-content: center; gap: 4mm;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3.5mm;
     overflow: hidden;
     border-bottom: 0.3mm solid #e2e8f0;
   }
-  .shop-name {
-    font-size: 23pt; font-weight: 900; color: #0f172a; line-height: 1.15;
-    overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  .shop-name-btn {
+    background: #1e293b; color: #ffffff;
+    font-size: 16pt; font-weight: 800;
+    padding: 2.5mm 7mm; border-radius: 4mm;
+    text-align: center;
+    max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   }
-  .detail { display: flex; align-items: center; gap: 3mm; }
-  .icon-box {
-    width: 7.5mm; height: 7.5mm; min-width: 7.5mm;
-    background: #f1f5f9; border-radius: 2mm;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
+  .phone-btn {
+    background: #1e293b; color: #ffffff;
+    font-size: 11pt; font-weight: 700;
+    padding: 1.8mm 5mm; border-radius: 3mm;
+    display: flex; align-items: center; gap: 2mm;
   }
-  .val { font-size: 12pt; color: #334155; font-weight: 700; }
-  .cats { display: flex; flex-wrap: wrap; gap: 1.5mm; }
-  .badge { padding: 1mm 3.5mm; background: #e2e8f0; border-radius: 10pt; font-size: 8.5pt; font-weight: 800; color: #334155; }
+  .phone-btn svg { stroke: #ffffff; width: 14px; height: 14px; }
+  .cats { display: flex; flex-wrap: wrap; justify-content: center; gap: 2mm; }
+  .badge { 
+    background: #1e293b; color: #ffffff;
+    padding: 1.5mm 4mm; border-radius: 3mm; font-size: 8.5pt; font-weight: 700; 
+  }
 
   /* QR section — 100mm FIXED */
   .qr-section {
@@ -181,7 +185,7 @@ export const SalonQrCodePage: React.FC = () => {
 <div class="card">
   ${coverHtml}
   <div class="info">
-    <div class="shop-name">${escHtml(shop.name)}</div>
+    <div class="shop-name-btn">${escHtml(shop.name)}</div>
     ${phoneHtml}
     ${catsHtml}
   </div>
@@ -292,30 +296,25 @@ export const SalonQrCodePage: React.FC = () => {
                                 )}
 
                                 {/* Info — ~25% of card */}
-                                <div className="px-5 py-5 flex flex-col justify-center gap-3.5 border-b border-gray-100 bg-white">
-                                    <h3 className="text-[1.45rem] font-black text-primary-900 leading-tight line-clamp-2">
-                                        {shop.name}
-                                    </h3>
+                                <div className="px-5 py-5 flex flex-col items-center justify-center gap-3 border-b border-gray-100 bg-white">
+                                    <div className="bg-[#1e293b] text-white px-5 py-2.5 rounded-2xl max-w-full truncate">
+                                        <h3 className="text-[1.3rem] font-bold leading-none">
+                                            {shop.name}
+                                        </h3>
+                                    </div>
                                     {shop.phoneNumber && (
-                                        <div className="flex items-center gap-3">
-                                            <div className="w-9 h-9 rounded-xl bg-primary-100 flex items-center justify-center shrink-0">
-                                                <Phone className="w-4 h-4 text-primary-700" />
-                                            </div>
-                                            <span className="text-base font-bold text-primary-800">{shop.phoneNumber}</span>
+                                        <div className="bg-[#1e293b] text-white px-4 py-2 rounded-xl flex items-center gap-2">
+                                            <Phone className="w-4 h-4 text-white" />
+                                            <span className="text-[0.95rem] font-bold">{shop.phoneNumber}</span>
                                         </div>
                                     )}
                                     {categoryNames.length > 0 && (
-                                        <div className="flex items-start gap-3">
-                                            <div className="w-9 h-9 rounded-xl bg-primary-100 flex items-center justify-center shrink-0 mt-0.5">
-                                                <Tag className="w-4 h-4 text-primary-700" />
-                                            </div>
-                                            <div className="flex flex-wrap gap-1.5 mt-1.5">
-                                                {categoryNames.map(cat => (
-                                                    <span key={cat} className="px-3 py-1 bg-primary-100 text-primary-800 rounded-full text-xs font-bold">
-                                                        {cat}
-                                                    </span>
-                                                ))}
-                                            </div>
+                                        <div className="flex flex-wrap items-center justify-center gap-2 mt-1">
+                                            {categoryNames.map(cat => (
+                                                <span key={cat} className="px-4 py-1.5 bg-[#1e293b] text-white rounded-xl text-xs font-bold">
+                                                    {cat}
+                                                </span>
+                                            ))}
                                         </div>
                                     )}
                                 </div>

@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { format, isToday, isTomorrow, parseISO } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import { LoadingSpinner } from '../../components/LoadingSpinner';
 
 export const EmployeeDashboardPage: React.FC = () => {
     const { user } = useAuth();
@@ -70,11 +71,7 @@ export const EmployeeDashboardPage: React.FC = () => {
     };
 
     if (loading) {
-        return (
-            <div className="flex items-center justify-center py-24">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600" />
-            </div>
-        );
+        return <LoadingSpinner />;
     }
 
     return (

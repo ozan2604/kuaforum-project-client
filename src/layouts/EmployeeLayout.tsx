@@ -28,6 +28,7 @@ const EmployeeLayoutInner: React.FC = () => {
     const navigate = useNavigate();
     const { isDirty, setIsDirty, pendingAction, setPendingAction } = useUnsavedChanges();
     const [sidebarOpen, setSidebarOpen] = React.useState(false);
+    const [showLogoutModal, setShowLogoutModal] = React.useState(false);
 
     const guardedNavigate = (action: () => void) => {
         if (isDirty) {
@@ -113,7 +114,7 @@ const EmployeeLayoutInner: React.FC = () => {
                             </div>
                         )}
                         <button
-                            onClick={() => guardedNavigate(() => { logout(); navigate('/login'); })}
+                            onClick={() => guardedNavigate(() => setShowLogoutModal(true))}
                             className="w-full flex items-center gap-3 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         >
                             <LogOut className="h-5 w-5" />
@@ -157,6 +158,37 @@ const EmployeeLayoutInner: React.FC = () => {
                             </button>
                             <button
                                 onClick={handleConfirm}
+                                className="px-4 py-2 text-sm font-semibold rounded-xl text-white bg-red-600 hover:bg-red-700 transition-colors"
+                            >
+                                Çıkış Yap
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* Logout confirmation modal */}
+            {showLogoutModal && createPortal(
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">Çıkış Yap</h3>
+                        <p className="text-gray-600 text-sm mb-5">
+                            Hesabınızdan çıkış yapmak istediğinize emin misiniz?
+                        </p>
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                onClick={() => setShowLogoutModal(false)}
+                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
+                            >
+                                Vazgeç
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setShowLogoutModal(false);
+                                    logout();
+                                    navigate('/login');
+                                }}
                                 className="px-4 py-2 text-sm font-semibold rounded-xl text-white bg-red-600 hover:bg-red-700 transition-colors"
                             >
                                 Çıkış Yap
