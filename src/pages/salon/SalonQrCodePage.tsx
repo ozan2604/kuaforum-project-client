@@ -87,10 +87,10 @@ export const SalonQrCodePage: React.FC = () => {
             : '';
 
         /*
-         * A4 = 210×297mm.
-         * Body padding 7mm each side → card area = 196×283mm.
-         * Section heights: cover=84 + info=70 + qr=109 + footer=20 = 283mm ✓
-         * border-radius + overflow:hidden on .card clips cover & footer corners.
+         * A4 = 210×297mm. iOS Safari adds ~20mm margins even with @page{margin:0}.
+         * Fix: body min-height:297mm (fills page background), card only 258mm.
+         * Centering adds (297-258)/2 = 19.5mm on each side — safe from any browser margin.
+         * Section heights: cover=76 + info=62 + qr=100 + footer=20 = 258mm ✓
          */
         const html = `<!DOCTYPE html>
 <html lang="tr">
@@ -100,19 +100,24 @@ export const SalonQrCodePage: React.FC = () => {
 <style>
   @page { size: A4 portrait; margin: 0; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html, body {
-    width: 210mm; height: 297mm;
+  html {
+    width: 210mm;
+    background: #eef0f3;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  body {
+    width: 210mm;
+    min-height: 297mm;
     overflow: hidden;
     background: #eef0f3;
     font-family: 'Segoe UI', Arial, sans-serif;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
     display: flex; align-items: center; justify-content: center;
   }
 
-  /* Card — 196×283mm, rounded corners */
+  /* Card — 196×258mm, rounded all corners */
   .card {
-    width: 196mm; height: 283mm;
+    width: 196mm; height: 258mm;
     border-radius: 8mm;
     overflow: hidden;
     display: flex; flex-direction: column;
@@ -121,51 +126,51 @@ export const SalonQrCodePage: React.FC = () => {
     box-shadow: 0 0 0 0.4mm #d1d5db;
   }
 
-  /* Cover — 84mm */
-  .cover-img { width: 100%; height: 84mm; object-fit: cover; display: block; flex-shrink: 0; }
+  /* Cover — 76mm */
+  .cover-img { width: 100%; height: 76mm; object-fit: cover; display: block; flex-shrink: 0; }
   .cover-ph {
-    width: 100%; height: 84mm; flex-shrink: 0;
+    width: 100%; height: 76mm; flex-shrink: 0;
     background: linear-gradient(135deg, #1e293b 0%, #334155 100%);
     display: flex; align-items: center; justify-content: center;
   }
-  .cover-ph span { font-size: 68pt; font-weight: 900; color: rgba(255,255,255,.08); letter-spacing: 8pt; }
+  .cover-ph span { font-size: 64pt; font-weight: 900; color: rgba(255,255,255,.08); letter-spacing: 8pt; }
 
-  /* Info — 70mm FIXED */
+  /* Info — 62mm FIXED */
   .info {
-    height: 70mm; flex-shrink: 0;
-    padding: 0 10mm;
+    height: 62mm; flex-shrink: 0;
+    padding: 0 9mm;
     background: #ffffff;
-    display: flex; flex-direction: column; justify-content: center; gap: 5mm;
+    display: flex; flex-direction: column; justify-content: center; gap: 4mm;
     overflow: hidden;
     border-bottom: 0.3mm solid #e2e8f0;
   }
   .shop-name {
-    font-size: 25pt; font-weight: 900; color: #0f172a; line-height: 1.15;
+    font-size: 23pt; font-weight: 900; color: #0f172a; line-height: 1.15;
     overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
   }
-  .detail { display: flex; align-items: center; gap: 3.5mm; }
+  .detail { display: flex; align-items: center; gap: 3mm; }
   .icon-box {
-    width: 8mm; height: 8mm; min-width: 8mm;
-    background: #f1f5f9; border-radius: 2.5mm;
+    width: 7.5mm; height: 7.5mm; min-width: 7.5mm;
+    background: #f1f5f9; border-radius: 2mm;
     display: flex; align-items: center; justify-content: center;
     flex-shrink: 0;
   }
-  .val { font-size: 13pt; color: #334155; font-weight: 700; }
-  .cats { display: flex; flex-wrap: wrap; gap: 2mm; }
-  .badge { padding: 1.2mm 4mm; background: #e2e8f0; border-radius: 10pt; font-size: 9pt; font-weight: 800; color: #334155; }
+  .val { font-size: 12pt; color: #334155; font-weight: 700; }
+  .cats { display: flex; flex-wrap: wrap; gap: 1.5mm; }
+  .badge { padding: 1mm 3.5mm; background: #e2e8f0; border-radius: 10pt; font-size: 8.5pt; font-weight: 800; color: #334155; }
 
-  /* QR section — 109mm FIXED */
+  /* QR section — 100mm FIXED */
   .qr-section {
-    height: 109mm; flex-shrink: 0;
+    height: 100mm; flex-shrink: 0;
     background: #f8fafc;
     display: flex; flex-direction: column; align-items: center; justify-content: center;
-    gap: 5mm;
-    padding: 0 10mm;
+    gap: 4mm;
+    padding: 0 9mm;
   }
-  .qr-lbl { font-size: 7pt; font-weight: 900; letter-spacing: 3pt; text-transform: uppercase; color: #64748b; text-align: center; }
-  .qr-frame { padding: 4.5mm; border: 0.4mm solid #e2e8f0; border-radius: 5mm; background: #fff; }
-  .qr-frame img { width: 72mm; height: 72mm; display: block; }
-  .qr-url { font-size: 5.5pt; color: #94a3b8; font-family: monospace; word-break: break-all; text-align: center; max-width: 100mm; line-height: 1.6; }
+  .qr-lbl { font-size: 6.5pt; font-weight: 900; letter-spacing: 3pt; text-transform: uppercase; color: #64748b; text-align: center; }
+  .qr-frame { padding: 4mm; border: 0.4mm solid #e2e8f0; border-radius: 4.5mm; background: #fff; }
+  .qr-frame img { width: 65mm; height: 65mm; display: block; }
+  .qr-url { font-size: 5.5pt; color: #94a3b8; font-family: monospace; word-break: break-all; text-align: center; max-width: 95mm; line-height: 1.6; }
 
   /* Footer — 20mm FIXED */
   .footer { height: 20mm; flex-shrink: 0; background: #1e293b; display: flex; align-items: center; justify-content: center; }

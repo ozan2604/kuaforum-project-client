@@ -1,9 +1,52 @@
+const EN_TR: Record<string, string> = {
+    // Auth
+    'invalid credentials': 'Telefon numarası veya şifre hatalı.',
+    'user not found': 'Kullanıcı bulunamadı.',
+    'wrong password': 'Şifre hatalı.',
+    'invalid password': 'Şifre hatalı.',
+    'incorrect password': 'Şifre hatalı.',
+    'phone number already': 'Bu telefon numarası zaten kayıtlı.',
+    'user already exists': 'Bu kullanıcı zaten kayıtlı.',
+    'already registered': 'Bu telefon numarası zaten kayıtlı.',
+    'email already': 'Bu e-posta adresi zaten kullanılıyor.',
+    // OTP
+    'otp expired': 'Doğrulama kodunun süresi dolmuş.',
+    'invalid otp': 'Doğrulama kodu hatalı.',
+    'otp not found': 'Doğrulama kodu bulunamadı.',
+    'expired': 'Kodun süresi dolmuş. Lütfen yeni kod isteyin.',
+    // Identity
+    'passwords must have at least one': 'Şifre en az bir büyük harf, rakam ve özel karakter içermelidir.',
+    'password must': 'Şifre yeterince güçlü değil.',
+    'password is': 'Şifre yeterince güçlü değil.',
+    'username': 'Geçersiz kullanıcı adı formatı.',
+    // Rate limiting
+    'too many': 'Çok fazla istek gönderildi. Lütfen bir süre bekleyin.',
+    'rate limit': 'Çok fazla istek. Lütfen bekleyin.',
+    // Generic
+    'unauthorized': 'Bu işlem için yetkiniz yok.',
+    'forbidden': 'Bu işlem için yetkiniz yok.',
+    'not found': 'İstenen kaynak bulunamadı.',
+    'internal server': 'Sunucu hatası oluştu. Lütfen tekrar deneyin.',
+    'bad request': 'Geçersiz istek.',
+    'network error': 'Bağlantı hatası. İnternet bağlantınızı kontrol edin.',
+};
+
+const translateError = (msg: string): string => {
+    const lower = msg.toLowerCase();
+    for (const [key, tr] of Object.entries(EN_TR)) {
+        if (lower.includes(key)) return tr;
+    }
+    return msg;
+};
+
 export const getApiError = (err: unknown, fallback = 'Bir hata oluştu.'): string => {
     if (err && typeof err === 'object' && 'response' in err) {
         const res = (err as any).response;
-        return res?.data?.message || res?.data?.Message || fallback;
+        const msg: string = res?.data?.message || res?.data?.Message || '';
+        if (!msg) return fallback;
+        return translateError(msg);
     }
-    if (err instanceof Error) return err.message;
+    if (err instanceof Error) return translateError(err.message);
     return fallback;
 };
 
