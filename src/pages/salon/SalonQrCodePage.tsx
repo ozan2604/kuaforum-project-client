@@ -1,12 +1,15 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { shopService } from '../../api/shop.service';
 import { QRCodeCanvas, QRCodeSVG } from 'qrcode.react';
-import { QrCode, X, Phone, Tag, Loader2, ImageDown, FileCode2 } from 'lucide-react';
+import { QrCode, X, Phone, Tag, Loader2, ImageDown, FileCode2, FileText } from 'lucide-react';
 import { ShopCategoryLabels } from '../../types/shop';
 import type { Shop } from '../../types/shop';
 import { toast } from 'react-hot-toast';
 
 const SHOP_BASE_URL = 'https://www.salonbir.com/shop';
+
+const escHtml = (s: string) =>
+    s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 
 export const SalonQrCodePage: React.FC = () => {
     const [shop, setShop] = useState<Shop | null>(null);
@@ -61,6 +64,76 @@ export const SalonQrCodePage: React.FC = () => {
         a.download = `${shop?.name ?? 'salon'}-qr.svg`;
         a.click();
         URL.revokeObjectURL(url);
+    };
+
+    const handleDownloadPdf = () => {
+        if (!canvasRef.current || !shop) return;
+
+        const qrDataUrl = canvasRef.current.toDataURL('image/png');
+        const catText = categoryNames.map(escHtml).join(' &nbsp;·&nbsp; ');
+
+        const html = `<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8">
+  <title>${escHtml(shop.name)} – QR Kod</title>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{font-family:'Segoe UI',Arial,sans-serif;background:#f1f5f9;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:32px}
+    .card{width:380px;background:#fff;border-radius:24px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,.15)}
+    .header{background:linear-gradient(135deg,#334155 0%,#1e293b 100%);color:#fff;padding:28px 28px 24px}
+    .brand{font-size:10px;letter-spacing:4px;text-transform:uppercase;color:#94a3b8;margin-bottom:8px}
+    .title{font-size:17px;font-weight:800;line-height:1.35;margin-bottom:20px}
+    .info-box{background:rgba(255,255,255,.1);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px}
+    .info-row{display:flex;align-items:flex-start;gap:10px;font-size:13px}
+    .info-label{color:#94a3b8;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;min-width:56px;padding-top:1px}
+    .info-value{color:#fff;font-weight:600;line-height:1.4}
+    .qr-area{background:#f8fafc;padding:36px 28px 20px;display:flex;flex-direction:column;align-items:center;gap:14px}
+    .qr-wrap{background:#fff;padding:16px;border-radius:16px;box-shadow:0 2px 16px rgba(0,0,0,.09)}
+    .qr-wrap img{width:216px;height:216px;display:block}
+    .url{font-size:9px;color:#94a3b8;word-break:break-all;text-align:center;max-width:300px;line-height:1.5}
+    .footer{padding:16px 28px 24px;text-align:center;background:#f8fafc}
+    .footer-text{font-size:11px;color:#cbd5e1;font-weight:600;letter-spacing:1px}
+    @media print{body{padding:0;background:#fff}.card{box-shadow:none;border-radius:0;width:100%}}
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="header">
+      <div class="brand">SalonBir</div>
+      <div class="title">Rezervasyon için bu<br>QR kodu okutun</div>
+      <div class="info-box">
+        <div class="info-row">
+          <span class="info-label">Salon</span>
+          <span class="info-value">${escHtml(shop.name)}</span>
+        </div>
+        ${shop.phoneNumber ? `<div class="info-row"><span class="info-label">Tel</span><span class="info-value">${escHtml(shop.phoneNumber)}</span></div>` : ''}
+        ${catText ? `<div class="info-row"><span class="info-label">Kategori</span><span class="info-value">${catText}</span></div>` : ''}
+      </div>
+    </div>
+    <div class="qr-area">
+      <div class="qr-wrap"><img src="${qrDataUrl}" alt="QR Kod"></div>
+      <div class="url">${escHtml(shopUrl)}</div>
+    </div>
+    <div class="footer"><div class="footer-text">www.salonbir.com</div></div>
+  </div>
+  <script>
+    window.addEventListener('load', function() {
+      window.print();
+      setTimeout(function(){ window.close(); }, 1500);
+    });
+  </script>
+</body>
+</html>`;
+
+        const pw = window.open('', '_blank', 'width=520,height=780');
+        if (!pw) {
+            toast.error('Popup engelleyici aktif — lütfen izin verin ve tekrar deneyin.');
+            return;
+        }
+        pw.document.open();
+        pw.document.write(html);
+        pw.document.close();
     };
 
     if (loading) {
@@ -190,7 +263,6 @@ export const SalonQrCodePage: React.FC = () => {
 
                         {/* QR Code area */}
                         <div className="bg-gray-50 flex flex-col items-center py-8 px-6">
-                            {/* Visible QR: Canvas (for PNG download) */}
                             <div className="bg-white p-4 rounded-2xl shadow-md ring-1 ring-gray-100">
                                 <QRCodeCanvas
                                     ref={canvasRef}
@@ -221,20 +293,27 @@ export const SalonQrCodePage: React.FC = () => {
                         {/* Download buttons */}
                         <div className="bg-white px-6 pb-6 pt-2">
                             <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3 text-center">İndir</p>
-                            <div className="flex gap-3">
+                            <div className="grid grid-cols-3 gap-2">
                                 <button
                                     onClick={handleDownloadPng}
-                                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-primary-700 hover:bg-primary-800 text-white font-bold text-sm rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-sm shadow-primary-700/20"
+                                    className="flex flex-col items-center justify-center gap-1.5 py-3 bg-primary-700 hover:bg-primary-800 text-white font-bold text-xs rounded-xl transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] shadow-sm shadow-primary-700/20"
                                 >
                                     <ImageDown className="w-4 h-4" />
-                                    PNG İndir
+                                    PNG
                                 </button>
                                 <button
                                     onClick={handleDownloadSvg}
-                                    className="flex-1 flex items-center justify-center gap-2 py-3 bg-white hover:bg-gray-50 text-primary-700 font-bold text-sm rounded-xl border-2 border-primary-200 hover:border-primary-400 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                                    className="flex flex-col items-center justify-center gap-1.5 py-3 bg-white hover:bg-gray-50 text-primary-700 font-bold text-xs rounded-xl border-2 border-primary-200 hover:border-primary-400 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
                                 >
                                     <FileCode2 className="w-4 h-4" />
-                                    SVG İndir
+                                    SVG
+                                </button>
+                                <button
+                                    onClick={handleDownloadPdf}
+                                    className="flex flex-col items-center justify-center gap-1.5 py-3 bg-white hover:bg-gray-50 text-primary-700 font-bold text-xs rounded-xl border-2 border-primary-200 hover:border-primary-400 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                                >
+                                    <FileText className="w-4 h-4" />
+                                    PDF
                                 </button>
                             </div>
                         </div>
