@@ -15,6 +15,7 @@ import {
     CheckCircle2,
     ChevronRight,
     Users,
+    QrCode,
 } from 'lucide-react';
 
 interface NotificationItem {
@@ -91,6 +92,7 @@ export const SalonOwnerLayout: React.FC = () => {
         { name: 'Dashboard',  href: '/salon-panel',                        icon: LayoutDashboard },
         { name: 'Randevular', href: '/salon-panel/appointments',            icon: Calendar },
         { name: 'Salonum',    href: '/salon-panel/shop',                    icon: Store },
+        { name: 'QR Kod',     href: '/salon-panel/qr-kod',                  icon: QrCode },
         { name: 'Müşteriler', href: '/salon-panel/blocked-customers',       icon: Users },
         { name: 'Ayarlar',    href: '/salon-panel/settings',                icon: Settings },
     ];

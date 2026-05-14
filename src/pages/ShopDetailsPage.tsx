@@ -7,7 +7,7 @@ import type { Shop } from '../types/shop';
 import { ShopCategoryLabels, ShopCategory, TargetGenderLabels } from '../types/shop';
 import type { ServiceCategoryDto, ShopServiceDto } from '../types/service';
 import type { PublicEmployeeScheduleDto } from '../types/employee';
-import { MapPin, Star, Clock, Calendar, ChevronDown, Heart, Grid, Info, Image, MessageCircle, Users, Undo2, Phone, User, ExternalLink, CheckCircle, Map } from 'lucide-react';
+import { MapPin, Star, Clock, Calendar, ChevronDown, Heart, Grid, Info, Image, MessageCircle, Users, Undo2, Phone, User, ExternalLink, CheckCircle, Map, Share2 } from 'lucide-react';
 import { Button } from '../components/Button';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { toast } from 'react-hot-toast';
@@ -172,6 +172,20 @@ export const ShopDetailsPage: React.FC = () => {
         }
     };
 
+    const handleShare = async () => {
+        const url = `https://www.salonbir.com/shop/${shop?.id}`;
+        if (navigator.share) {
+            try {
+                await navigator.share({ title: shop?.name, url });
+            } catch {
+                // kullanıcı iptal etti
+            }
+        } else {
+            await navigator.clipboard.writeText(url);
+            toast.success('Bağlantı kopyalandı!');
+        }
+    };
+
     const getImageUrl = (path: string) => {
         if (!path) return '';
         if (path.startsWith('http')) return path;
@@ -253,9 +267,9 @@ export const ShopDetailsPage: React.FC = () => {
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
                     </div>
 
-                    {/* Üst Bar: Geri (Curved Arrow) + Favori */}
+                    {/* Üst Bar: Geri + Paylaş + Favori */}
                     <div className="absolute top-3 sm:top-6 left-3 sm:left-6 right-3 sm:right-6 z-20 flex items-center justify-between">
-                        {/* Geri Butonu - Paylaşılan görsele uygun kavisli ok */}
+                        {/* Geri Butonu */}
                         <button
                             onClick={() => navigate('/')}
                             className="flex items-center justify-center p-2 sm:p-3.5 bg-white/95 hover:bg-white rounded-full shadow-xl backdrop-blur-md transition-all duration-200 hover:scale-110 active:scale-90 border border-white/60 group"
@@ -264,18 +278,31 @@ export const ShopDetailsPage: React.FC = () => {
                             <Undo2 className="h-5 w-5 sm:h-7 sm:w-7 text-rose-600 group-hover:rotate-[-10deg] transition-transform" />
                         </button>
 
-                        {/* Favori - Navbar ile aynı stil but daha büyük */}
-                        <button
-                            onClick={handleToggleFavorite}
-                            disabled={favLoading}
-                            title={isFavorite ? 'Favorilerden çıkar' : 'Favorilere ekle'}
-                            className={`flex items-center gap-2 px-3 sm:px-5 py-1.5 sm:py-3.5 rounded-full border text-sm sm:text-lg font-bold shadow-xl backdrop-blur-md transition-all duration-200 hover:scale-105 active:scale-95 ${isFavorite
-                                    ? 'bg-rose-50 text-rose-600 border-rose-200'
-                                    : 'bg-white/95 text-gray-700 border-white/60 hover:bg-white'
-                                }`}
-                        >
-                            <Heart className={`h-4 w-4 sm:h-6 sm:w-6 text-rose-500 drop-shadow-[0_0_8px_rgba(244,63,94,0.4)] ${isFavorite ? 'fill-current' : ''}`} />
-                        </button>
+                        {/* Sağ grup: Paylaş + Favori */}
+                        <div className="flex items-center gap-2">
+                            {/* Paylaş butonu */}
+                            <button
+                                onClick={handleShare}
+                                title="Paylaş"
+                                className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-3 rounded-full border bg-white/95 text-gray-700 border-white/60 hover:bg-white text-sm sm:text-base font-bold shadow-xl backdrop-blur-md transition-all duration-200 hover:scale-105 active:scale-95"
+                            >
+                                <Share2 className="h-4 w-4 sm:h-5 sm:w-5 text-primary-600" />
+                                <span className="hidden sm:inline text-primary-600">Paylaş</span>
+                            </button>
+
+                            {/* Favori */}
+                            <button
+                                onClick={handleToggleFavorite}
+                                disabled={favLoading}
+                                title={isFavorite ? 'Favorilerden çıkar' : 'Favorilere ekle'}
+                                className={`flex items-center gap-2 px-3 sm:px-5 py-1.5 sm:py-3.5 rounded-full border text-sm sm:text-lg font-bold shadow-xl backdrop-blur-md transition-all duration-200 hover:scale-105 active:scale-95 ${isFavorite
+                                        ? 'bg-rose-50 text-rose-600 border-rose-200'
+                                        : 'bg-white/95 text-gray-700 border-white/60 hover:bg-white'
+                                    }`}
+                            >
+                                <Heart className={`h-4 w-4 sm:h-6 sm:w-6 text-rose-500 drop-shadow-[0_0_8px_rgba(244,63,94,0.4)] ${isFavorite ? 'fill-current' : ''}`} />
+                            </button>
+                        </div>
                     </div>
 
                     {/* Alt: Bilgiler + CTA */}
