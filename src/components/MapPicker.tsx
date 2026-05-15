@@ -143,7 +143,7 @@ const MapPicker: React.FC<MapPickerProps> = ({
                 setPrecision('street');
                 setIsLocating(false);
             },
-            (error) => {
+            () => {
                 setErrorMsg('Konum alınamadı. Lütfen tarayıcı izinlerini kontrol edin.');
                 setIsLocating(false);
             },
