@@ -85,8 +85,10 @@ const MapPicker: React.FC<MapPickerProps> = ({
 }) => {
     const [flyTarget, setFlyTarget] = useState<[number, number] | null>(null);
     const [isGeocoding, setIsGeocoding] = useState(false);
+    const [isLocating, setIsLocating] = useState(false);
     const [precision, setPrecision] = useState<PrecisionLevel>(null);
     const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    const [isMapOpen, setIsMapOpen] = useState(false);
     const markerRef = useRef<L.Marker>(null);
 
     const hasPin = latitude !== null && longitude !== null;
@@ -124,81 +126,148 @@ const MapPicker: React.FC<MapPickerProps> = ({
         }
     };
 
+    const handleCurrentLocation = () => {
+        if (!navigator.geolocation) {
+            setErrorMsg('Tarayıcınız konum özelliğini desteklemiyor.');
+            return;
+        }
+        setIsLocating(true);
+        setErrorMsg(null);
+        setPrecision(null);
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                const lat = position.coords.latitude;
+                const lng = position.coords.longitude;
+                onLocationChange(lat, lng);
+                setFlyTarget([lat, lng]);
+                setPrecision('street');
+                setIsLocating(false);
+            },
+            (error) => {
+                setErrorMsg('Konum alınamadı. Lütfen tarayıcı izinlerini kontrol edin.');
+                setIsLocating(false);
+            },
+            { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+        );
+    };
+
     const precisionInfo = precision ? PRECISION_MESSAGES[precision] : null;
 
     return (
-        <div className="mt-6 space-y-2">
-            {/* Başlık + Buton */}
-            <div className="flex items-center justify-between">
+        <div className="mt-6 border border-gray-200 bg-white rounded-xl shadow-sm overflow-hidden">
+            {/* Header - Toggleable */}
+            <div 
+                className="px-5 py-4 flex items-center justify-between cursor-pointer hover:bg-gray-50 transition-colors"
+                onClick={() => setIsMapOpen(!isMapOpen)}
+            >
                 <div>
-                    <p className="text-sm font-semibold text-gray-700">Haritada Konumu İşaretle</p>
-                    <p className="text-xs text-gray-400">Haritaya tıklayın ya da pini sürükleyin</p>
+                    <p className="text-sm font-semibold text-gray-800">Haritada Konumu İşaretle {hasPin && <span className="text-green-600 ml-1">✓</span>}</p>
+                    <p className="text-xs text-gray-500">Koordinat belirlemek için haritayı kullanın</p>
                 </div>
-                <button
-                    type="button"
-                    onClick={handleGeocode}
-                    disabled={isGeocoding}
-                    className="flex items-center gap-1.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white px-3 py-2 rounded-lg transition-colors"
-                >
-                    {isGeocoding ? (
-                        <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                <div className="text-gray-400">
+                    {isMapOpen ? (
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
                         </svg>
                     ) : (
-                        <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                            <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+                        <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                         </svg>
                     )}
-                    {isGeocoding ? 'Aranıyor...' : 'Adresimden Bul'}
-                </button>
+                </div>
             </div>
 
-            {/* Hata mesajı */}
-            {errorMsg && (
-                <p className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{errorMsg}</p>
-            )}
-
-            {/* Hassasiyet uyarısı */}
-            {precisionInfo && (
-                <p className={`text-xs border rounded-lg px-3 py-2 ${precisionInfo.color}`}>
-                    📍 {precisionInfo.text}
-                </p>
-            )}
-
-            {/* Harita */}
-            <div className="rounded-xl overflow-hidden border border-gray-200 shadow-sm" style={{ height: '460px' }}>
-                <MapContainer
-                    center={pinPosition ?? TURKEY_CENTER}
-                    zoom={pinPosition ? PIN_ZOOM : DEFAULT_ZOOM}
-                    maxZoom={19}
-                    style={{ height: '100%', width: '100%' }}
-                    zoomControl={true}
-                >
-                    {/* Standart OSM tile — sokak, cami, bina, POI her şeyi gösterir */}
-                    <TileLayer
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                        maxZoom={19}
-                    />
-                    <FlyTo target={flyTarget} />
-                    <ClickHandler onClick={handleMapClick} />
-                    {pinPosition && (
-                        <Marker
-                            position={pinPosition}
-                            draggable
-                            ref={markerRef}
-                            eventHandlers={{ dragend: handleDragEnd }}
-                        />
+            {/* Expandable Content */}
+            {isMapOpen && (
+                <div className="p-5 border-t border-gray-100 space-y-4">
+                    {/* Hata mesajı */}
+                    {errorMsg && (
+                        <p className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{errorMsg}</p>
                     )}
-                </MapContainer>
-            </div>
 
-            {/* Koordinat gösterimi */}
-            {hasPin && (
-                <p className="text-xs text-gray-400 text-right">
-                    {latitude!.toFixed(6)}° K &nbsp;{longitude!.toFixed(6)}° D
-                </p>
+                    {/* Hassasiyet uyarısı */}
+                    {precisionInfo && (
+                        <p className={`text-xs border rounded-lg px-3 py-2 ${precisionInfo.color}`}>
+                            📍 {precisionInfo.text}
+                        </p>
+                    )}
+
+                    {/* Harita */}
+                    <div className="rounded-xl overflow-hidden border border-gray-200 shadow-sm" style={{ height: '460px' }}>
+                        <MapContainer
+                            center={pinPosition ?? TURKEY_CENTER}
+                            zoom={pinPosition ? PIN_ZOOM : DEFAULT_ZOOM}
+                            maxZoom={19}
+                            style={{ height: '100%', width: '100%' }}
+                            zoomControl={true}
+                        >
+                            <TileLayer
+                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                maxZoom={19}
+                            />
+                            <FlyTo target={flyTarget} />
+                            <ClickHandler onClick={handleMapClick} />
+                            {pinPosition && (
+                                <Marker
+                                    position={pinPosition}
+                                    draggable
+                                    ref={markerRef}
+                                    eventHandlers={{ dragend: handleDragEnd }}
+                                />
+                            )}
+                        </MapContainer>
+                    </div>
+
+                    {/* Koordinat gösterimi ve Butonlar (Alt Kısım) */}
+                    <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+                        <div className="flex gap-2 w-full sm:w-auto">
+                            <button
+                                type="button"
+                                onClick={handleGeocode}
+                                disabled={isGeocoding || isLocating}
+                                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white px-3 py-2 rounded-lg transition-colors"
+                            >
+                                {isGeocoding ? (
+                                    <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                                    </svg>
+                                ) : (
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <circle cx="11" cy="11" r="8" /><path d="m21 21-4.35-4.35" />
+                                    </svg>
+                                )}
+                                {isGeocoding ? 'Aranıyor...' : 'Adresimden Bul'}
+                            </button>
+                            <button
+                                type="button"
+                                onClick={handleCurrentLocation}
+                                disabled={isGeocoding || isLocating}
+                                className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 text-xs font-semibold bg-teal-600 hover:bg-teal-700 disabled:bg-teal-300 text-white px-3 py-2 rounded-lg transition-colors"
+                            >
+                                {isLocating ? (
+                                    <svg className="animate-spin w-3.5 h-3.5" fill="none" viewBox="0 0 24 24">
+                                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z" />
+                                    </svg>
+                                ) : (
+                                    <svg xmlns="http://www.w3.org/2000/svg" className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M12 22s-8-4.5-8-11.8A8 8 0 0112 2a8 8 0 018 8.2c0 7.3-8 11.8-8 11.8z" />
+                                        <circle cx="12" cy="10" r="3" />
+                                    </svg>
+                                )}
+                                {isLocating ? 'Bulunuyor...' : 'Anlık Konumdan Bul'}
+                            </button>
+                        </div>
+
+                        {hasPin && (
+                            <p className="text-xs text-gray-400 font-mono">
+                                {latitude!.toFixed(6)}° K &nbsp;{longitude!.toFixed(6)}° D
+                            </p>
+                        )}
+                    </div>
+                </div>
             )}
         </div>
     );

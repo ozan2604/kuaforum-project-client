@@ -366,7 +366,8 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                 },
                 (error) => {
                     console.error('Error getting user location:', error);
-                }
+                },
+                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
             );
         }
     }, []);
