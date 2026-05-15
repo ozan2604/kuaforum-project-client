@@ -357,6 +357,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
 
     useEffect(() => {
         if (navigator.geolocation) {
+            // First attempt with high accuracy
             navigator.geolocation.getCurrentPosition(
                 (position) => {
                     setUserLocation({
@@ -365,9 +366,20 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                     });
                 },
                 (error) => {
-                    console.error('Error getting user location:', error);
+                    console.warn('High accuracy location failed, falling back to low accuracy:', error);
+                    // Fallback to low accuracy
+                    navigator.geolocation.getCurrentPosition(
+                        (pos) => {
+                            setUserLocation({
+                                lat: pos.coords.latitude,
+                                lng: pos.coords.longitude
+                            });
+                        },
+                        (err) => console.error('Low accuracy location also failed:', err),
+                        { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 }
+                    );
                 },
-                { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+                { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
             );
         }
     }, []);
