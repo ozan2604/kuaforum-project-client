@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { shopService } from '../api/shop.service';
 import { serviceManagementService } from '../api/service.service';
@@ -42,6 +42,19 @@ export const ShopDetailsPage: React.FC = () => {
     const [reviewsRefreshTrigger, setReviewsRefreshTrigger] = useState(0);
 
     const [activeTab, setActiveTab] = useState<'services' | 'about' | 'gallery' | 'reviews' | 'hours'>('about');
+    const tabsRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (tabsRef.current) {
+            const rect = tabsRef.current.getBoundingClientRect();
+            // If tab bar is above the header threshold, scroll back to it
+            if (rect.top < 96) {
+                const y = rect.top + window.scrollY - 100;
+                window.scrollTo({ top: y, behavior: 'smooth' });
+            }
+        }
+    }, [activeTab]);
+
     const [employeeSchedules, setEmployeeSchedules] = useState<PublicEmployeeScheduleDto[]>([]);
     const [selectedScheduleEmployeeId, setSelectedScheduleEmployeeId] = useState<string>('');
 
@@ -396,7 +409,7 @@ export const ShopDetailsPage: React.FC = () => {
                     {/* Content with Tabs */}
                     <div className="space-y-5">
                         {/* Sticky Tab Bar */}
-                        <div className="sticky top-[96px] z-30 py-2.5">
+                        <div className="sticky top-[96px] z-30 py-2.5" ref={tabsRef}>
                             <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-1.5 flex overflow-x-auto gap-1 scrollbar-hide">
                                 {(['about', 'services', 'gallery', 'reviews', 'hours'] as const).map((tab) => {
                                     const icons = {

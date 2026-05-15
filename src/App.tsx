@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster, ToastBar, toast } from 'react-hot-toast';
 import { X } from 'lucide-react';
 import { CookieBanner } from './components/CookieBanner';
+import { ScrollToTop } from './components/ScrollToTop';
 
 import { MainLayout } from './layouts/MainLayout';
 import { SalonOwnerLayout } from './layouts/SalonOwnerLayout';
@@ -45,6 +46,7 @@ import { EmployeeLeavePage } from './pages/employee/EmployeeLeavePage';
 function App() {
   return (
     <>
+      <ScrollToTop />
       <Toaster
         position="top-right"
         toastOptions={{ duration: 7500 }}
