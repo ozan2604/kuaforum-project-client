@@ -142,13 +142,13 @@ export const ReviewModal: React.FC<ReviewModalProps> = ({
                                 <input
                                     type="file"
                                     multiple
-                                    accept="image/jpeg,image/jpg,image/png,image/webp"
+                                    accept="image/jpeg,image/jpg,image/png,image/webp,image/heic,image/heif"
                                     onChange={(e) => {
                                         if (e.target.files) {
                                             const files = Array.from(e.target.files);
-                                            const oversized = files.some(f => f.size > 5 * 1024 * 1024);
+                                            const oversized = files.some(f => f.size > 15 * 1024 * 1024);
                                             if (oversized) {
-                                                alert('Her fotoğraf en fazla 5 MB olabilir.');
+                                                alert('Her fotoğraf en fazla 15 MB olabilir.');
                                                 e.target.value = '';
                                                 return;
                                             }

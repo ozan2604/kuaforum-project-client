@@ -605,8 +605,8 @@ export const MyShopPage: React.FC = () => {
 
     const handleCoverImageUpload = async (file: File) => {
         if (!shopId) return;
-        if (file.size > 5 * 1024 * 1024) {
-            toast.error('Dosya boyutu 5 MB\'ı geçemez.');
+        if (file.size > 15 * 1024 * 1024) {
+            toast.error('Dosya boyutu 15 MB\'ı geçemez.');
             return;
         }
         try {
@@ -622,9 +622,9 @@ export const MyShopPage: React.FC = () => {
 
     const handleGalleryUpload = async (files: FileList) => {
         if (!shopId) return;
-        const oversized = Array.from(files).some(f => f.size > 5 * 1024 * 1024);
+        const oversized = Array.from(files).some(f => f.size > 15 * 1024 * 1024);
         if (oversized) {
-            toast.error('Her fotoğraf en fazla 5 MB olabilir.');
+            toast.error('Her fotoğraf en fazla 15 MB olabilir.');
             return;
         }
         try {
@@ -926,7 +926,7 @@ export const MyShopPage: React.FC = () => {
                                             type="file"
                                             id="coverImageInput"
                                             className="hidden"
-                                            accept="image/jpeg,image/jpg,image/png,image/webp"
+                                            accept="image/jpeg,image/jpg,image/png,image/webp,image/heic,image/heif"
                                             onChange={(e) => { if (e.target.files?.[0]) handleCoverImageUpload(e.target.files[0]); }}
                                         />
                                         <Button
@@ -963,7 +963,7 @@ export const MyShopPage: React.FC = () => {
                                         id="galleryInput"
                                         className="hidden"
                                         multiple
-                                        accept="image/jpeg,image/jpg,image/png,image/webp"
+                                        accept="image/jpeg,image/jpg,image/png,image/webp,image/heic,image/heif"
                                         onChange={(e) => { if (e.target.files && e.target.files.length > 0) handleGalleryUpload(e.target.files); }}
                                     />
                                     <Button

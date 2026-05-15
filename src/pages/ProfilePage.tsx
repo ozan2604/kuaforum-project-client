@@ -168,8 +168,8 @@ export const ProfilePage: React.FC = () => {
     const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (!file) return;
-        if (file.size > 5 * 1024 * 1024) {
-            showResult('error', 'Dosya boyutu 5 MB\'ı geçemez.');
+        if (file.size > 15 * 1024 * 1024) {
+            showResult('error', 'Dosya boyutu 15 MB\'ı geçemez.');
             e.target.value = '';
             return;
         }
@@ -319,7 +319,7 @@ export const ProfilePage: React.FC = () => {
                             </div>
                             <label className="absolute bottom-1 right-1 bg-primary-600 shadow-xl rounded-full p-2.5 cursor-pointer hover:bg-primary-700 border-2 border-white transition-all hover:scale-110 active:scale-95 z-20 group">
                                 <Camera className="h-5 w-5 text-white" />
-                                <input type="file" className="hidden" accept="image/jpeg,image/jpg,image/png,image/webp" onChange={handleImageUpload} disabled={uploadingImage} />
+                                <input type="file" className="hidden" accept="image/jpeg,image/jpg,image/png,image/webp,image/heic,image/heif" onChange={handleImageUpload} disabled={uploadingImage} />
                             </label>
                         </div>
 
