@@ -52,6 +52,18 @@ const MapFocuser: React.FC<{ center: [number, number] | null; shopId: string | n
     return null;
 };
 
+// Harita açıldıktan sonra konum gelirse otomatik odakla
+const UserLocator: React.FC<{ userLocation: { lat: number; lng: number } | null }> = ({ userLocation }) => {
+    const map = useMap();
+    const initialLocation = useRef(userLocation);
+    useEffect(() => {
+        // Sadece harita açıldığında konum bilinmiyorsa ve sonradan gelince uç
+        if (!userLocation || initialLocation.current !== null) return;
+        map.flyTo([userLocation.lat, userLocation.lng], 14, { duration: 1.2 });
+    }, [userLocation, map]);
+    return null;
+};
+
 const escapeHtml = (s: string) => s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 
 const createShopMarkerIcon = (shop: { name: string; coverImagePath?: string }): L.DivIcon => {
@@ -459,6 +471,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                                                                 placeholder="İl ara..."
                                                                 onChange={(e) => { const t = e.target.value.toLocaleLowerCase('tr'); setFilteredProvinces(provinces.filter(p => p.name.toLocaleLowerCase('tr').includes(t))); }}
                                                                 className="w-full bg-gray-50 border border-gray-100 rounded-lg px-3 py-2 text-xs font-medium focus:outline-none focus:ring-1 focus:ring-primary-500 transition-all"
+                                                                style={{ fontSize: '16px' }}
                                                             />
                                                             <div className="grid grid-cols-1 gap-1.5 max-h-44 overflow-y-auto p-1 pr-2 custom-scrollbar border border-gray-100 rounded-xl bg-gray-50/30 mt-1.5">
                                                                 {provincesLoading
@@ -681,6 +694,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                                     url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
                                 />
                                 <MapFocuser center={mapFocusCenter} shopId={mapFocusShopId} />
+                                <UserLocator userLocation={userLocation} />
 
                                 {/* User Location Marker */}
                                 {userLocation && (
