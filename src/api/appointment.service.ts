@@ -5,12 +5,15 @@ import type { Appointment, CreateAppointmentDto, CreateManualAppointmentDto, Upd
 export interface CreateGuestAppointmentRequest {
     customerName: string;
     customerPhone: string;
+    otp: string;
     shopId: string;
     serviceIds: string[];
     shopEmployeeId: string;
     startTime: string;
     note?: string;
 }
+
+export type GuestOtpStatus = 'OTP_SENT' | 'PHONE_EXISTS';
 
 // Auth interceptor olmayan public istek — token gönderilmez, 401'de login'e yönlendirmez
 const publicApi = axios.create({
@@ -119,6 +122,11 @@ export const appointmentService = {
         let url = `/Appointment/group/${groupId}`;
         if (reason) url += `?reason=${encodeURIComponent(reason)}`;
         await api.delete(url);
+    },
+
+    sendGuestOtp: async (phone: string): Promise<GuestOtpStatus> => {
+        const response = await publicApi.post<{ status: GuestOtpStatus }>('/Appointment/guest/send-otp', { phone });
+        return response.data.status;
     },
 
     createGuestAppointment: async (data: CreateGuestAppointmentRequest): Promise<void> => {
