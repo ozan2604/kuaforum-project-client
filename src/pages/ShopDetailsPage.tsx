@@ -12,6 +12,7 @@ import { Button } from '../components/Button';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { toast } from 'react-hot-toast';
 import { BookingModal } from '../components/BookingModal';
+import { PreBookingModal } from '../components/PreBookingModal';
 import { useAuth } from '../context/AuthContext';
 import { favoriteService } from '../services/favorite.service';
 import { ReviewsList } from '../components/ReviewsList';
@@ -31,6 +32,8 @@ export const ShopDetailsPage: React.FC = () => {
     const [loading, setLoading] = useState(true);
 
     const [isBookingModalOpen, setIsBookingModalOpen] = useState(false);
+    const [isPreBookingModalOpen, setIsPreBookingModalOpen] = useState(false);
+    const [isGuestBooking, setIsGuestBooking] = useState(false);
     const [selectedService, setSelectedService] = useState<ShopServiceDto | null>(null);
     const [isFavorite, setIsFavorite] = useState(false);
     const [favLoading, setFavLoading] = useState(false);
@@ -363,7 +366,12 @@ export const ShopDetailsPage: React.FC = () => {
                                     className="shadow-lg text-white border-0 px-2 sm:px-4 py-0.5 sm:py-1.5 text-[10px] sm:text-xs font-bold rounded-full transition-transform active:scale-95 flex items-center justify-center whitespace-nowrap"
                                     onClick={() => {
                                         setSelectedService(null);
-                                        setIsBookingModalOpen(true);
+                                        if (isAuthenticated) {
+                                            setIsGuestBooking(false);
+                                            setIsBookingModalOpen(true);
+                                        } else {
+                                            setIsPreBookingModalOpen(true);
+                                        }
                                     }}
                                 >
                                     <Calendar className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1 shrink-0" />
@@ -958,10 +966,22 @@ export const ShopDetailsPage: React.FC = () => {
             </div>
 
             {/* Modals */}
+            <PreBookingModal
+                isOpen={isPreBookingModalOpen}
+                onClose={() => setIsPreBookingModalOpen(false)}
+                onLogin={() => { setIsPreBookingModalOpen(false); navigate('/login'); }}
+                onRegister={() => { setIsPreBookingModalOpen(false); navigate('/register'); }}
+                onGuestContinue={() => {
+                    setIsPreBookingModalOpen(false);
+                    setIsGuestBooking(true);
+                    setIsBookingModalOpen(true);
+                }}
+            />
+
             {isBookingModalOpen && shop && (
                 <BookingModal
                     isOpen={isBookingModalOpen}
-                    onClose={() => setIsBookingModalOpen(false)}
+                    onClose={() => { setIsBookingModalOpen(false); setIsGuestBooking(false); }}
                     shopId={shop.id}
                     bookingDaysAhead={shop.bookingDaysAhead ?? 30}
                     weeklyOffDays={shop.weeklyOffDays ?? []}
@@ -970,6 +990,8 @@ export const ShopDetailsPage: React.FC = () => {
                     initialServiceName={selectedService?.name}
                     initialServiceDuration={selectedService?.duration}
                     initialServicePrice={selectedService?.price}
+                    isGuest={isGuestBooking}
+                    onOpenLogin={() => navigate('/login')}
                 />
             )}
 

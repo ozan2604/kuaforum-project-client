@@ -1,5 +1,22 @@
 import api from './axios';
+import axios from 'axios';
 import type { Appointment, CreateAppointmentDto, CreateManualAppointmentDto, UpdateAppointmentStatusDto, AppointmentStatus, NoShowResultDto } from '../types/appointment';
+
+export interface CreateGuestAppointmentRequest {
+    customerName: string;
+    customerPhone: string;
+    shopId: string;
+    serviceIds: string[];
+    shopEmployeeId: string;
+    startTime: string;
+    note?: string;
+}
+
+// Auth interceptor olmayan public istek — token gönderilmez, 401'de login'e yönlendirmez
+const publicApi = axios.create({
+    baseURL: import.meta.env.VITE_API_BASE_URL || 'https://localhost:7022/api',
+    headers: { 'Content-Type': 'application/json' },
+});
 
 export interface PagedResult<T> {
     items: T[];
@@ -102,6 +119,10 @@ export const appointmentService = {
         let url = `/Appointment/group/${groupId}`;
         if (reason) url += `?reason=${encodeURIComponent(reason)}`;
         await api.delete(url);
+    },
+
+    createGuestAppointment: async (data: CreateGuestAppointmentRequest): Promise<void> => {
+        await publicApi.post('/Appointment/guest', data);
     },
 
     updateGroupStatus: async (groupId: string, status: AppointmentStatus, reason?: string): Promise<NoShowResultDto | null> => {

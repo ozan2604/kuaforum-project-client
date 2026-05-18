@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { X, User, Clock, Check, ChevronRight, ChevronLeft, Scissors, Star, Plus, Minus, AlertCircle, Calendar } from 'lucide-react';
+import { X, User, Clock, Check, ChevronRight, ChevronLeft, Scissors, Star, Plus, Minus, AlertCircle, Calendar, Phone } from 'lucide-react';
 import { Button } from './Button';
 import { employeeService } from '../api/employee.service';
 import { appointmentService } from '../api/appointment.service';
@@ -27,15 +27,25 @@ interface BookingModalProps {
     initialServiceName?: string;
     initialServiceDuration?: number;
     initialServicePrice?: number;
+    isGuest?: boolean;
+    onOpenLogin?: () => void;
 }
 
-type Step = 'personnel' | 'service' | 'datetime' | 'confirm';
+type Step = 'info' | 'personnel' | 'service' | 'datetime' | 'confirm';
 
-const STEPS: { id: Step; label: string; number: number }[] = [
+const NORMAL_STEPS: { id: Step; label: string; number: number }[] = [
     { id: 'personnel', label: 'Personel',     number: 1 },
     { id: 'service',   label: 'Hizmet',       number: 2 },
     { id: 'datetime',  label: 'Tarih & Saat', number: 3 },
     { id: 'confirm',   label: 'Onay',         number: 4 },
+];
+
+const GUEST_STEPS: { id: Step; label: string; number: number }[] = [
+    { id: 'info',      label: 'Bilgiler',     number: 1 },
+    { id: 'personnel', label: 'Personel',     number: 2 },
+    { id: 'service',   label: 'Hizmet',       number: 3 },
+    { id: 'datetime',  label: 'Tarih & Saat', number: 4 },
+    { id: 'confirm',   label: 'Onay',         number: 5 },
 ];
 
 // Dakikayı "HH:mm" formatına çevirir
@@ -113,13 +123,16 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     initialServiceName,
     initialServiceDuration,
     initialServicePrice,
+    isGuest = false,
+    onOpenLogin,
 }) => {
+    const STEPS = isGuest ? GUEST_STEPS : NORMAL_STEPS;
     const [employees, setEmployees]   = useState<Employee[]>([]);
     const [categories, setCategories] = useState<ServiceCategoryDto[]>([]);
     const [loading, setLoading]       = useState(false);
     const [submitting, setSubmitting] = useState(false);
 
-    const [currentStep, setCurrentStep]           = useState<Step>('personnel');
+    const [currentStep, setCurrentStep]           = useState<Step>(isGuest ? 'info' : 'personnel');
     const [selectedServices, setSelectedServices] = useState<ShopServiceDto[]>([]);
     const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
     const [selectedDate, setSelectedDate] = useState(getTodayIstanbul());
@@ -129,9 +142,15 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     const [availability, setAvailability] = useState<import('../types/appointment').EmployeeAvailabilityDto | null>(null);
     const [employeeLeaveDates, setEmployeeLeaveDates] = useState<string[]>([]); // 'yyyy-MM-dd' strings
     const [bookingSuccess, setBookingSuccess] = useState<{
-        employeeName: string; date: string; time: string; totalPrice: number;
+        employeeName: string; date: string; time: string; totalPrice: number; isNewAccount?: boolean;
     } | null>(null);
     const [bookingError, setBookingError] = useState<string | null>(null);
+    const [phoneExists, setPhoneExists] = useState(false);
+
+    // Misafir akışı state
+    const [guestName, setGuestName]   = useState('');
+    const [guestPhone, setGuestPhone] = useState('');
+    const [guestErrors, setGuestErrors] = useState<{ name?: string; phone?: string }>({});
 
     const scrollRef = useRef<HTMLDivElement>(null);
     const selectionErrorTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -182,7 +201,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     // Modal açılışında sıfırlama
     useEffect(() => {
         if (!isOpen || !shopId) return;
-        setCurrentStep('personnel');
+        setCurrentStep(isGuest ? 'info' : 'personnel');
         setSelectedEmployeeId('');
         setSelectedDate(getTodayIstanbul());
         setSelectedTime('');
@@ -191,6 +210,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         setEmployeeLeaveDates([]);
         setBookingSuccess(null);
         setBookingError(null);
+        setPhoneExists(false);
+        setGuestName('');
+        setGuestPhone('');
+        setGuestErrors({});
         setSelectedServices(
             initialServiceId
                 ? [{ id: initialServiceId, name: initialServiceName || '', duration: initialServiceDuration || 0, price: initialServicePrice || 0, isActive: true }]
@@ -333,20 +356,41 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         if (!selectedServices.length || !selectedTime) return;
         setSubmitting(true);
         try {
-            await appointmentService.createAppointment({
-                shopId,
-                serviceIds: selectedServices.map(s => s.id),
-                shopEmployeeId: selectedEmployeeId,
-                startTime: new Date(`${selectedDate}T${selectedTime}:00`).toISOString(),
-                note,
-            });
-            const endTimeStr = minutesToHHMM(hhmmToMinutes(selectedTime) + totalDuration);
-            setBookingSuccess({
-                employeeName: selectedEmployee ? `${selectedEmployee.firstName} ${selectedEmployee.lastName}` : '',
-                date: format(new Date(`${selectedDate}T12:00:00`), 'd MMMM yyyy, EEEE', { locale: tr }),
-                time: `${selectedTime} – ${endTimeStr}`,
-                totalPrice,
-            });
+            const startTimeIso = new Date(`${selectedDate}T${selectedTime}:00`).toISOString();
+            const endTimeStr   = minutesToHHMM(hhmmToMinutes(selectedTime) + totalDuration);
+
+            if (isGuest) {
+                await appointmentService.createGuestAppointment({
+                    customerName: guestName.trim(),
+                    customerPhone: guestPhone.trim(),
+                    shopId,
+                    serviceIds: selectedServices.map(s => s.id),
+                    shopEmployeeId: selectedEmployeeId,
+                    startTime: startTimeIso,
+                    note,
+                });
+                setBookingSuccess({
+                    employeeName: selectedEmployee ? `${selectedEmployee.firstName} ${selectedEmployee.lastName}` : '',
+                    date: format(new Date(`${selectedDate}T12:00:00`), 'd MMMM yyyy, EEEE', { locale: tr }),
+                    time: `${selectedTime} – ${endTimeStr}`,
+                    totalPrice,
+                    isNewAccount: true,
+                });
+            } else {
+                await appointmentService.createAppointment({
+                    shopId,
+                    serviceIds: selectedServices.map(s => s.id),
+                    shopEmployeeId: selectedEmployeeId,
+                    startTime: startTimeIso,
+                    note,
+                });
+                setBookingSuccess({
+                    employeeName: selectedEmployee ? `${selectedEmployee.firstName} ${selectedEmployee.lastName}` : '',
+                    date: format(new Date(`${selectedDate}T12:00:00`), 'd MMMM yyyy, EEEE', { locale: tr }),
+                    time: `${selectedTime} – ${endTimeStr}`,
+                    totalPrice,
+                });
+            }
         } catch (error: any) {
             const msg =
                 error.response?.data?.Message ||
@@ -354,6 +398,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 (typeof error.response?.data === 'string' ? error.response.data : null) ||
                 error.message ||
                 'Randevu oluşturulamadı. Lütfen tekrar deneyin.';
+
+            if (msg === 'PHONE_EXISTS') {
+                setPhoneExists(true);
+                return;
+            }
             setBookingError(msg);
         } finally {
             setSubmitting(false);
@@ -404,7 +453,15 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     };
 
     const nextStep = () => {
-        if (currentStep === 'personnel') {
+        if (currentStep === 'info') {
+            const errs: { name?: string; phone?: string } = {};
+            if (!guestName.trim()) errs.name = 'Ad soyad zorunludur.';
+            if (!guestPhone.trim()) errs.phone = 'Telefon numarası zorunludur.';
+            else if (!/^05[0-9]{9}$/.test(guestPhone.trim())) errs.phone = 'Telefon 05XXXXXXXXX formatında olmalıdır.';
+            if (Object.keys(errs).length) { setGuestErrors(errs); return; }
+            setGuestErrors({});
+            setCurrentStep('personnel');
+        } else if (currentStep === 'personnel') {
             if (!selectedEmployeeId) { toast.error('Lütfen bir personel seçin.'); return; }
             setCurrentStep('service');
         } else if (currentStep === 'service') {
@@ -417,7 +474,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     };
 
     const prevStep = () => {
-        if (currentStep === 'service')   setCurrentStep('personnel');
+        if (currentStep === 'personnel') { if (isGuest) setCurrentStep('info'); }
+        else if (currentStep === 'service')   setCurrentStep('personnel');
         else if (currentStep === 'datetime') { setSelectedTime(''); setCurrentStep('service'); }
         else if (currentStep === 'confirm')  setCurrentStep('datetime');
     };
@@ -506,6 +564,37 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto">
 
+                    {/* ── PHONE EXISTS ── */}
+                    {phoneExists && (
+                        <div className="flex flex-col items-center justify-center py-12 px-6 text-center space-y-6">
+                            <div className="w-24 h-24 bg-amber-100 rounded-full flex items-center justify-center shadow-inner">
+                                <div className="w-16 h-16 bg-amber-400 rounded-full flex items-center justify-center shadow-md">
+                                    <Phone className="w-9 h-9 text-white" />
+                                </div>
+                            </div>
+                            <div className="space-y-2">
+                                <h3 className="text-xl font-black text-gray-900">Bu Numara Kayıtlı</h3>
+                                <p className="text-gray-500 text-sm leading-relaxed">
+                                    <span className="font-semibold text-gray-700">{guestPhone}</span> numarasına kayıtlı bir hesap var. Randevu almak için giriş yapmanız gerekiyor.
+                                </p>
+                            </div>
+                            <div className="w-full flex flex-col gap-3">
+                                <button
+                                    onClick={() => { onOpenLogin?.(); onClose(); }}
+                                    className="w-full py-3 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl transition-colors"
+                                >
+                                    Giriş Yap
+                                </button>
+                                <button
+                                    onClick={() => setPhoneExists(false)}
+                                    className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-colors"
+                                >
+                                    Farklı Numara Dene
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
                     {/* ── BAŞARI ── */}
                     {bookingSuccess && (
                         <div className="flex flex-col items-center justify-center py-12 px-6 text-center space-y-6">
@@ -517,6 +606,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                             <div className="space-y-2">
                                 <h3 className="text-2xl font-black text-gray-900">Randevunuz Alındı!</h3>
                                 <p className="text-gray-500 text-sm">Randevunuz başarıyla oluşturuldu. Sizi bekliyoruz!</p>
+                                {bookingSuccess.isNewAccount && (
+                                    <p className="text-xs text-primary-600 bg-primary-50 rounded-xl px-3 py-2 mt-2 font-medium">
+                                        Hesabınız oluşturuldu — şifreniz SMS ile gönderildi.
+                                    </p>
+                                )}
                             </div>
                             <div className="w-full bg-gray-50 rounded-2xl border border-gray-100 divide-y divide-gray-100 text-sm">
                                 <div className="px-4 py-3 flex justify-between items-center">
@@ -565,7 +659,46 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                         </div>
                     )}
 
-                    {!bookingSuccess && !bookingError && (<>
+                    {!bookingSuccess && !bookingError && !phoneExists && (<>
+
+                    {/* ── BİLGİLER (Misafir) ── */}
+                    {currentStep === 'info' && (
+                        <div className="p-5 space-y-4">
+                            <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide flex items-center gap-2">
+                                <User className="w-4 h-4" /> Bilgileriniz
+                            </p>
+                            <div className="space-y-3">
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1.5">Ad Soyad <span className="text-red-500">*</span></label>
+                                    <input
+                                        type="text"
+                                        value={guestName}
+                                        onChange={e => { setGuestName(e.target.value); setGuestErrors(prev => ({ ...prev, name: undefined })); }}
+                                        placeholder="Adınız ve soyadınız"
+                                        className={`w-full px-4 py-3 rounded-xl border-2 text-sm transition-colors outline-none focus:border-primary-400 ${guestErrors.name ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-white'}`}
+                                    />
+                                    {guestErrors.name && <p className="text-xs text-red-500 mt-1">{guestErrors.name}</p>}
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                                        <Phone className="w-3.5 h-3.5 inline mr-1" />Telefon <span className="text-red-500">*</span>
+                                    </label>
+                                    <input
+                                        type="tel"
+                                        value={guestPhone}
+                                        onChange={e => { setGuestPhone(e.target.value); setGuestErrors(prev => ({ ...prev, phone: undefined })); }}
+                                        placeholder="05XXXXXXXXX"
+                                        maxLength={11}
+                                        className={`w-full px-4 py-3 rounded-xl border-2 text-sm transition-colors outline-none focus:border-primary-400 ${guestErrors.phone ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-white'}`}
+                                    />
+                                    {guestErrors.phone && <p className="text-xs text-red-500 mt-1">{guestErrors.phone}</p>}
+                                </div>
+                            </div>
+                            <div className="p-3 bg-blue-50 rounded-xl border border-blue-100 text-xs text-blue-600 leading-relaxed">
+                                Randevu onaylandığında bu numaraya SMS gönderilir. Hesabınız otomatik oluşturulur ve şifreniz SMS ile iletilir.
+                            </div>
+                        </div>
+                    )}
 
                     {/* ── PERSONEL ── */}
                     {currentStep === 'personnel' && (
@@ -969,9 +1102,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </div>
 
                 {/* Footer */}
-                {!bookingSuccess && !bookingError && (
+                {!bookingSuccess && !bookingError && !phoneExists && (
                     <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between gap-3 shrink-0 bg-white rounded-b-2xl">
-                        {currentStep !== 'personnel' ? (
+                        {currentStep !== 'personnel' && currentStep !== 'info' ? (
+                            <Button variant="secondary" onClick={prevStep} className="flex items-center gap-1 px-4">
+                                <ChevronLeft className="h-4 w-4" /> Geri
+                            </Button>
+                        ) : currentStep === 'personnel' && isGuest ? (
                             <Button variant="secondary" onClick={prevStep} className="flex items-center gap-1 px-4">
                                 <ChevronLeft className="h-4 w-4" /> Geri
                             </Button>
