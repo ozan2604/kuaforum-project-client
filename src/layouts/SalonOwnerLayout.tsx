@@ -16,6 +16,7 @@ import {
     ChevronRight,
     Users,
     QrCode,
+    Home,
 } from 'lucide-react';
 
 interface NotificationItem {
@@ -30,6 +31,7 @@ export const SalonOwnerLayout: React.FC = () => {
     const { user, logout, isLoading } = useAuth();
     const navigate = useNavigate();
     const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
+    const [showHomeModal, setShowHomeModal] = React.useState(false);
 
     // Notification state
     const [notifications, setNotifications] = useState<NotificationItem[]>([]);
@@ -88,7 +90,6 @@ export const SalonOwnerLayout: React.FC = () => {
     }
 
     const navigation = [
-        { name: 'Anasayfa',   href: '/',                                  icon: Store },
         { name: 'Dashboard',  href: '/salon-panel',                        icon: LayoutDashboard },
         { name: 'Randevular', href: '/salon-panel/appointments',            icon: Calendar },
         { name: 'Salonum',    href: '/salon-panel/shop',                    icon: Store },
@@ -171,6 +172,13 @@ export const SalonOwnerLayout: React.FC = () => {
                                 </p>
                             </div>
                         </div>
+                        <button
+                            onClick={() => setShowHomeModal(true)}
+                            className="w-full flex items-center gap-3 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors mb-1"
+                        >
+                            <Home className="h-5 w-5 text-gray-400" />
+                            Anasayfa
+                        </button>
                         <button
                             onClick={() => {
                                 logout();
@@ -285,6 +293,36 @@ export const SalonOwnerLayout: React.FC = () => {
                     <Outlet />
                 </main>
             </div>
+
+            {/* Home confirmation modal */}
+            {showHomeModal && createPortal(
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">Anasayfaya Git</h3>
+                        <p className="text-gray-600 text-sm mb-5">
+                            Salon panelinden çıkıp ana sayfaya dönmek istediğinize emin misiniz?
+                        </p>
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                onClick={() => setShowHomeModal(false)}
+                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
+                            >
+                                Vazgeç
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setShowHomeModal(false);
+                                    navigate('/');
+                                }}
+                                className="px-4 py-2 text-sm font-semibold rounded-xl text-white bg-primary-600 hover:bg-primary-700 transition-colors"
+                            >
+                                Anasayfaya Git
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
         </div>
     );
 };

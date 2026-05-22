@@ -13,6 +13,7 @@ import {
     Menu,
     X,
     Scissors,
+    Home,
 } from 'lucide-react';
 
 const navItems = [
@@ -29,6 +30,7 @@ const EmployeeLayoutInner: React.FC = () => {
     const { isDirty, setIsDirty, pendingAction, setPendingAction } = useUnsavedChanges();
     const [sidebarOpen, setSidebarOpen] = React.useState(false);
     const [showLogoutModal, setShowLogoutModal] = React.useState(false);
+    const [showHomeModal, setShowHomeModal] = React.useState(false);
 
     const guardedNavigate = (action: () => void) => {
         if (isDirty) {
@@ -114,6 +116,13 @@ const EmployeeLayoutInner: React.FC = () => {
                             </div>
                         )}
                         <button
+                            onClick={() => guardedNavigate(() => setShowHomeModal(true))}
+                            className="w-full flex items-center gap-3 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors mb-1"
+                        >
+                            <Home className="h-5 w-5 text-gray-400" />
+                            Anasayfa
+                        </button>
+                        <button
                             onClick={() => guardedNavigate(() => setShowLogoutModal(true))}
                             className="w-full flex items-center gap-3 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                         >
@@ -192,6 +201,35 @@ const EmployeeLayoutInner: React.FC = () => {
                                 className="px-4 py-2 text-sm font-semibold rounded-xl text-white bg-red-600 hover:bg-red-700 transition-colors"
                             >
                                 Çıkış Yap
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+            {/* Home confirmation modal */}
+            {showHomeModal && createPortal(
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">Anasayfaya Git</h3>
+                        <p className="text-gray-600 text-sm mb-5">
+                            Personel panelinden çıkıp ana sayfaya dönmek istediğinize emin misiniz?
+                        </p>
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                onClick={() => setShowHomeModal(false)}
+                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
+                            >
+                                Vazgeç
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setShowHomeModal(false);
+                                    navigate('/');
+                                }}
+                                className="px-4 py-2 text-sm font-semibold rounded-xl text-white bg-indigo-600 hover:bg-indigo-700 transition-colors"
+                            >
+                                Anasayfaya Git
                             </button>
                         </div>
                     </div>

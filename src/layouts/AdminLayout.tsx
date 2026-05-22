@@ -40,6 +40,7 @@ export const AdminLayout: React.FC = () => {
     const location = useLocation();
     const [sidebarOpen, setSidebarOpen] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    const [showHomeModal, setShowHomeModal] = useState(false);
 
     const handleLogoutConfirm = () => {
         logout();
@@ -96,14 +97,13 @@ export const AdminLayout: React.FC = () => {
 
                 {/* Bottom: Anasayfa + Çıkış */}
                 <div className="p-4 border-t border-gray-100 space-y-1 shrink-0">
-                    <Link
-                        to="/"
-                        onClick={() => setSidebarOpen(false)}
-                        className="flex items-center px-4 py-3 text-sm font-medium rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                    <button
+                        onClick={() => setShowHomeModal(true)}
+                        className="w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
                     >
                         <Home className="h-5 w-5 mr-3 text-gray-400" />
                         Anasayfa
-                    </Link>
+                    </button>
                     <button
                         onClick={() => setShowLogoutConfirm(true)}
                         className="flex items-center w-full px-4 py-3 text-sm font-medium text-red-600 rounded-lg hover:bg-red-50 transition-colors"
@@ -145,6 +145,36 @@ export const AdminLayout: React.FC = () => {
                     onConfirm={handleLogoutConfirm}
                     onCancel={() => setShowLogoutConfirm(false)}
                 />
+            )}
+
+            {/* Home confirmation modal */}
+            {showHomeModal && createPortal(
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
+                        <h3 className="text-lg font-bold text-gray-900 mb-2">Anasayfaya Git</h3>
+                        <p className="text-gray-600 text-sm mb-5">
+                            Yönetim panelinden çıkıp ana sayfaya dönmek istediğinize emin misiniz?
+                        </p>
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                onClick={() => setShowHomeModal(false)}
+                                className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
+                            >
+                                Vazgeç
+                            </button>
+                            <button
+                                onClick={() => {
+                                    setShowHomeModal(false);
+                                    navigate('/');
+                                }}
+                                className="px-4 py-2 text-sm font-semibold rounded-xl text-white bg-primary-600 hover:bg-primary-700 transition-colors"
+                            >
+                                Anasayfaya Git
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
             )}
         </div>
     );

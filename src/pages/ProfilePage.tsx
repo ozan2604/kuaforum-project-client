@@ -105,10 +105,13 @@ export const ProfilePage: React.FC = () => {
     });
 
     const hasRole = (r: string) => Array.isArray(user?.role) ? user!.role.includes(r) : user?.role === r;
-    const isSalonRelated = hasRole('SalonOwner') || hasRole('Employee');
-    const salonPanelPath = hasRole('SalonOwner') ? '/salon-panel' : '/employee-panel';
-    const roleLabel = hasRole('SalonOwner') ? 'İşletme Sahibi' : hasRole('Employee') ? 'Personel' : 'Müşteri';
-    const panelLabel = hasRole('SalonOwner') ? 'Salon Paneline Git' : 'Uzman Paneline Git';
+
+    const panels = [];
+    if (hasRole('Admin')) panels.push({ label: 'Admin Panele Git', path: '/admin', icon: <Store className="h-3 w-3" /> });
+    if (hasRole('SalonOwner')) panels.push({ label: 'Salonuma Git', path: '/salon-panel', icon: <Store className="h-3 w-3" /> });
+    if (hasRole('Employee')) panels.push({ label: 'Uzman Paneline Git', path: '/employee-panel', icon: <User className="h-3 w-3" /> });
+
+    const roleLabel = hasRole('Admin') ? 'Sistem Yöneticisi' : hasRole('SalonOwner') ? 'İşletme Sahibi' : hasRole('Employee') ? 'Personel' : 'Müşteri';
 
     // Form State
     const [appointments, setAppointments] = useState<AppointmentDto[]>([]);
@@ -347,15 +350,20 @@ export const ProfilePage: React.FC = () => {
                                 <div className="px-4 py-1.5 bg-gray-900 text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-md">
                                     {roleLabel}
                                 </div>
-                                {isSalonRelated ? (
-                                    <button
-                                        onClick={() => navigate(salonPanelPath)}
-                                        className="flex items-center gap-1.5 px-4 py-1.5 bg-primary-50 hover:bg-primary-100 text-primary-700 text-[10px] font-black uppercase tracking-widest rounded-full border border-primary-200 transition-colors"
-                                    >
-                                        <Store className="h-3 w-3" />
-                                        {panelLabel}
-                                        <ChevronRight className="h-3 w-3" />
-                                    </button>
+                                {panels.length > 0 ? (
+                                    <div className="flex flex-wrap items-center justify-center gap-2">
+                                        {panels.map(p => (
+                                            <button
+                                                key={p.path}
+                                                onClick={() => navigate(p.path)}
+                                                className="flex items-center gap-1.5 px-4 py-1.5 bg-primary-50 hover:bg-primary-100 text-primary-700 text-[10px] font-black uppercase tracking-widest rounded-full border border-primary-200 transition-colors shadow-sm"
+                                            >
+                                                {p.icon}
+                                                {p.label}
+                                                <ChevronRight className="h-3 w-3" />
+                                            </button>
+                                        ))}
+                                    </div>
                                 ) : (
                                     <div className="px-4 py-1.5 bg-white text-green-600 rounded-full text-[10px] font-black uppercase tracking-widest border-2 border-green-500 shadow-sm flex items-center gap-2">
                                         <span className="relative flex h-2 w-2">
