@@ -627,17 +627,20 @@ export const ProfilePage: React.FC = () => {
                 ))}
 
                 {/* Salon / Employee Panel Link */}
-                {isSalonRelated && (
-                    <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                {panels.map((panel, idx) => (
+                    <div key={idx} className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden mb-4">
                         <button
-                            onClick={() => navigate(salonPanelPath)}
+                            onClick={() => navigate(panel.path)}
                             className="w-full flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
                         >
-                            <div className="flex items-center gap-3"><Store className="h-5 w-5 text-gray-500" /><span className="font-medium text-sm text-gray-800">{panelLabel}</span></div>
+                            <div className="flex items-center gap-3">
+                                {panel.icon}
+                                <span className="font-medium text-sm text-gray-800">{panel.label}</span>
+                            </div>
                             <ChevronRight className="h-4 w-4 text-gray-400" />
                         </button>
                     </div>
-                )}
+                ))}
 
                 {/* Logout */}
                 <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">

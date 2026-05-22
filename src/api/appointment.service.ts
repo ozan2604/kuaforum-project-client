@@ -112,6 +112,12 @@ export const appointmentService = {
         return response.data.noShowResult ?? null;
     },
 
+    updateGroupStatusByEmployee: async (groupId: string, status: AppointmentStatus, reason?: string): Promise<NoShowResultDto | null> => {
+        const payload: UpdateAppointmentStatusDto = { status, reason };
+        const response = await api.put<{ noShowResult?: NoShowResultDto }>(`/Appointment/employee/group/${groupId}/status`, payload);
+        return response.data.noShowResult ?? null;
+    },
+
     cancelAppointment: async (id: string, reason?: string): Promise<void> => {
         let url = `/Appointment/${id}`;
         if (reason) url += `?reason=${encodeURIComponent(reason)}`;

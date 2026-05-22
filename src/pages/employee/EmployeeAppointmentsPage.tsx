@@ -30,7 +30,7 @@ export const EmployeeAppointmentsPage: React.FC = () => {
     const [pageSize, setPageSize] = useState(10);
     const [totalCount, setTotalCount] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
-    const [confirmAction, setConfirmAction] = useState<{ id: string; status: AppointmentStatus; label: string; actionText: string; groupSize?: number; reason: string } | null>(null);
+    const [confirmAction, setConfirmAction] = useState<{ id: string; groupId?: string; status: AppointmentStatus; label: string; actionText: string; groupSize?: number; reason: string; updateGroupMode: boolean } | null>(null);
     const [blockOffer, setBlockOffer] = useState<{ customerId: string; customerName: string; noShowCount: number } | null>(null);
 
     const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
@@ -92,8 +92,8 @@ export const EmployeeAppointmentsPage: React.FC = () => {
 
     useEffect(() => { loadData(); }, [page, pageSize, statusFilter, searchTerm, filterDate, filterServiceId]);
 
-    const requestStatusUpdate = (id: string, status: AppointmentStatus, label: string, actionText: string, groupSize?: number) =>
-        setConfirmAction({ id, status, label, actionText, groupSize, reason: '' });
+    const requestStatusUpdate = (id: string, status: AppointmentStatus, label: string, actionText: string, groupSize?: number, groupId?: string) =>
+        setConfirmAction({ id, groupId, status, label, actionText, groupSize, reason: '', updateGroupMode: (groupSize ?? 0) > 1 });
 
     const handleStatusUpdate = async () => {
         if (!confirmAction) return;
@@ -107,7 +107,9 @@ export const EmployeeAppointmentsPage: React.FC = () => {
         }
         const reason = needsReason ? confirmAction.reason.trim() || undefined : undefined;
         try {
-            const noShowResult = await appointmentService.updateStatusByEmployee(confirmAction.id, confirmAction.status, reason);
+            const noShowResult = (confirmAction.updateGroupMode && confirmAction.groupId)
+                ? await appointmentService.updateGroupStatusByEmployee(confirmAction.groupId, confirmAction.status, reason)
+                : await appointmentService.updateStatusByEmployee(confirmAction.id, confirmAction.status, reason);
             toast.success('Randevu durumu güncellendi');
             loadData();
             loadWeeklyAppointments();
@@ -539,23 +541,23 @@ export const EmployeeAppointmentsPage: React.FC = () => {
                                                             <div className="flex flex-wrap gap-2">
                                                                 {appointment.status === AppointmentStatus.Pending && (
                                                                     <>
-                                                                        <Button size="sm" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Confirmed, 'Randevuyu Onayla', 'Bu randevuyu onaylamak istediğinize emin misiniz?', grpSize)}>Onayla</Button>
-                                                                        <Button size="sm" variant="danger" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Rejected, 'Randevuyu Reddet', 'Bu randevuyu reddetmek istediğinize emin misiniz? Lütfen müşteriye iletilecek sebebi girin.', grpSize)}>Reddet</Button>
+                                                                        <Button size="sm" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Confirmed, 'Randevuyu Onayla', 'Bu randevuyu onaylamak istediğinize emin misiniz?', grpSize, appointment.groupId)}>Onayla</Button>
+                                                                        <Button size="sm" variant="danger" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Rejected, 'Randevuyu Reddet', 'Bu randevuyu reddetmek istediğinize emin misiniz? Lütfen müşteriye iletilecek sebebi girin.', grpSize, appointment.groupId)}>Reddet</Button>
                                                                     </>
                                                                 )}
                                                                 {appointment.status === AppointmentStatus.Confirmed && (
                                                                     <>
                                                                         {new Date(appointment.startTime) <= new Date() && (
                                                                             <>
-                                                                                <Button size="sm" variant="success" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Completed, 'Randevuyu Tamamla', 'Bu randevunun tamamlandığını onaylıyor musunuz?', grpSize)}>Tamamlandı</Button>
-                                                                                <Button size="sm" variant="warning" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.NoShow, 'Müşteri Gelmedi Mi?', 'Bu randevuyu "Gelmedi" olarak işaretlemek istediğinize emin misiniz?', grpSize)}>Gelmedi</Button>
+                                                                                <Button size="sm" variant="success" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Completed, 'Randevuyu Tamamla', 'Bu randevunun tamamlandığını onaylıyor musunuz?', grpSize, appointment.groupId)}>Tamamlandı</Button>
+                                                                                <Button size="sm" variant="warning" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.NoShow, 'Müşteri Gelmedi Mi?', 'Bu randevuyu "Gelmedi" olarak işaretlemek istediğinize emin misiniz?', grpSize, appointment.groupId)}>Gelmedi</Button>
                                                                             </>
                                                                         )}
-                                                                        <Button size="sm" variant="danger" className="flex-1 w-full" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Cancelled, 'Randevuyu İptal Et', 'Bu randevuyu iptal etmek istediğinize emin misiniz? Lütfen müşteriye iletilecek sebebi girin.', grpSize)}>İptal</Button>
+                                                                        <Button size="sm" variant="danger" className="flex-1 w-full" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Cancelled, 'Randevuyu İptal Et', 'Bu randevuyu iptal etmek istediğinize emin misiniz? Lütfen müşteriye iletilecek sebebi girin.', grpSize, appointment.groupId)}>İptal</Button>
                                                                     </>
                                                                 )}
                                                                 {appointment.status === AppointmentStatus.Completed && (
-                                                                    <Button size="sm" variant="warning" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.NoShow, 'Müşteri Gelmedi Mi?', 'Bu randevuyu "Gelmedi" olarak işaretlemek istediğinize emin misiniz?', grpSize)}>Gelmedi</Button>
+                                                                    <Button size="sm" variant="warning" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.NoShow, 'Müşteri Gelmedi Mi?', 'Bu randevuyu "Gelmedi" olarak işaretlemek istediğinize emin misiniz?', grpSize, appointment.groupId)}>Gelmedi</Button>
                                                                 )}
                                                             </div>
                                                         );
@@ -578,11 +580,19 @@ export const EmployeeAppointmentsPage: React.FC = () => {
                             <h3 className="text-lg font-bold text-gray-900 mb-2">{confirmAction.label}</h3>
                             <p className="text-gray-600 text-sm mb-3">{confirmAction.actionText}</p>
                             {confirmAction.groupSize && confirmAction.groupSize > 1 && (
-                                <div className="flex items-start gap-2 bg-indigo-50 border border-indigo-100 rounded-xl px-3 py-2.5 mb-4">
-                                    <span className="text-indigo-500 mt-0.5">ℹ️</span>
-                                    <p className="text-xs text-indigo-700 font-medium">
-                                        Bu randevu <span className="font-bold">{confirmAction.groupSize} hizmetlik</span> bir grup randevusunun parçasıdır. İşlem gruptaki tüm randevulara uygulanacaktır.
-                                    </p>
+                                <div className="flex flex-col gap-2 bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 mb-4">
+                                    <label className="flex items-start gap-3 cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            className="mt-1 w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
+                                            checked={confirmAction.updateGroupMode}
+                                            onChange={(e) => setConfirmAction(prev => prev ? { ...prev, updateGroupMode: e.target.checked } : null)}
+                                        />
+                                        <div>
+                                            <span className="text-sm font-semibold text-indigo-900 block">Tüm Grubu İşaretle</span>
+                                            <span className="text-xs text-indigo-700 block">Bu randevu {confirmAction.groupSize} hizmetlik bir grup randevusunun parçasıdır. Seçili olursa gruptaki diğer randevulara da bu işlem uygulanır.</span>
+                                        </div>
+                                    </label>
                                 </div>
                             )}
                             {(confirmAction.status === AppointmentStatus.Rejected || confirmAction.status === AppointmentStatus.Cancelled) && (
