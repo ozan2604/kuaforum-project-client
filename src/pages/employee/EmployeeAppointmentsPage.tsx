@@ -30,7 +30,7 @@ export const EmployeeAppointmentsPage: React.FC = () => {
     const [pageSize, setPageSize] = useState(10);
     const [totalCount, setTotalCount] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
-    const [confirmAction, setConfirmAction] = useState<{ id: string; status: AppointmentStatus; label: string; actionText: string; groupSize?: number } | null>(null);
+    const [confirmAction, setConfirmAction] = useState<{ id: string; status: AppointmentStatus; label: string; actionText: string; groupSize?: number; reason: string } | null>(null);
     const [blockOffer, setBlockOffer] = useState<{ customerId: string; customerName: string; noShowCount: number } | null>(null);
 
     const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
@@ -93,15 +93,25 @@ export const EmployeeAppointmentsPage: React.FC = () => {
     useEffect(() => { loadData(); }, [page, pageSize, statusFilter, searchTerm, filterDate, filterServiceId]);
 
     const requestStatusUpdate = (id: string, status: AppointmentStatus, label: string, actionText: string, groupSize?: number) =>
-        setConfirmAction({ id, status, label, actionText, groupSize });
+        setConfirmAction({ id, status, label, actionText, groupSize, reason: '' });
 
-    const handleStatusUpdate = async (id: string, status: AppointmentStatus) => {
+    const handleStatusUpdate = async () => {
+        if (!confirmAction) return;
+        const needsReason = confirmAction.status === AppointmentStatus.Rejected || confirmAction.status === AppointmentStatus.Cancelled;
+        if (needsReason && !confirmAction.reason.trim()) {
+            toast.error(confirmAction.status === AppointmentStatus.Rejected
+                ? 'Red sebebi zorunludur — müşteri bu bilgiyi görecek.'
+                : 'İptal sebebi zorunludur — müşteri bu bilgiyi görecek.'
+            );
+            return;
+        }
+        const reason = needsReason ? confirmAction.reason.trim() || undefined : undefined;
         try {
-            const noShowResult = await appointmentService.updateStatusByEmployee(id, status);
+            const noShowResult = await appointmentService.updateStatusByEmployee(confirmAction.id, confirmAction.status, reason);
             toast.success('Randevu durumu güncellendi');
             loadData();
             loadWeeklyAppointments();
-            if (status === AppointmentStatus.NoShow && noShowResult && noShowResult.noShowCount >= 2 && noShowResult.customerId) {
+            if (confirmAction.status === AppointmentStatus.NoShow && noShowResult && noShowResult.noShowCount >= 2 && noShowResult.customerId) {
                 setBlockOffer({
                     customerId: noShowResult.customerId,
                     customerName: noShowResult.customerName ?? 'Müşteri',
@@ -415,7 +425,10 @@ export const EmployeeAppointmentsPage: React.FC = () => {
                                                                     return (
                                                                         <div className="flex justify-end gap-2">
                                                                             {appointment.status === AppointmentStatus.Pending && (
-                                                                                <Button size="sm" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Confirmed, 'Randevuyu Onayla', 'Bu randevuyu onaylamak istediğinize emin misiniz?', grpSize)}>Onayla</Button>
+                                                                                <>
+                                                                                    <Button size="sm" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Confirmed, 'Randevuyu Onayla', 'Bu randevuyu onaylamak istediğinize emin misiniz?', grpSize)}>Onayla</Button>
+                                                                                    <Button size="sm" variant="danger" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Rejected, 'Randevuyu Reddet', 'Bu randevuyu reddetmek istediğinize emin misiniz? Lütfen müşteriye iletilecek sebebi girin.', grpSize)}>Reddet</Button>
+                                                                                </>
                                                                             )}
                                                                             {appointment.status === AppointmentStatus.Confirmed && (
                                                                                 <>
@@ -425,6 +438,7 @@ export const EmployeeAppointmentsPage: React.FC = () => {
                                                                                             <Button size="sm" variant="warning" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.NoShow, 'Müşteri Gelmedi Mi?', 'Bu randevuyu "Gelmedi" olarak işaretlemek istediğinize emin misiniz?', grpSize)}>Gelmedi</Button>
                                                                                         </>
                                                                                     )}
+                                                                                    <Button size="sm" variant="danger" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Cancelled, 'Randevuyu İptal Et', 'Bu randevuyu iptal etmek istediğinize emin misiniz? Lütfen müşteriye iletilecek sebebi girin.', grpSize)}>İptal</Button>
                                                                                 </>
                                                                             )}
                                                                             {appointment.status === AppointmentStatus.Completed && (
@@ -524,7 +538,10 @@ export const EmployeeAppointmentsPage: React.FC = () => {
                                                         return (
                                                             <div className="flex flex-wrap gap-2">
                                                                 {appointment.status === AppointmentStatus.Pending && (
-                                                                    <Button size="sm" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Confirmed, 'Randevuyu Onayla', 'Bu randevuyu onaylamak istediğinize emin misiniz?', grpSize)}>Onayla</Button>
+                                                                    <>
+                                                                        <Button size="sm" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Confirmed, 'Randevuyu Onayla', 'Bu randevuyu onaylamak istediğinize emin misiniz?', grpSize)}>Onayla</Button>
+                                                                        <Button size="sm" variant="danger" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Rejected, 'Randevuyu Reddet', 'Bu randevuyu reddetmek istediğinize emin misiniz? Lütfen müşteriye iletilecek sebebi girin.', grpSize)}>Reddet</Button>
+                                                                    </>
                                                                 )}
                                                                 {appointment.status === AppointmentStatus.Confirmed && (
                                                                     <>
@@ -534,6 +551,7 @@ export const EmployeeAppointmentsPage: React.FC = () => {
                                                                                 <Button size="sm" variant="warning" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.NoShow, 'Müşteri Gelmedi Mi?', 'Bu randevuyu "Gelmedi" olarak işaretlemek istediğinize emin misiniz?', grpSize)}>Gelmedi</Button>
                                                                             </>
                                                                         )}
+                                                                        <Button size="sm" variant="danger" className="flex-1 w-full" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Cancelled, 'Randevuyu İptal Et', 'Bu randevuyu iptal etmek istediğinize emin misiniz? Lütfen müşteriye iletilecek sebebi girin.', grpSize)}>İptal</Button>
                                                                     </>
                                                                 )}
                                                                 {appointment.status === AppointmentStatus.Completed && (
@@ -567,10 +585,26 @@ export const EmployeeAppointmentsPage: React.FC = () => {
                                     </p>
                                 </div>
                             )}
+                            {(confirmAction.status === AppointmentStatus.Rejected || confirmAction.status === AppointmentStatus.Cancelled) && (
+                                <div className="mb-4">
+                                    <label className="block text-xs font-semibold text-gray-700 mb-1.5">
+                                        {confirmAction.status === AppointmentStatus.Rejected ? 'Red Sebebi (Zorunlu)' : 'İptal Sebebi (Zorunlu)'}
+                                    </label>
+                                    <textarea
+                                        autoFocus
+                                        rows={3}
+                                        placeholder="Müşteriye iletilecek mesajınızı buraya yazın..."
+                                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 resize-none transition-shadow"
+                                        value={confirmAction.reason}
+                                        onChange={(e) => setConfirmAction(prev => prev ? { ...prev, reason: e.target.value } : null)}
+                                    />
+                                    <p className="text-[10px] text-gray-400 mt-1.5">Bu mesaj müşteriye SMS olarak gönderilecektir.</p>
+                                </div>
+                            )}
                             <div className="flex gap-3 justify-end">
                                 <button onClick={() => setConfirmAction(null)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl">Vazgeç</button>
                                 <button
-                                    onClick={() => handleStatusUpdate(confirmAction.id, confirmAction.status)}
+                                    onClick={() => handleStatusUpdate()}
                                     className={`px-4 py-2 text-sm font-semibold rounded-xl text-white transition-colors ${confirmAction.status === AppointmentStatus.Rejected || confirmAction.status === AppointmentStatus.Cancelled
                                             ? 'bg-red-600 hover:bg-red-700'
                                             : confirmAction.status === AppointmentStatus.NoShow
@@ -578,7 +612,7 @@ export const EmployeeAppointmentsPage: React.FC = () => {
                                                 : 'bg-indigo-600 hover:bg-indigo-700'
                                         }`}
                                 >
-                                    {confirmAction.status === AppointmentStatus.NoShow ? 'Gelmedi Olarak İşaretle' : 'Onayla'}
+                                    {confirmAction.status === AppointmentStatus.NoShow ? 'Gelmedi Olarak İşaretle' : confirmAction.status === AppointmentStatus.Rejected ? 'Reddet' : confirmAction.status === AppointmentStatus.Cancelled ? 'İptal Et' : 'Onayla'}
                                 </button>
                             </div>
                         </div>

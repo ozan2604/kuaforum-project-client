@@ -106,8 +106,8 @@ export const appointmentService = {
         return response.data;
     },
 
-    updateStatusByEmployee: async (id: string, status: AppointmentStatus): Promise<NoShowResultDto | null> => {
-        const payload: UpdateAppointmentStatusDto = { status };
+    updateStatusByEmployee: async (id: string, status: AppointmentStatus, reason?: string): Promise<NoShowResultDto | null> => {
+        const payload: UpdateAppointmentStatusDto = { status, reason };
         const response = await api.put<{ noShowResult?: NoShowResultDto }>(`/Appointment/employee/${id}/status`, payload);
         return response.data.noShowResult ?? null;
     },
