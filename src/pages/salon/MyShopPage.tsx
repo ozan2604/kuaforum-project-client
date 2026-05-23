@@ -632,7 +632,7 @@ export const MyShopPage: React.FC = () => {
         }
 
         const checkDuration = (): Promise<number> => {
-            return new Promise((resolve, reject) => {
+            return new Promise((resolve) => {
                 const video = document.createElement('video');
                 video.preload = 'metadata';
                 
@@ -643,21 +643,19 @@ export const MyShopPage: React.FC = () => {
                 
                 video.onerror = () => {
                     URL.revokeObjectURL(video.src);
-                    reject('Video okunamadı');
+                    // Bazı tarayıcılar iPhone (.mov/HEVC) formatının süresini okuyamaz.
+                    // Yüklemeyi engellememek için süreyi pas geçiyoruz (0 dönüyoruz).
+                    // Zaten 100 MB limiti videonun devasa olmasını engelleyecektir.
+                    resolve(0);
                 };
 
                 video.src = URL.createObjectURL(file);
             });
         };
 
-        try {
-            const duration = await checkDuration();
-            if (duration > 61) {
-                toast.error('Tanıtım videosu en fazla 60 saniye olabilir.');
-                return;
-            }
-        } catch (error) {
-            toast.error('Videonun süresi okunamadı, lütfen başka bir video deneyin.');
+        const duration = await checkDuration();
+        if (duration > 61) {
+            toast.error('Tanıtım videosu en fazla 60 saniye olabilir.');
             return;
         }
         
