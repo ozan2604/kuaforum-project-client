@@ -166,6 +166,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
     const [mapFocusCenter, setMapFocusCenter] = useState<[number, number] | null>(null);
     const [mapFocusShopId, setMapFocusShopId] = useState<string | null>(null);
     const mapSectionRef = useRef<HTMLDivElement>(null);
+    const [catScroll, setCatScroll] = useState({ left: false, right: true });
 
     useEffect(() => {
         const loadProvinces = async () => {
@@ -619,9 +620,26 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                             <ChevronRight className="w-5 h-5 text-gray-600" />
                         </button>
 
+                        {/* Mobil / Tablet Sol Şeffaf Gradient + Ok (Scroll varsa görünür) */}
+                        <div className={`sm:hidden absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-white via-white/80 to-transparent z-10 pointer-events-none flex items-center transition-opacity duration-300 ${catScroll.left ? 'opacity-100' : 'opacity-0'}`}>
+                            <ChevronLeft className="w-5 h-5 text-gray-400 ml-1" />
+                        </div>
+
+                        {/* Mobil / Tablet Sağ Şeffaf Gradient + Ok (Scroll bitmediyse görünür) */}
+                        <div className={`sm:hidden absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-white via-white/80 to-transparent z-10 pointer-events-none flex items-center justify-end transition-opacity duration-300 ${catScroll.right ? 'opacity-100' : 'opacity-0'}`}>
+                            <ChevronRight className="w-5 h-5 text-gray-400 mr-1 animate-pulse" />
+                        </div>
+
                         <div
                             id="category-scroll"
-                            className="flex items-center gap-6 sm:gap-8 md:gap-10 lg:gap-12 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] py-3 px-2"
+                            onScroll={(e) => {
+                                const el = e.currentTarget;
+                                setCatScroll({
+                                    left: el.scrollLeft > 5,
+                                    right: el.scrollLeft < el.scrollWidth - el.clientWidth - 5
+                                });
+                            }}
+                            className="flex items-center gap-5 sm:gap-8 md:gap-10 lg:gap-12 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] py-3 px-2 relative"
                         >
                             {[
                                 { id: ShopCategory.ErkekKuafor, label: ShopCategoryLabels[ShopCategory.ErkekKuafor], image: '/images/categories/berber.png' },
@@ -641,7 +659,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                                     onClick={() => setSelectedCategory(selectedCategory === cat.id ? null : cat.id)}
                                     className="flex flex-col items-center gap-2 group shrink-0 transition-all"
                                 >
-                                    <div className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full overflow-hidden border-[3px] transition-all duration-300 shadow-md ${selectedCategory === cat.id
+                                    <div className={`w-[4.25rem] h-[4.25rem] sm:w-24 sm:h-24 rounded-full overflow-hidden border-[3px] transition-all duration-300 shadow-md ${selectedCategory === cat.id
                                         ? 'border-primary-500 shadow-primary-200/50 shadow-lg ring-4 ring-primary-100'
                                         : 'border-gray-200 group-hover:border-primary-300 group-hover:shadow-lg'
                                         }`}>

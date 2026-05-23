@@ -41,7 +41,7 @@ export const Navbar: React.FC = () => {
                     </div>
 
                     {/* Center: Search Bar */}
-                    <div className="flex-1 min-w-0 max-w-2xl px-2">
+                    <div className="hidden sm:block flex-1 min-w-0 max-w-2xl px-2">
                         <form onSubmit={handleSearch} className="relative w-full">
                             <input
                                 type="text"
