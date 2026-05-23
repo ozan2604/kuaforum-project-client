@@ -209,6 +209,19 @@ export const ShopDetailsPage: React.FC = () => {
         return `http://localhost:5000${path}`;
     };
 
+    const getOptimizedVideoUrl = (path: string) => {
+        if (!path) return '';
+        let url = path.startsWith('http') ? path : `http://localhost:5000${path}`;
+        
+        if (url.includes('res.cloudinary.com') && url.includes('/video/upload/')) {
+            url = url.replace(/(\.[^.]+)$/, '.mp4');
+            if (!url.includes('/upload/w_1280,h_720,c_limit,q_auto,f_mp4/')) {
+                url = url.replace('/upload/', '/upload/w_1280,h_720,c_limit,q_auto,f_mp4/');
+            }
+        }
+        return url;
+    };
+
     if (loading) return <LoadingSpinner fullPage />;
 
     if (!shop) return null;
@@ -278,7 +291,7 @@ export const ShopDetailsPage: React.FC = () => {
                         {isPlayingVideo && shop.promoVideoUrl ? (
                             <div className="relative w-full h-full bg-black z-30">
                                 <video
-                                    src={getImageUrl(shop.promoVideoUrl)}
+                                    src={getOptimizedVideoUrl(shop.promoVideoUrl)}
                                     className="w-full h-full object-contain"
                                     controls
                                     autoPlay

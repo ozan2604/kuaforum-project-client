@@ -792,6 +792,19 @@ export const MyShopPage: React.FC = () => {
         return `http://localhost:5000${path}`;
     };
 
+    const getOptimizedVideoUrl = (path: string) => {
+        if (!path) return '';
+        let url = path.startsWith('http') ? path : `http://localhost:5000${path}`;
+        
+        if (url.includes('res.cloudinary.com') && url.includes('/video/upload/')) {
+            url = url.replace(/(\.[^.]+)$/, '.mp4');
+            if (!url.includes('/upload/w_1280,h_720,c_limit,q_auto,f_mp4/')) {
+                url = url.replace('/upload/', '/upload/w_1280,h_720,c_limit,q_auto,f_mp4/');
+            }
+        }
+        return url;
+    };
+
     const handleAddClosureDate = async () => {
         if (!shopId || !newClosureDate) return;
         setAddingClosure(true);
@@ -1026,7 +1039,7 @@ export const MyShopPage: React.FC = () => {
                                     <div className="w-full sm:w-52 h-28 bg-gray-100 rounded-xl overflow-hidden border border-gray-200 shrink-0">
                                         {getValues('promoVideoUrl') ? (
                                             <video
-                                                src={getImageUrl(getValues('promoVideoUrl') || '')}
+                                                src={getOptimizedVideoUrl(getValues('promoVideoUrl') || '')}
                                                 className="w-full h-full object-cover"
                                                 controls
                                             />
