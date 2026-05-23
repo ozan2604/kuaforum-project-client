@@ -8,7 +8,7 @@ import { toast } from 'react-hot-toast';
 import { getApiError } from '../../utils/storage';
 import {
     Calendar, Clock, CheckCircle, XCircle, AlertCircle,
-    Scissors, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Filter, X, Plus, UserX
+    Scissors, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Filter, X, Plus, UserX, MessageSquare, User, Phone
 } from 'lucide-react';
 import { blockService } from '../../api/block.service';
 import { ManualBookingModal } from '../../components/ManualBookingModal';
@@ -579,6 +579,7 @@ export const EmployeeAppointmentsPage: React.FC = () => {
                     )}
                 </div>
             )}
+        </div>
 
             {/* Confirmation Modal */}
             {confirmAction && createPortal(
@@ -646,8 +647,6 @@ export const EmployeeAppointmentsPage: React.FC = () => {
                 </div>,
                 document.body
             )}
-            </div>
-
             {blockOffer && createPortal(
                 <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50">
                     <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4">
@@ -684,6 +683,7 @@ export const EmployeeAppointmentsPage: React.FC = () => {
                     onSuccess={() => { loadWeeklyAppointments(); loadData(); }}
                 />
             )}
+            </div>
         </>
     );
 };
