@@ -1042,7 +1042,6 @@ export const MyShopPage: React.FC = () => {
                                                 preload="auto"
                                                 playsInline
                                                 muted
-                                                crossOrigin="anonymous"
                                             />
                                         ) : (
                                             <div className="flex flex-col items-center justify-center w-full h-full text-gray-300 gap-2">

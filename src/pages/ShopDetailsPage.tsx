@@ -295,7 +295,6 @@ export const ShopDetailsPage: React.FC = () => {
                                     playsInline
                                     muted
                                     preload="auto"
-                                    crossOrigin="anonymous"
                                 />
                                 <button
                                     onClick={() => setIsPlayingVideo(false)}
