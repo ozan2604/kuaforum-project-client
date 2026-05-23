@@ -68,6 +68,7 @@ export interface Shop {
     ownerEmail?: string;
     isActive: boolean;
     coverImagePath?: string;
+    promoVideoUrl?: string;
     images?: { id: string; url: string; tags: { id: string; name: string }[] }[];
     averageRating: number;
     reviewCount: number;

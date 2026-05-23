@@ -8,7 +8,7 @@ import { getApiError } from '../../utils/storage';
 import {
     MapPin, Phone, Building2, Trash2, CalendarX, Clock,
     Camera, Store, ChevronDown, ChevronUp, ArrowRight, AlertTriangle, CalendarClock, UserX,
-    Scissors, Users, CheckCircle, CheckCircle2, Circle
+    Scissors, Users, CheckCircle, CheckCircle2, Circle, Video
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ServicesPage } from './ServicesPage';
@@ -173,6 +173,8 @@ export const MyShopPage: React.FC = () => {
     const [deleteImageId, setDeleteImageId] = useState<string | null>(null);
     const [deletingCover, setDeletingCover] = useState(false);
     const [deleteCoverConfirm, setDeleteCoverConfirm] = useState(false);
+    const [deletingPromoVideo, setDeletingPromoVideo] = useState(false);
+    const [deletePromoVideoConfirm, setDeletePromoVideoConfirm] = useState(false);
 
     const [weeklyOffDays, setWeeklyOffDays] = useState<number[]>([]);
 
@@ -620,6 +622,33 @@ export const MyShopPage: React.FC = () => {
         }
     };
 
+    const handlePromoVideoUpload = async (file: File) => {
+        if (!shopId) return;
+        if (file.size > 100 * 1024 * 1024) {
+            toast.error('Video boyutu 100 MB\'ı geçemez.');
+            return;
+        }
+        
+        const videoElement = document.createElement('video');
+        videoElement.src = URL.createObjectURL(file);
+        
+        videoElement.onloadedmetadata = async () => {
+            if (videoElement.duration > 61) {
+                toast.error('Tanıtım videosu en fazla 60 saniye olabilir.');
+                return;
+            }
+            try {
+                const toastId = toast.loading('Tanıtım videosu yükleniyor...');
+                await shopService.uploadPromoVideo(shopId, file);
+                toast.dismiss(toastId);
+                toast.success('Tanıtım videosu güncellendi');
+                setRefreshImages(prev => prev + 1);
+            } catch (err) {
+                toast.error(getApiError(err, 'Tanıtım videosu yüklenemedi'));
+            }
+        };
+    };
+
     const handleGalleryUpload = async (files: FileList) => {
         if (!shopId) return;
         const oversized = Array.from(files).some(f => f.size > 15 * 1024 * 1024);
@@ -650,6 +679,21 @@ export const MyShopPage: React.FC = () => {
             toast.error(getApiError(err, 'Fotoğraf silinemedi.'));
         } finally {
             setDeletingCover(false);
+        }
+    };
+
+    const handleDeletePromoVideo = async () => {
+        if (!shopId) return;
+        setDeletingPromoVideo(true);
+        try {
+            await shopService.deletePromoVideo(shopId);
+            setValue('promoVideoUrl', '');
+            toast.success('Tanıtım videosu silindi');
+            setRefreshImages(prev => prev + 1);
+        } catch (err) {
+            toast.error(getApiError(err, 'Video silinemedi.'));
+        } finally {
+            setDeletingPromoVideo(false);
         }
     };
 
@@ -950,6 +994,57 @@ export const MyShopPage: React.FC = () => {
                                             </Button>
                                         )}
                                         <p className="text-xs text-gray-400">Önerilen: 1200×400 piksel • JPG, PNG veya WebP</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Tanıtım Videosu */}
+                            <div className="border-t border-gray-100 pt-5">
+                                <label className="block text-sm font-semibold text-gray-700 mb-3">Tanıtım Videosu</label>
+                                <div className="flex flex-col sm:flex-row items-start gap-4">
+                                    <div className="w-full sm:w-52 h-28 bg-gray-100 rounded-xl overflow-hidden border border-gray-200 shrink-0">
+                                        {getValues('promoVideoUrl') ? (
+                                            <video
+                                                src={getImageUrl(getValues('promoVideoUrl') || '')}
+                                                className="w-full h-full object-cover"
+                                                controls
+                                            />
+                                        ) : (
+                                            <div className="flex flex-col items-center justify-center w-full h-full text-gray-300 gap-2">
+                                                <Video className="w-8 h-8" />
+                                                <span className="text-xs">Video Yok</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="flex flex-col gap-2">
+                                        <input
+                                            type="file"
+                                            id="promoVideoInput"
+                                            className="hidden"
+                                            accept="video/mp4,video/quicktime,video/webm"
+                                            onChange={(e) => { if (e.target.files?.[0]) handlePromoVideoUpload(e.target.files[0]); }}
+                                        />
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            onClick={() => document.getElementById('promoVideoInput')?.click()}
+                                        >
+                                            Video Ekle/Değiştir
+                                        </Button>
+                                        {getValues('promoVideoUrl') && (
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                disabled={deletingPromoVideo}
+                                                onClick={() => setDeletePromoVideoConfirm(true)}
+                                                className="text-red-600 border-red-200 hover:bg-red-50"
+                                            >
+                                                {deletingPromoVideo ? 'Siliniyor…' : 'Videoyu Sil'}
+                                            </Button>
+                                        )}
+                                        <p className="text-xs text-gray-400">Maks: 60 saniye • 100 MB • MP4, MOV, WEBM</p>
                                     </div>
                                 </div>
                             </div>
@@ -1725,6 +1820,47 @@ export const MyShopPage: React.FC = () => {
                     </AccordionCard>
                 </div>
             )}
+            {/* ── Tanıtım Videosu Silme Onay Modalı ── */}
+            {deletePromoVideoConfirm && createPortal(
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+                        <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-100">
+                            <div className="p-2.5 bg-red-50 text-red-600 rounded-xl shrink-0">
+                                <Trash2 className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h3 className="text-base font-bold text-gray-900">Tanıtım Videosu Silinecek</h3>
+                                <p className="text-xs text-gray-500 mt-0.5">Bu işlem geri alınamaz</p>
+                            </div>
+                        </div>
+                        <div className="p-6">
+                            <p className="text-sm text-gray-600 mb-6">Tanıtım videosunu silmek istediğinizden emin misiniz?</p>
+                            <div className="flex gap-3">
+                                <Button
+                                    variant="outline"
+                                    className="flex-1 border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300"
+                                    onClick={() => setDeletePromoVideoConfirm(false)}
+                                    disabled={deletingPromoVideo}
+                                >
+                                    İptal
+                                </Button>
+                                <Button
+                                    className="flex-1 bg-red-600 hover:bg-red-700 text-white border-0 shadow-sm hover:shadow"
+                                    onClick={async () => {
+                                        await handleDeletePromoVideo();
+                                        setDeletePromoVideoConfirm(false);
+                                    }}
+                                    isLoading={deletingPromoVideo}
+                                >
+                                    Sil
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
             {/* ── Kapak Fotoğrafı Silme Onay Modalı ── */}
             {deleteCoverConfirm && createPortal(
                 <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">

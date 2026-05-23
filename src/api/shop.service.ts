@@ -71,6 +71,19 @@ export const shopService = {
         await api.delete(`/shop/${id}/cover-image`);
     },
 
+    uploadPromoVideo: async (id: string, file: File): Promise<{ path: string }> => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await api.post<{ path: string }>(`/shop/${id}/promo-video`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data;
+    },
+
+    deletePromoVideo: async (id: string): Promise<void> => {
+        await api.delete(`/shop/${id}/promo-video`);
+    },
+
     updateAutoProcess: async (id: string, isEnabled: boolean): Promise<void> => {
         await api.patch(`/shop/${id}/auto-process`, isEnabled, {
             headers: { 'Content-Type': 'application/json' }
