@@ -630,25 +630,46 @@ export const MyShopPage: React.FC = () => {
             toast.error('Video boyutu 100 MB\'ı geçemez.');
             return;
         }
-        
-        const videoElement = document.createElement('video');
-        videoElement.src = URL.createObjectURL(file);
-        
-        videoElement.onloadedmetadata = async () => {
-            if (videoElement.duration > 61) {
+
+        const checkDuration = (): Promise<number> => {
+            return new Promise((resolve, reject) => {
+                const video = document.createElement('video');
+                video.preload = 'metadata';
+                
+                video.onloadedmetadata = () => {
+                    URL.revokeObjectURL(video.src);
+                    resolve(video.duration);
+                };
+                
+                video.onerror = () => {
+                    URL.revokeObjectURL(video.src);
+                    reject('Video okunamadı');
+                };
+
+                video.src = URL.createObjectURL(file);
+            });
+        };
+
+        try {
+            const duration = await checkDuration();
+            if (duration > 61) {
                 toast.error('Tanıtım videosu en fazla 60 saniye olabilir.');
                 return;
             }
-            try {
-                const toastId = toast.loading('Tanıtım videosu yükleniyor...');
-                await shopService.uploadPromoVideo(shopId, file);
-                toast.dismiss(toastId);
-                toast.success('Tanıtım videosu güncellendi');
-                setRefreshImages(prev => prev + 1);
-            } catch (err) {
-                toast.error(getApiError(err, 'Tanıtım videosu yüklenemedi'));
-            }
-        };
+        } catch (error) {
+            toast.error('Videonun süresi okunamadı, lütfen başka bir video deneyin.');
+            return;
+        }
+        
+        try {
+            const toastId = toast.loading('Tanıtım videosu yükleniyor...');
+            await shopService.uploadPromoVideo(shopId, file);
+            toast.dismiss(toastId);
+            toast.success('Tanıtım videosu güncellendi');
+            setRefreshImages(prev => prev + 1);
+        } catch (err) {
+            toast.error(getApiError(err, 'Tanıtım videosu yüklenemedi'));
+        }
     };
 
     const handleGalleryUpload = async (files: FileList) => {
@@ -1024,7 +1045,11 @@ export const MyShopPage: React.FC = () => {
                                             id="promoVideoInput"
                                             className="hidden"
                                             accept="video/mp4,video/quicktime,video/webm"
-                                            onChange={(e) => { if (e.target.files?.[0]) handlePromoVideoUpload(e.target.files[0]); }}
+                                            onChange={(e) => {
+                                                const file = e.target.files?.[0];
+                                                if (file) handlePromoVideoUpload(file);
+                                                e.target.value = ''; // Aynı dosyayı tekrar seçebilmek için
+                                            }}
                                         />
                                         <Button
                                             type="button"
