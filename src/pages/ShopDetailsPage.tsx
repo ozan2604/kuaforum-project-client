@@ -211,12 +211,10 @@ export const ShopDetailsPage: React.FC = () => {
 
     const getOptimizedVideoUrl = (path: string) => {
         if (!path) return '';
-        let url = path.startsWith('http') ? path : `http://localhost:5000${path}`;
-        
-        if (url.includes('res.cloudinary.com') && url.includes('/video/upload/')) {
-            url = url.replace(/(\.[^.]+)$/, '.mp4');
-        }
-        return url;
+        // Cloudinary URL'i direkt kullan - inline transformation ekleme,
+        // bu URL'i bozabilir veya derived video henüz hazır olmayabilir
+        if (path.startsWith('http')) return path;
+        return `https://api.salonbir.com${path}`;
     };
 
     if (loading) return <LoadingSpinner fullPage />;
@@ -288,13 +286,15 @@ export const ShopDetailsPage: React.FC = () => {
                         {isPlayingVideo && shop.promoVideoUrl ? (
                             <div className="relative w-full h-full bg-black z-30">
                                 <video
+                                    key={shop.promoVideoUrl}
                                     className="w-full h-full object-contain"
                                     controls
                                     autoPlay
                                     playsInline
-                                    muted
+                                    preload="auto"
+                                    crossOrigin="anonymous"
                                 >
-                                    <source src={getOptimizedVideoUrl(shop.promoVideoUrl)} type="video/mp4" />
+                                    <source src={getOptimizedVideoUrl(shop.promoVideoUrl)} />
                                     Tarayıcınız video oynatmayı desteklemiyor.
                                 </video>
                                 <button

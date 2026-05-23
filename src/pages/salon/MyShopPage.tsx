@@ -794,12 +794,10 @@ export const MyShopPage: React.FC = () => {
 
     const getOptimizedVideoUrl = (path: string) => {
         if (!path) return '';
-        let url = path.startsWith('http') ? path : `http://localhost:5000${path}`;
-        
-        if (url.includes('res.cloudinary.com') && url.includes('/video/upload/')) {
-            url = url.replace(/(\.[^.]+)$/, '.mp4');
-        }
-        return url;
+        // Cloudinary URL'i direkt kullan - inline transformation ekleme,
+        // bu URL'i bozabilir veya derived video henüz hazır olmayabilir
+        if (path.startsWith('http')) return path;
+        return `https://api.salonbir.com${path}`;
     };
 
     const handleAddClosureDate = async () => {
@@ -1036,12 +1034,14 @@ export const MyShopPage: React.FC = () => {
                                     <div className="w-full sm:w-52 h-28 bg-gray-100 rounded-xl overflow-hidden border border-gray-200 shrink-0">
                                         {getValues('promoVideoUrl') ? (
                                             <video
+                                                key={getValues('promoVideoUrl')}
                                                 className="w-full h-full object-cover"
                                                 controls
                                                 playsInline
-                                                muted
+                                                preload="metadata"
+                                                crossOrigin="anonymous"
                                             >
-                                                <source src={getOptimizedVideoUrl(getValues('promoVideoUrl') || '')} type="video/mp4" />
+                                                <source src={getOptimizedVideoUrl(getValues('promoVideoUrl') || '')} />
                                                 Tarayıcınız video oynatmayı desteklemiyor.
                                             </video>
                                         ) : (
