@@ -797,7 +797,7 @@ export const MyShopPage: React.FC = () => {
         let url = path.startsWith('http') ? path : `http://localhost:5000${path}`;
         
         if (url.includes('res.cloudinary.com') && url.includes('/video/upload/')) {
-            url = url.replace(/(\.[^.]+)$/, '.mp4');
+            url = url.replace(/(\.[^.]+)$/, '.mp4') + '?v=' + new Date().getTime(); // Önbellek kırıcı
         }
         return url;
     };
@@ -1039,6 +1039,10 @@ export const MyShopPage: React.FC = () => {
                                                 src={getOptimizedVideoUrl(getValues('promoVideoUrl') || '')}
                                                 className="w-full h-full object-cover"
                                                 controls
+                                                preload="auto"
+                                                playsInline
+                                                muted
+                                                crossOrigin="anonymous"
                                             />
                                         ) : (
                                             <div className="flex flex-col items-center justify-center w-full h-full text-gray-300 gap-2">
