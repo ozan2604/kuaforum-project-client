@@ -30,7 +30,7 @@ export const EmployeeAppointmentsPage: React.FC = () => {
     const [pageSize, setPageSize] = useState(10);
     const [totalCount, setTotalCount] = useState(0);
     const [totalPages, setTotalPages] = useState(0);
-    const [confirmAction, setConfirmAction] = useState<{ id: string; groupId?: string; status: AppointmentStatus; label: string; actionText: string; groupSize?: number; reason: string; updateGroupMode: boolean } | null>(null);
+    const [confirmAction, setConfirmAction] = useState<{ appointmentId?: string; groupId?: string; isGroup: boolean; status: AppointmentStatus; label: string; actionText: string; reason: string; firstStartTime?: string; } | null>(null);
     const [blockOffer, setBlockOffer] = useState<{ customerId: string; customerName: string; noShowCount: number } | null>(null);
 
     const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
@@ -92,8 +92,13 @@ export const EmployeeAppointmentsPage: React.FC = () => {
 
     useEffect(() => { loadData(); }, [page, pageSize, statusFilter, searchTerm, filterDate, filterServiceId]);
 
-    const requestStatusUpdate = (id: string, status: AppointmentStatus, label: string, actionText: string, groupSize?: number, groupId?: string) =>
-        setConfirmAction({ id, groupId, status, label, actionText, groupSize, reason: '', updateGroupMode: (groupSize ?? 0) > 1 });
+    const isAutoProcessEnabled = false; // Add for compatibility with salon UI
+
+    const requestSingleUpdate = (id: string, status: AppointmentStatus, label: string, actionText: string, firstStartTime?: string) =>
+        setConfirmAction({ appointmentId: id, isGroup: false, status, label, actionText, reason: '', firstStartTime });
+
+    const requestGroupUpdate = (groupId: string, status: AppointmentStatus, label: string, actionText: string, firstStartTime?: string) =>
+        setConfirmAction({ groupId, isGroup: true, status, label, actionText, reason: '', firstStartTime });
 
     const handleStatusUpdate = async () => {
         if (!confirmAction) return;
@@ -106,11 +111,21 @@ export const EmployeeAppointmentsPage: React.FC = () => {
             return;
         }
         const reason = needsReason ? confirmAction.reason.trim() || undefined : undefined;
+        const successMessages: Partial<Record<AppointmentStatus, string>> = {
+            [AppointmentStatus.Confirmed]: confirmAction.isGroup ? 'Tüm randevular onaylandı.' : 'Randevu onaylandı.',
+            [AppointmentStatus.Completed]: confirmAction.isGroup ? 'Tüm randevular tamamlandı olarak işaretlendi.' : 'Randevu tamamlandı olarak işaretlendi.',
+            [AppointmentStatus.Cancelled]: confirmAction.isGroup ? 'Tüm randevular iptal edildi.' : 'Randevu iptal edildi.',
+            [AppointmentStatus.Rejected]: confirmAction.isGroup ? 'Tüm randevular reddedildi.' : 'Randevu reddedildi.',
+            [AppointmentStatus.NoShow]: confirmAction.isGroup ? 'Tüm randevular "Gelmedi" olarak işaretlendi.' : 'Randevu "Gelmedi" olarak işaretlendi.',
+        };
         try {
-            const noShowResult = (confirmAction.updateGroupMode && confirmAction.groupId)
-                ? await appointmentService.updateGroupStatusByEmployee(confirmAction.groupId, confirmAction.status, reason)
-                : await appointmentService.updateStatusByEmployee(confirmAction.id, confirmAction.status, reason);
-            toast.success('Randevu durumu güncellendi');
+            let noShowResult = null;
+            if (confirmAction.isGroup && confirmAction.groupId) {
+                noShowResult = await appointmentService.updateGroupStatusByEmployee(confirmAction.groupId, confirmAction.status, reason);
+            } else if (confirmAction.appointmentId) {
+                noShowResult = await appointmentService.updateStatusByEmployee(confirmAction.appointmentId, confirmAction.status, reason);
+            }
+            toast.success(successMessages[confirmAction.status] ?? 'Randevu durumu güncellendi');
             loadData();
             loadWeeklyAppointments();
             if (confirmAction.status === AppointmentStatus.NoShow && noShowResult && noShowResult.noShowCount >= 2 && noShowResult.customerId) {
@@ -335,300 +350,302 @@ export const EmployeeAppointmentsPage: React.FC = () => {
                                         </div>
                                     </div>
 
-                                    {/* Desktop Table */}
-                                    <div className="hidden md:block overflow-x-auto">
-                                        <table className="min-w-full divide-y divide-gray-100">
-                                            <thead className="bg-gray-50/80">
-                                                <tr>
-                                                    <th className="w-10 px-3 py-3" />
-                                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Müşteri</th>
-                                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Hizmet</th>
-                                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Tarih & Saat</th>
-                                                    <th className="px-6 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Durum</th>
-                                                    <th className="px-6 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">İşlemler</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody className="bg-white divide-y divide-gray-100">
-                                                {appointments.map(appointment => (
-                                                    <React.Fragment key={appointment.id}>
-                                                        <tr className="hover:bg-gray-50/70 transition-colors">
-                                                            {/* Chevron */}
-                                                            <td className="px-3 py-4 text-center">
-                                                                <button
-                                                                    onClick={() => setExpandedRowId(prev => prev === appointment.id ? null : appointment.id)}
-                                                                    className="p-1 rounded-lg hover:bg-gray-200 transition-colors text-gray-400 hover:text-gray-600"
+                                    <div className="divide-y divide-gray-100">
+                                {(() => {
+                                    const groups = new Map<string, Appointment[]>();
+                                    appointments.forEach(apt => {
+                                        const key = apt.groupId ?? apt.id;
+                                        if (!groups.has(key)) groups.set(key, []);
+                                        groups.get(key)!.push(apt);
+                                    });
+                                    groups.forEach(g => g.sort((a, b) =>
+                                        new Date(a.startTime).getTime() - new Date(b.startTime).getTime()
+                                    ));
+                                    return [...groups.values()].map(group => {
+                                        const first = group[0];
+                                        const last  = group[group.length - 1];
+                                        const isMulti       = group.length > 1;
+                                        const totalPrice    = group.reduce((s, a) => s + a.price, 0);
+                                        const primaryStatus = first.status;
+                                        const gId           = first.groupId;
+                                        const cardKey       = gId ?? first.id;
+                                        const isExpanded    = expandedRowId === cardKey;
+                                        // Mixed-status aware bulk action flags
+                                        const hasAnyPending   = group.some(a => a.status === AppointmentStatus.Pending);
+                                        const hasAnyConfirmed = group.some(a => a.status === AppointmentStatus.Confirmed);
+                                        const hasAnyCompleted = group.some(a => a.status === AppointmentStatus.Completed);
+                                        // Gelmedi penceresi: otomatik onay açıksa randevu bittikten sonra 3 saat (180 dk) içinde işaretlenebilir
+                                        const nowMs = Date.now();
+                                        const groupNoShowWindowOpen = nowMs >= new Date(first.startTime).getTime() && (!isAutoProcessEnabled || nowMs <= new Date(last.endTime).getTime() + 180 * 60 * 1000);
+                                        const groupNoShowWindowExpired = isAutoProcessEnabled && nowMs > new Date(last.endTime).getTime() + 180 * 60 * 1000;
+
+                                            return (
+                                            <div key={cardKey} className="bg-white">
+                                                {/* ── Başlık — her zaman görünür, tıklanabilir ── */}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setExpandedRowId(prev => prev === cardKey ? null : cardKey)}
+                                                    className="w-full px-4 sm:px-5 py-3.5 flex items-start gap-3 hover:bg-gray-50/70 transition-colors text-left"
+                                                >
+                                                    {/* Avatar */}
+                                                    <div className="h-9 w-9 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold shrink-0 text-sm mt-0.5">
+                                                        {first.customerName.charAt(0).toUpperCase()}
+                                                    </div>
+
+                                                    {/* Orta: isim + meta bilgiler */}
+                                                    <div className="flex-1 min-w-0">
+                                                        {/* Satır 1: isim + hizmet sayısı + not ikonu */}
+                                                        <div className="flex items-center gap-1.5 flex-wrap">
+                                                            <span className="font-semibold text-gray-900 text-sm">{first.customerName}</span>
+                                                            {isMulti && (
+                                                                <span className="text-[10px] font-bold bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full shrink-0">
+                                                                    {group.length} hizmet
+                                                                </span>
+                                                            )}
+                                                            {first.note && (
+                                                                <MessageSquare className="w-3 h-3 text-amber-400 shrink-0" />
+                                                            )}
+                                                        </div>
+                                                        {/* Satır 2: tarih + saat + personel + telefon */}
+                                                        <div className="text-xs text-gray-400 flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1">
+                                                            <span className="flex items-center gap-1 shrink-0">
+                                                                <Calendar className="w-3 h-3" />
+                                                                {format(new Date(first.startTime), 'd MMM yyyy', { locale: tr })}
+                                                            </span>
+                                                            <span className="flex items-center gap-1 shrink-0">
+                                                                <Clock className="w-3 h-3" />
+                                                                {format(new Date(first.startTime), 'HH:mm')} – {format(new Date(last.endTime), 'HH:mm')}
+                                                            </span>
+                                                            <span className="flex items-center gap-1 shrink-0">
+                                                                <User className="w-3 h-3" />
+                                                                {first.employeeName}
+                                                            </span>
+                                                            {first.customerPhone && (
+                                                                <a
+                                                                    href={`tel:${first.customerPhone}`}
+                                                                    onClick={e => e.stopPropagation()}
+                                                                    className="flex items-center gap-1 shrink-0 text-indigo-500 hover:text-indigo-700 font-medium"
                                                                 >
-                                                                    {expandedRowId === appointment.id
-                                                                        ? <ChevronUp className="h-4 w-4" />
-                                                                        : <ChevronDown className="h-4 w-4" />
-                                                                    }
-                                                                </button>
-                                                            </td>
+                                                                    <Phone className="w-3 h-3" />
+                                                                    {first.customerPhone}
+                                                                </a>
+                                                            )}
+                                                        </div>
+                                                    </div>
 
-                                                            {/* Customer */}
-                                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                                <div className="flex items-center gap-3">
-                                                                    <div className="h-9 w-9 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-sm flex-shrink-0">
-                                                                        {appointment.customerName.charAt(0).toUpperCase()}
-                                                                    </div>
-                                                                    <div>
-                                                                        <div className="text-sm font-semibold text-gray-900">{appointment.customerName}</div>
-                                                                        {appointment.note && (
-                                                                            <div className="text-xs text-gray-400 mt-0.5 max-w-[160px] truncate" title={appointment.note}>
-                                                                                📝 {appointment.note}
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                </div>
-                                                            </td>
+                                                    {/* Sağ: durum + fiyat + chevron */}
+                                                    <div className="flex items-center gap-2 shrink-0 ml-auto">
+                                                        <div className="hidden sm:block">{getStatusBadge(primaryStatus)}</div>
+                                                        <span className="font-bold text-gray-900 text-sm whitespace-nowrap">₺{totalPrice}</span>
+                                                        <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform duration-200 shrink-0 ${isExpanded ? 'rotate-180' : ''}`} />
+                                                    </div>
+                                                </button>
 
-                                                            {/* Service */}
-                                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                                <div className="text-sm text-gray-900 flex items-center gap-1">
-                                                                    <Scissors className="h-3.5 w-3.5 text-gray-400" />
-                                                                    {appointment.serviceName}
-                                                                    {appointment.groupId && (
-                                                                        <span className="ml-1 px-1.5 py-0.5 bg-indigo-50 text-indigo-600 text-[10px] font-semibold rounded border border-indigo-100">GRUP</span>
-                                                                    )}
-                                                                </div>
-                                                                <div className="text-xs text-gray-400 mt-0.5">
-                                                                    {appointment.duration} dk • ₺{appointment.price}
-                                                                </div>
-                                                            </td>
+                                                {/* ── Açılan detay bölümü ── */}
+                                                {isExpanded && (
+                                                    <div className="px-4 sm:px-5 pb-4 border-t border-gray-100 bg-gray-50/40">
+                                                        <div className="pt-3 space-y-3">
+                                                            {/* Mobilde gizlenen durum badge'i */}
+                                                            <div className="sm:hidden">{getStatusBadge(primaryStatus)}</div>
 
-                                                            {/* Date & Time */}
-                                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                                <div className="text-sm text-gray-900 flex items-center gap-1">
-                                                                    <Calendar className="h-3.5 w-3.5 text-gray-400" />
-                                                                    {format(new Date(appointment.startTime), 'd MMM yyyy', { locale: tr })}
-                                                                </div>
-                                                                <div className="text-sm text-gray-500 flex items-center gap-1 mt-0.5">
-                                                                    <Clock className="h-3.5 w-3.5 text-gray-400" />
-                                                                    {format(new Date(appointment.startTime), 'HH:mm', { locale: tr })} - {format(new Date(appointment.endTime), 'HH:mm', { locale: tr })}
-                                                                </div>
-                                                            </td>
-
-                                                            {/* Status */}
-                                                            <td className="px-6 py-4 whitespace-nowrap">
-                                                                {getStatusBadge(appointment.status)}
-                                                                {appointment.cancellationReason && (
-                                                                    <div className="text-xs text-red-400 mt-1 max-w-[140px] truncate" title={appointment.cancellationReason}>
-                                                                        {appointment.cancellationReason}
-                                                                    </div>
-                                                                )}
-                                                            </td>
-
-                                                            {/* Actions */}
-                                                            <td className="px-6 py-4 whitespace-nowrap text-right">
-                                                                {(() => {
-                                                                    const grpSize = appointment.groupId
-                                                                        ? appointments.filter(a => a.groupId === appointment.groupId).length
-                                                                        : undefined;
-                                                                    return (
-                                                                        <div className="flex justify-end gap-2">
-                                                                            {appointment.status === AppointmentStatus.Pending && (
+                                                            {/* Hizmet listesi */}
+                                                            <div className="bg-white rounded-xl border border-gray-100 divide-y divide-gray-50 overflow-hidden">
+                                                                {group.map(apt => {
+                                                                    const aptNoShowWindowOpen = Date.now() >= new Date(apt.startTime).getTime() && (!isAutoProcessEnabled || Date.now() <= new Date(apt.endTime).getTime() + 180 * 60 * 1000);
+                                                                    const aptBtns = isMulti && (
+                                                                        <>
+                                                                            {apt.status === AppointmentStatus.Pending && (
                                                                                 <>
-                                                                                    <Button size="sm" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Confirmed, 'Randevuyu Onayla', 'Bu randevuyu onaylamak istediğinize emin misiniz?', grpSize, appointment.groupId)}>Onayla</Button>
-                                                                                    <Button size="sm" variant="danger" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Rejected, 'Randevuyu Reddet', 'Bu randevuyu reddetmek istediğinize emin misiniz? Lütfen müşteriye iletilecek sebebi girin.', grpSize, appointment.groupId)}>Reddet</Button>
+                                                                                    <Button size="sm" onClick={() => requestSingleUpdate(apt.id, AppointmentStatus.Confirmed, 'Randevuyu Onayla', 'Bu hizmeti onaylamak istediğinizden emin misiniz?', apt.startTime)}>Onayla</Button>
+                                                                                    <Button size="sm" variant="danger" onClick={() => requestSingleUpdate(apt.id, AppointmentStatus.Rejected, 'Randevuyu Reddet', 'Bu hizmet reddedilecek. Müşteriye gösterilecek sebebi girin.', apt.startTime)}>Reddet</Button>
                                                                                 </>
                                                                             )}
-                                                                            {appointment.status === AppointmentStatus.Confirmed && (
+                                                                            {apt.status === AppointmentStatus.Confirmed && (
                                                                                 <>
-                                                                                    {new Date(appointment.startTime) <= new Date() && (
+                                                                                    {new Date(apt.startTime) <= new Date() && (
                                                                                         <>
-                                                                                            <Button size="sm" variant="success" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Completed, 'Randevuyu Tamamla', 'Bu randevunun tamamlandığını onaylıyor musunuz?', grpSize, appointment.groupId)}>Tamamlandı</Button>
-                                                                                            <Button size="sm" variant="warning" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.NoShow, 'Müşteri Gelmedi Mi?', 'Bu randevuyu "Gelmedi" olarak işaretlemek istediğinize emin misiniz?', grpSize, appointment.groupId)}>Gelmedi</Button>
+                                                                                            <Button size="sm" variant="success" onClick={() => requestSingleUpdate(apt.id, AppointmentStatus.Completed, 'Randevuyu Tamamla', 'Bu hizmetin tamamlandığını onaylıyor musunuz?', apt.startTime)}>Tamamlandı</Button>
+                                                                                            {aptNoShowWindowOpen && (
+                                                                                                <Button size="sm" variant="warning" onClick={() => requestSingleUpdate(apt.id, AppointmentStatus.NoShow, 'Müşteri Gelmedi Mi?', 'Bu randevuyu "Gelmedi" olarak işaretlemek istediğinize emin misiniz?', apt.startTime)}>Gelmedi</Button>
+                                                                                            )}
                                                                                         </>
                                                                                     )}
-                                                                                    <Button size="sm" variant="danger" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Cancelled, 'Randevuyu İptal Et', 'Bu randevuyu iptal etmek istediğinize emin misiniz? Lütfen müşteriye iletilecek sebebi girin.', grpSize, appointment.groupId)}>İptal</Button>
+                                                                                    <Button size="sm" variant="danger" onClick={() => requestSingleUpdate(apt.id, AppointmentStatus.Cancelled, 'Randevuyu İptal Et', 'Bu hizmet iptal edilecek. İsterseniz müşteriye bir sebep bırakabilirsiniz.', apt.startTime)}>İptal</Button>
                                                                                 </>
                                                                             )}
-                                                                            {appointment.status === AppointmentStatus.Completed && (
-                                                                                <Button size="sm" variant="warning" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.NoShow, 'Müşteri Gelmedi Mi?', 'Bu randevuyu "Gelmedi" olarak işaretlemek istediğinize emin misiniz?', grpSize, appointment.groupId)}>Gelmedi</Button>
+                                                                            {apt.status === AppointmentStatus.Completed && isAutoProcessEnabled && aptNoShowWindowOpen && (
+                                                                                <Button size="sm" variant="warning" onClick={() => requestSingleUpdate(apt.id, AppointmentStatus.NoShow, 'Müşteri Gelmedi Mi?', 'Bu randevuyu "Gelmedi" olarak işaretlemek istediğinize emin misiniz?', apt.startTime)}>Gelmedi</Button>
+                                                                            )}
+                                                                        </>
+                                                                    );
+                                                                    const hasAptBtns = isMulti && (apt.status === AppointmentStatus.Pending || apt.status === AppointmentStatus.Confirmed || apt.status === AppointmentStatus.Completed);
+                                                                    return (
+                                                                        <div key={apt.id} className="px-3 py-2">
+                                                                            {/* Tek satır: ikon | isim | [PC butonlar] | fiyat | badge */}
+                                                                            <div className="flex items-center gap-2 min-w-0">
+                                                                                <Scissors className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                                                                                <span className="text-sm text-gray-700 flex-1 min-w-0 truncate">{apt.serviceName}</span>
+                                                                                {hasAptBtns && (
+                                                                                    <div className="hidden sm:flex items-center gap-1 shrink-0">{aptBtns}</div>
+                                                                                )}
+                                                                                <span className="text-xs text-gray-400 shrink-0 whitespace-nowrap">{apt.duration}dk · ₺{apt.price}</span>
+                                                                                <div className="shrink-0">{getStatusBadge(apt.status)}</div>
+                                                                            </div>
+                                                                            {/* Mobil: butonlar alt satırda */}
+                                                                            {hasAptBtns && (
+                                                                                <div className="sm:hidden flex gap-1.5 mt-2 ml-5 flex-wrap">{aptBtns}</div>
                                                                             )}
                                                                         </div>
                                                                     );
-                                                                })()}
-                                                            </td>
-                                                        </tr>
-
-                                                        {/* Expanded detail row */}
-                                                        {expandedRowId === appointment.id && (
-                                                            <tr className="bg-indigo-50/30">
-                                                                <td colSpan={6} className="px-10 py-4">
-                                                                    <div className="flex flex-wrap gap-6 text-sm">
-                                                                        <div>
-                                                                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Bitiş Saati</span>
-                                                                            <span className="font-semibold text-gray-800">{format(new Date(appointment.endTime), 'HH:mm', { locale: tr })}</span>
-                                                                        </div>
-                                                                        {appointment.note && (
-                                                                            <div className="flex-1 min-w-[180px]">
-                                                                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Müşteri Notu</span>
-                                                                                <span className="text-gray-700">{appointment.note}</span>
-                                                                            </div>
-                                                                        )}
-                                                                        {appointment.cancellationReason && (
-                                                                            <div className="flex-1 min-w-[180px]">
-                                                                                <span className="text-[10px] font-bold text-red-400 uppercase tracking-widest block mb-1">İptal / Red Sebebi</span>
-                                                                                <span className="text-red-700">{appointment.cancellationReason}</span>
-                                                                            </div>
-                                                                        )}
-                                                                        {appointment.groupId && (
-                                                                            <div>
-                                                                                <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Grup ID</span>
-                                                                                <span className="text-gray-400 text-xs font-mono">{appointment.groupId}</span>
-                                                                            </div>
-                                                                        )}
-                                                                    </div>
-                                                                </td>
-                                                            </tr>
-                                                        )}
-                                                    </React.Fragment>
-                                                ))}
-                                            </tbody>
-                                        </table>
-                                    </div>
-
-                                    {/* Mobile Cards */}
-                                    <div className="block md:hidden divide-y divide-gray-100">
-                                        {appointments.map(appointment => {
-                                            const isExpanded = expandedRowId === appointment.id;
-                                            return (
-                                                <div key={appointment.id} className="p-4 bg-white">
-                                                    <div className="flex justify-between items-start mb-3">
-                                                        <div className="flex items-center gap-3">
-                                                            <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold shrink-0">
-                                                                {appointment.customerName.charAt(0).toUpperCase()}
+                                                                })}
                                                             </div>
-                                                            <div>
-                                                                <div className="font-semibold text-gray-900">{appointment.customerName}</div>
-                                                                <div className="text-xs text-gray-500">{format(new Date(appointment.startTime), 'd MMM yyyy HH:mm', { locale: tr })}</div>
-                                                            </div>
-                                                        </div>
-                                                        {getStatusBadge(appointment.status)}
-                                                    </div>
 
-                                                    <div className="mb-3 bg-gray-50 rounded-xl p-3">
-                                                        <div className="text-sm font-semibold text-gray-800 flex items-center gap-1.5">
-                                                            {appointment.serviceName}
-                                                            {appointment.groupId && (
-                                                                <span className="px-1.5 py-0.5 bg-indigo-50 text-indigo-600 text-[10px] font-semibold rounded border border-indigo-100">GRUP</span>
+                                                            {/* Müşteri notu */}
+                                                            {first.note && (
+                                                                <div className="flex items-start gap-2 text-sm text-gray-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2">
+                                                                    <MessageSquare className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                                                                    <span>{first.note}</span>
+                                                                </div>
                                                             )}
-                                                        </div>
-                                                        <div className="text-sm text-gray-500">{appointment.duration} dk • ₺{appointment.price}</div>
-                                                    </div>
 
-                                                    <button
-                                                        onClick={() => setExpandedRowId(prev => prev === appointment.id ? null : appointment.id)}
-                                                        className="w-full flex items-center justify-center gap-1.5 py-1.5 text-xs text-gray-500 hover:text-gray-700 hover:bg-gray-50 rounded-lg transition-colors mb-3 border border-gray-100"
-                                                    >
-                                                        {isExpanded ? <><ChevronUp className="h-3.5 w-3.5" /> Kapat</> : <><ChevronDown className="h-3.5 w-3.5" /> Detayları Göster</>}
-                                                    </button>
+                                                            {/* İptal/Red sebebi */}
+                                                            {first.cancellationReason && (
+                                                                <div className="flex items-start gap-2 text-sm text-red-700 bg-red-50 border border-red-100 rounded-lg px-3 py-2">
+                                                                    <XCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+                                                                    <span>{first.cancellationReason}</span>
+                                                                </div>
+                                                            )}
 
-                                                    {isExpanded && (
-                                                        <div className="mb-3 bg-indigo-50/40 rounded-xl p-3 space-y-2 text-sm border border-indigo-100/50">
-                                                            <div><span className="text-[10px] font-bold text-gray-400 uppercase">Bitiş: </span><span className="text-gray-700">{format(new Date(appointment.endTime), 'HH:mm', { locale: tr })}</span></div>
-                                                            {appointment.note && <div><span className="text-[10px] font-bold text-gray-400 uppercase">Not: </span><span className="text-gray-700">{appointment.note}</span></div>}
-                                                            {appointment.cancellationReason && <div><span className="text-[10px] font-bold text-red-400 uppercase">Sebep: </span><span className="text-red-700">{appointment.cancellationReason}</span></div>}
-                                                        </div>
-                                                    )}
-
-                                                    {(() => {
-                                                        const grpSize = appointment.groupId
-                                                            ? appointments.filter(a => a.groupId === appointment.groupId).length
-                                                            : undefined;
-                                                        return (
-                                                            <div className="flex flex-wrap gap-2">
-                                                                {appointment.status === AppointmentStatus.Pending && (
-                                                                    <>
-                                                                        <Button size="sm" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Confirmed, 'Randevuyu Onayla', 'Bu randevuyu onaylamak istediğinize emin misiniz?', grpSize, appointment.groupId)}>Onayla</Button>
-                                                                        <Button size="sm" variant="danger" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Rejected, 'Randevuyu Reddet', 'Bu randevuyu reddetmek istediğinize emin misiniz? Lütfen müşteriye iletilecek sebebi girin.', grpSize, appointment.groupId)}>Reddet</Button>
-                                                                    </>
-                                                                )}
-                                                                {appointment.status === AppointmentStatus.Confirmed && (
-                                                                    <>
-                                                                        {new Date(appointment.startTime) <= new Date() && (
+                                                            {/* Toplu aksiyon butonları */}
+                                                            {(hasAnyPending || hasAnyConfirmed || hasAnyCompleted) && (
+                                                                <div className="flex items-center gap-2 pt-2 border-t border-gray-100 flex-wrap">
+                                                                    {isMulti && (
+                                                                        <span className="text-[10px] font-semibold text-gray-400 uppercase tracking-wider shrink-0">Toplu İşlem</span>
+                                                                    )}
+                                                                    <div className="flex flex-wrap gap-1.5 sm:ml-auto">
+                                                                        {hasAnyPending && (
                                                                             <>
-                                                                                <Button size="sm" variant="success" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Completed, 'Randevuyu Tamamla', 'Bu randevunun tamamlandığını onaylıyor musunuz?', grpSize, appointment.groupId)}>Tamamlandı</Button>
-                                                                                <Button size="sm" variant="warning" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.NoShow, 'Müşteri Gelmedi Mi?', 'Bu randevuyu "Gelmedi" olarak işaretlemek istediğinize emin misiniz?', grpSize, appointment.groupId)}>Gelmedi</Button>
+                                                                                <Button size="sm" onClick={() =>
+                                                                                    isMulti && gId
+                                                                                        ? requestGroupUpdate(gId, AppointmentStatus.Confirmed, 'Grubu Onayla', `${group.length} hizmetin tamamını onaylamak istediğinize emin misiniz?`, first.startTime)
+                                                                                        : requestSingleUpdate(first.id, AppointmentStatus.Confirmed, 'Randevuyu Onayla', 'Bu randevuyu onaylamak istediğinize emin misiniz?', first.startTime)
+                                                                                }>{isMulti ? 'Tümünü Onayla' : 'Onayla'}</Button>
+                                                                                <Button size="sm" variant="danger" onClick={() =>
+                                                                                    isMulti && gId
+                                                                                        ? requestGroupUpdate(gId, AppointmentStatus.Rejected, 'Grubu Reddet', `${group.length} hizmet reddedilecek. Müşteriye gösterilecek sebebi girin.`, first.startTime)
+                                                                                        : requestSingleUpdate(first.id, AppointmentStatus.Rejected, 'Randevuyu Reddet', 'Bu randevu reddedilecek. Müşteriye gösterilecek sebebi girin.', first.startTime)
+                                                                                }>Reddet</Button>
                                                                             </>
                                                                         )}
-                                                                        <Button size="sm" variant="danger" className="flex-1 w-full" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Cancelled, 'Randevuyu İptal Et', 'Bu randevuyu iptal etmek istediğinize emin misiniz? Lütfen müşteriye iletilecek sebebi girin.', grpSize, appointment.groupId)}>İptal</Button>
-                                                                    </>
-                                                                )}
-                                                                {appointment.status === AppointmentStatus.Completed && (
-                                                                    <Button size="sm" variant="warning" className="flex-1" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.NoShow, 'Müşteri Gelmedi Mi?', 'Bu randevuyu "Gelmedi" olarak işaretlemek istediğinize emin misiniz?', grpSize, appointment.groupId)}>Gelmedi</Button>
-                                                                )}
-                                                            </div>
-                                                        );
-                                                    })()}
-
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                </>
-                            )}
-                        </div>
+                                                                        {hasAnyConfirmed && new Date(last.startTime) <= new Date() && (
+                                                                            <Button size="sm" variant="success" onClick={() =>
+                                                                                isMulti && gId
+                                                                                    ? requestGroupUpdate(gId, AppointmentStatus.Completed, 'Grubu Tamamla', `${group.length} hizmetin tamamını tamamlamak istediğinize emin misiniz?`, first.startTime)
+                                                                                    : requestSingleUpdate(first.id, AppointmentStatus.Completed, 'Randevuyu Tamamla', 'Bu randevunun tamamlandığını onaylıyor musunuz?', first.startTime)
+                                                                            }>{isMulti ? 'Tümünü Tamamla' : 'Tamamlandı'}</Button>
+                                                                        )}
+                                                                        {((hasAnyConfirmed && new Date(last.startTime) <= new Date()) || (hasAnyCompleted && isAutoProcessEnabled)) && groupNoShowWindowOpen && (
+                                                                            <Button size="sm" variant="warning" onClick={() =>
+                                                                                isMulti && gId
+                                                                                    ? requestGroupUpdate(gId, AppointmentStatus.NoShow, 'Müşteri Gelmedi Mi?', `${group.length} randevu "Gelmedi" olarak işaretlenecek. Devam etmek istiyor musunuz?`, first.startTime)
+                                                                                    : requestSingleUpdate(first.id, AppointmentStatus.NoShow, 'Müşteri Gelmedi Mi?', 'Bu randevuyu "Gelmedi" olarak işaretlemek istediğinize emin misiniz?', first.startTime)
+                                                                            }>Gelmedi</Button>
+                                                                        )}
+                                                                        {((hasAnyConfirmed && new Date(last.startTime) <= new Date()) || (hasAnyCompleted && isAutoProcessEnabled)) && groupNoShowWindowExpired && (
+                                                                            <div className="flex items-center gap-1.5 text-xs text-gray-400 bg-gray-50 border border-gray-200 rounded-lg px-2.5 py-1.5">
+                                                                                <AlertCircle className="w-3.5 h-3.5 shrink-0 text-gray-400" />
+                                                                                Gelmedi işaretleme süresi doldu (randevu bitiminden 3 saat sonra kapanır)
+                                                                            </div>
+                                                                        )}
+                                                                        {hasAnyConfirmed && (
+                                                                            <Button size="sm" variant="danger" onClick={() =>
+                                                                                isMulti && gId
+                                                                                    ? requestGroupUpdate(gId, AppointmentStatus.Cancelled, 'Grubu İptal Et', `${group.length} hizmet iptal edilecek. İsterseniz müşteriye bir sebep bırakabilirsiniz.`, first.startTime)
+                                                                                    : requestSingleUpdate(first.id, AppointmentStatus.Cancelled, 'Randevuyu İptal Et', 'Bu randevu iptal edilecek. İsterseniz müşteriye bir sebep bırakabilirsiniz.', first.startTime)
+                                                                            }>{isMulti ? 'Tümünü İptal Et' : 'İptal'}</Button>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        );
+                                    });
+                                })()}
+                            </div>
+                        </>
                     )}
                 </div>
+            )}
 
-                {/* Confirmation Modal */}
-                {confirmAction && createPortal(
-                    <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50">
-                        <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-6">
-                            <h3 className="text-lg font-bold text-gray-900 mb-2">{confirmAction.label}</h3>
-                            <p className="text-gray-600 text-sm mb-3">{confirmAction.actionText}</p>
-                            {confirmAction.groupSize && confirmAction.groupSize > 1 && (
-                                <div className="flex flex-col gap-2 bg-indigo-50 border border-indigo-100 rounded-xl px-4 py-3 mb-4">
-                                    <label className="flex items-start gap-3 cursor-pointer">
-                                        <input
-                                            type="checkbox"
-                                            className="mt-1 w-4 h-4 text-indigo-600 rounded border-gray-300 focus:ring-indigo-500"
-                                            checked={confirmAction.updateGroupMode}
-                                            onChange={(e) => setConfirmAction(prev => prev ? { ...prev, updateGroupMode: e.target.checked } : null)}
-                                        />
-                                        <div>
-                                            <span className="text-sm font-semibold text-indigo-900 block">Tüm Grubu İşaretle</span>
-                                            <span className="text-xs text-indigo-700 block">Bu randevu {confirmAction.groupSize} hizmetlik bir grup randevusunun parçasıdır. Seçili olursa gruptaki diğer randevulara da bu işlem uygulanır.</span>
-                                        </div>
-                                    </label>
-                                </div>
-                            )}
-                            {(confirmAction.status === AppointmentStatus.Rejected || confirmAction.status === AppointmentStatus.Cancelled) && (
-                                <div className="mb-4">
-                                    <label className="block text-xs font-semibold text-gray-700 mb-1.5">
-                                        {confirmAction.status === AppointmentStatus.Rejected ? 'Red Sebebi (Zorunlu)' : 'İptal Sebebi (Zorunlu)'}
-                                    </label>
-                                    <textarea
-                                        autoFocus
-                                        rows={3}
-                                        placeholder="Müşteriye iletilecek mesajınızı buraya yazın..."
-                                        className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 resize-none transition-shadow"
-                                        value={confirmAction.reason}
-                                        onChange={(e) => setConfirmAction(prev => prev ? { ...prev, reason: e.target.value } : null)}
-                                    />
-                                    <p className="text-[10px] text-gray-400 mt-1.5">Bu mesaj müşteriye SMS olarak gönderilecektir.</p>
-                                </div>
-                            )}
-                            <div className="flex gap-3 justify-end">
-                                <button onClick={() => setConfirmAction(null)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl">Vazgeç</button>
-                                <button
-                                    onClick={() => handleStatusUpdate()}
-                                    className={`px-4 py-2 text-sm font-semibold rounded-xl text-white transition-colors ${confirmAction.status === AppointmentStatus.Rejected || confirmAction.status === AppointmentStatus.Cancelled
-                                            ? 'bg-red-600 hover:bg-red-700'
-                                            : confirmAction.status === AppointmentStatus.NoShow
-                                                ? 'bg-orange-500 hover:bg-orange-600'
-                                                : 'bg-indigo-600 hover:bg-indigo-700'
-                                        }`}
-                                >
-                                    {confirmAction.status === AppointmentStatus.NoShow ? 'Gelmedi Olarak İşaretle' : confirmAction.status === AppointmentStatus.Rejected ? 'Reddet' : confirmAction.status === AppointmentStatus.Cancelled ? 'İptal Et' : 'Onayla'}
-                                </button>
+            {/* Confirmation Modal */}
+            {confirmAction && createPortal(
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50">
+                    <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 space-y-4">
+                        <h3 className="text-lg font-bold text-gray-900">{confirmAction.label}</h3>
+                        <p className="text-gray-600 text-sm">{confirmAction.actionText}</p>
+
+                        {/* Geç iptal uyarısı */}
+                        {(confirmAction.status === AppointmentStatus.Cancelled || confirmAction.status === AppointmentStatus.Rejected) &&
+                            confirmAction.firstStartTime &&
+                            (() => {
+                                const hoursLeft = (new Date(confirmAction.firstStartTime).getTime() - Date.now()) / 3600000;
+                                return hoursLeft >= 0 && hoursLeft < 24 ? (
+                                    <div className="flex items-start gap-2 bg-orange-50 border border-orange-200 text-orange-800 rounded-xl px-4 py-3 text-sm">
+                                        <AlertCircle className="w-4 h-4 mt-0.5 shrink-0 text-orange-500" />
+                                        <span>
+                                            <strong>Dikkat:</strong> Bu randevuya yaklaşık <strong>{Math.ceil(hoursLeft)} saat</strong> kaldı.
+                                            Geç iptal müşteriyi mağdur edebilir.
+                                        </span>
+                                    </div>
+                                ) : null;
+                            })()
+                        }
+
+                        {/* Sebep textarea */}
+                        {(confirmAction.status === AppointmentStatus.Cancelled || confirmAction.status === AppointmentStatus.Rejected) && (
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                    {confirmAction.status === AppointmentStatus.Rejected
+                                        ? 'Red sebebi (zorunlu — müşteriye gösterilir)'
+                                        : 'İptal sebebi (zorunlu — müşteriye gösterilir)'}
+                                </label>
+                                <textarea
+                                    rows={3}
+                                    className="w-full px-3 py-2 border border-gray-200 rounded-xl text-sm focus:ring-2 focus:ring-indigo-300 focus:border-indigo-400 resize-none"
+                                    placeholder={confirmAction.status === AppointmentStatus.Rejected
+                                        ? 'Örn: Personelimiz bu gün müsait değil.'
+                                        : 'Örn: Beklenmedik bir durum nedeniyle iptal edildi.'}
+                                    value={confirmAction.reason}
+                                    onChange={e => setConfirmAction(prev => prev ? { ...prev, reason: e.target.value } : null)}
+                                />
                             </div>
+                        )}
+
+                        <div className="flex gap-3 justify-end pt-1">
+                            <button onClick={() => setConfirmAction(null)} className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl">Vazgeç</button>
+                            <button
+                                onClick={handleStatusUpdate}
+                                className={`px-4 py-2 text-sm font-semibold rounded-xl text-white transition-colors ${
+                                    confirmAction.status === AppointmentStatus.Rejected || confirmAction.status === AppointmentStatus.Cancelled
+                                        ? 'bg-red-600 hover:bg-red-700'
+                                        : confirmAction.status === AppointmentStatus.NoShow
+                                        ? 'bg-orange-500 hover:bg-orange-600'
+                                        : 'bg-indigo-600 hover:bg-indigo-700'
+                                }`}
+                            >
+                                {confirmAction.status === AppointmentStatus.Rejected ? 'Reddet'
+                                    : confirmAction.status === AppointmentStatus.Cancelled ? 'İptal Et'
+                                    : confirmAction.status === AppointmentStatus.NoShow ? 'Gelmedi Olarak İşaretle'
+                                    : 'Onayla'}
+                            </button>
                         </div>
-                    </div>,
-                    document.body
-                )}
+                    </div>
+                </div>,
+                document.body
+            )}
             </div>
 
             {blockOffer && createPortal(
