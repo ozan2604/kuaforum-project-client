@@ -167,6 +167,7 @@ export const MyShopPage: React.FC = () => {
     const [refreshImages, setRefreshImages] = useState(0);
     const [tagInputs, setTagInputs] = useState<Record<string, string>>({});
     const watchedImages = watch('images') || [];
+    const watchedPromoVideoUrl = watch('promoVideoUrl') || '';
     const [editingTag, setEditingTag] = useState<{ tagId: string; name: string } | null>(null);
     const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
     const [savedSnapshot, setSavedSnapshot] = useState<ShopSnapshot | null>(null);
@@ -1032,16 +1033,16 @@ export const MyShopPage: React.FC = () => {
                                 <label className="block text-sm font-semibold text-gray-700 mb-3">Tanıtım Videosu</label>
                                 <div className="flex flex-col sm:flex-row items-start gap-4">
                                     <div className="w-full sm:w-52 h-28 bg-gray-100 rounded-xl overflow-hidden border border-gray-200 shrink-0">
-                                        {getValues('promoVideoUrl') ? (
+                                        {watchedPromoVideoUrl ? (
                                             <video
-                                                key={getValues('promoVideoUrl')}
+                                                key={watchedPromoVideoUrl}
                                                 className="w-full h-full object-cover"
                                                 controls
                                                 playsInline
+                                                muted
                                                 preload="metadata"
-                                                crossOrigin="anonymous"
                                             >
-                                                <source src={getOptimizedVideoUrl(getValues('promoVideoUrl') || '')} />
+                                                <source src={getOptimizedVideoUrl(watchedPromoVideoUrl)} type="video/mp4" />
                                                 Tarayıcınız video oynatmayı desteklemiyor.
                                             </video>
                                         ) : (
@@ -1071,7 +1072,7 @@ export const MyShopPage: React.FC = () => {
                                         >
                                             Video Ekle/Değiştir
                                         </Button>
-                                        {getValues('promoVideoUrl') && (
+                                        {watchedPromoVideoUrl && (
                                             <Button
                                                 type="button"
                                                 variant="outline"

@@ -291,10 +291,10 @@ export const ShopDetailsPage: React.FC = () => {
                                     controls
                                     autoPlay
                                     playsInline
+                                    muted
                                     preload="auto"
-                                    crossOrigin="anonymous"
                                 >
-                                    <source src={getOptimizedVideoUrl(shop.promoVideoUrl)} />
+                                    <source src={getOptimizedVideoUrl(shop.promoVideoUrl)} type="video/mp4" />
                                     Tarayıcınız video oynatmayı desteklemiyor.
                                 </video>
                                 <button
