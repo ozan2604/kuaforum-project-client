@@ -288,14 +288,15 @@ export const ShopDetailsPage: React.FC = () => {
                         {isPlayingVideo && shop.promoVideoUrl ? (
                             <div className="relative w-full h-full bg-black z-30">
                                 <video
-                                    src={getOptimizedVideoUrl(shop.promoVideoUrl)}
                                     className="w-full h-full object-contain"
                                     controls
                                     autoPlay
                                     playsInline
                                     muted
-                                    preload="auto"
-                                />
+                                >
+                                    <source src={getOptimizedVideoUrl(shop.promoVideoUrl)} type="video/mp4" />
+                                    Tarayıcınız video oynatmayı desteklemiyor.
+                                </video>
                                 <button
                                     onClick={() => setIsPlayingVideo(false)}
                                     className="absolute top-4 right-4 z-40 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 transition"

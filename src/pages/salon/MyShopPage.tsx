@@ -1036,13 +1036,14 @@ export const MyShopPage: React.FC = () => {
                                     <div className="w-full sm:w-52 h-28 bg-gray-100 rounded-xl overflow-hidden border border-gray-200 shrink-0">
                                         {getValues('promoVideoUrl') ? (
                                             <video
-                                                src={getOptimizedVideoUrl(getValues('promoVideoUrl') || '')}
                                                 className="w-full h-full object-cover"
                                                 controls
-                                                preload="auto"
                                                 playsInline
                                                 muted
-                                            />
+                                            >
+                                                <source src={getOptimizedVideoUrl(getValues('promoVideoUrl') || '')} type="video/mp4" />
+                                                Tarayıcınız video oynatmayı desteklemiyor.
+                                            </video>
                                         ) : (
                                             <div className="flex flex-col items-center justify-center w-full h-full text-gray-300 gap-2">
                                                 <Video className="w-8 h-8" />
