@@ -163,6 +163,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
 
     const [isLocationDropdownOpen, setIsLocationDropdownOpen] = useState(false);
     const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
+    const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
     const [isMapModalOpen, setIsMapModalOpen] = useState(false);
     const [mapFocusCenter, setMapFocusCenter] = useState<[number, number] | null>(null);
     const [mapFocusShopId, setMapFocusShopId] = useState<string | null>(null);
@@ -412,16 +413,16 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
             {/* Sub-Navbar for Quick Filters */}
             <div className="bg-white border-b border-gray-100 sticky top-24 z-40">
                 <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center h-12 text-sm font-medium select-none">
+                    <div className="flex items-center justify-between sm:justify-start h-12 text-sm font-medium select-none w-full">
 
                         {/* ── Location Button — pinned left, outside scroll container ── */}
-                        <div className="relative h-full flex items-center shrink-0 pr-3 mr-3 sm:pr-5 sm:mr-5 border-r border-gray-100">
+                        <div className="relative h-full flex items-center justify-center flex-1 sm:flex-none sm:pr-5 sm:mr-5 border-r border-gray-100 pr-2">
                             <button
                                 onClick={() => setIsLocationDropdownOpen(!isLocationDropdownOpen)}
                                 className={`flex items-center gap-1 sm:gap-2 hover:text-primary-700 transition-colors py-3 border-b-2 whitespace-nowrap ${isLocationDropdownOpen || selectedProvince ? 'text-primary-700 border-primary-600' : 'text-gray-600 border-transparent'}`}
                             >
                                 <MapPin className="h-4 w-4 shrink-0" />
-                                <span className="max-w-[90px] sm:max-w-none truncate">
+                                <span className="max-w-[75px] sm:max-w-none truncate">
                                     {selectedNeighborhood || selectedDistrict || selectedProvince || 'Konuma Göre'}
                                 </span>
                                 <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${isLocationDropdownOpen ? 'rotate-180' : ''}`} />
@@ -589,11 +590,22 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                             ))}
                         </div>
 
+                        {/* ── Mobile Search Button ── */}
+                        <div className="flex-1 flex items-center justify-center sm:hidden h-full border-r border-gray-100">
+                            <button
+                                onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
+                                className={`flex items-center justify-center gap-1.5 transition-colors py-3 font-bold w-full h-full ${isMobileSearchOpen || searchTerm ? 'text-primary-700 border-b-2 border-primary-600' : 'text-gray-700 hover:text-primary-700'}`}
+                            >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                                Arama
+                            </button>
+                        </div>
+
                         {/* ── Mobile Filter Button ── */}
-                        <div className="flex-1 flex justify-end sm:hidden h-full">
+                        <div className="flex-1 flex items-center justify-center sm:hidden h-full">
                             <button
                                 onClick={() => setIsMobileFiltersOpen(true)}
-                                className="flex items-center gap-1.5 hover:text-primary-700 transition-colors py-3 text-gray-700 font-bold"
+                                className="flex items-center justify-center gap-1.5 hover:text-primary-700 transition-colors py-3 text-gray-700 font-bold w-full h-full"
                             >
                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
                                 Filtreler
@@ -654,90 +666,38 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                 </div>
             )}
 
-
-
-            {/* Mobil Arama ve Aktif Filtreler Özeti */}
-            <div className="bg-white border-b border-gray-100">
-                <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-3">
-                    {/* Arama Çubuğu (Mobil İçin) */}
-                    <div className="relative mb-3 sm:hidden">
-                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                            <svg className="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
-                            </svg>
-                        </div>
-                        <input
-                            type="text"
-                            placeholder="Salon veya hizmet ara..."
-                            defaultValue={searchTerm}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                    const newParams = new URLSearchParams(searchParams);
-                                    if (e.currentTarget.value) newParams.set('search', e.currentTarget.value);
-                                    else newParams.delete('search');
-                                    setSearchParams(newParams);
-                                }
-                            }}
-                            className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-2xl leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-[15px] transition-colors shadow-sm"
-                        />
-                    </div>
-
-                    {/* Aktif Filtreler Özeti */}
-                    {(selectedCategory || activeTags.length > 0 || activeSortTag || minRating || searchTerm) && (
-                        <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-xs font-semibold text-gray-500 flex items-center gap-1 mr-1">
-                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                                </svg>
-                                Filtreler:
-                            </span>
-                            
-                            {searchTerm && (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 shadow-sm border border-gray-200">
-                                    "{searchTerm}"
-                                    <button onClick={() => { const p = new URLSearchParams(searchParams); p.delete('search'); setSearchParams(p); }} className="text-red-500 hover:text-red-600 transition-colors"><XCircle className="w-3.5 h-3.5" /></button>
-                                </span>
-                            )}
-                            {selectedCategory && (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary-50 text-primary-700 border border-primary-200 shadow-sm">
-                                    {ShopCategoryLabels[selectedCategory]}
-                                    <button onClick={() => setSelectedCategory(null)} className="text-red-500 hover:text-red-600 transition-colors"><XCircle className="w-3.5 h-3.5" /></button>
-                                </span>
-                            )}
-                            {activeTags.map(tag => (
-                                <span key={tag} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary-50 text-primary-700 border border-primary-200 shadow-sm">
-                                    {tag === 'kadin' ? 'Kadın' : 'Erkek'}
-                                    <button onClick={() => toggleTag(tag)} className="text-red-500 hover:text-red-600 transition-colors"><XCircle className="w-3.5 h-3.5" /></button>
-                                </span>
-                            ))}
-                            {activeSortTag && (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary-50 text-primary-700 border border-primary-200 shadow-sm">
-                                    {activeSortTag === 'low-price' ? 'Düşük Fiyatlar' : 
-                                     activeSortTag === 'high-price' ? 'Yüksek Fiyatlar' : 
-                                     activeSortTag === 'rating' ? 'En Yüksek Puanlılar' : 
-                                     activeSortTag === 'reviews' ? 'En Çok Yorum Alanlar' : 'En Yeniler'}
-                                    <button onClick={() => toggleSortTag(activeSortTag)} className="text-red-500 hover:text-red-600 transition-colors"><XCircle className="w-3.5 h-3.5" /></button>
-                                </span>
-                            )}
-                            {minRating === 4 && (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary-50 text-primary-700 border border-primary-200 shadow-sm">
-                                    4★ ve Üzeri
-                                    <button onClick={() => setMinRating(null)} className="text-red-500 hover:text-red-600 transition-colors"><XCircle className="w-3.5 h-3.5" /></button>
-                                </span>
-                            )}
-                            <button 
-                                onClick={() => {
-                                    setSelectedCategory(null); setActiveTags([]); setActiveSortTag(null); setMinRating(null);
-                                    const p = new URLSearchParams(searchParams); p.delete('search'); setSearchParams(p);
+            {/* Arama Çubuğu (Mobil İçin - Toggled) */}
+            {isMobileSearchOpen && (
+                <div className="bg-white border-b border-gray-100 sm:hidden animate-in fade-in slide-in-from-top-2">
+                    <div className="px-4 py-3">
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                                <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+                            </div>
+                            <input
+                                type="text"
+                                placeholder="Salon veya hizmet ara..."
+                                defaultValue={searchTerm}
+                                autoFocus
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                        const newParams = new URLSearchParams(searchParams);
+                                        if (e.currentTarget.value) newParams.set('search', e.currentTarget.value);
+                                        else newParams.delete('search');
+                                        setSearchParams(newParams);
+                                        setIsMobileSearchOpen(false);
+                                    }
                                 }}
-                                className="px-3 py-1 bg-red-100 text-red-600 hover:bg-red-200 rounded-full text-xs font-bold transition-colors ml-1"
-                            >
-                                Temizle
-                            </button>
+                                className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-2xl leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-[15px] transition-colors shadow-sm"
+                            />
                         </div>
-                    )}
+                    </div>
                 </div>
-            </div>
+            )}
+
+
+
+
 
             {/* Kategori Yuvarlakları */}
             <div className="bg-white border-b border-gray-100">
@@ -836,6 +796,87 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                     </div>
                 </div>
             </div>
+
+            {/* Aktif Filtreler Özeti */}
+            {(selectedProvince || selectedDistrict || selectedNeighborhood || selectedCategory || activeTags.length > 0 || activeSortTag || minRating || searchTerm) && (
+                <div className="bg-white border-b border-gray-100">
+                    <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-3">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-xs font-semibold text-gray-500 flex items-center gap-1 mr-1">
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                                </svg>
+                                Filtreler:
+                            </span>
+
+                            {/* Location Filters */}
+                            {selectedProvince && (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200 shadow-sm">
+                                    {selectedProvince}
+                                    <button onClick={() => { setSelectedProvince(null); setSelectedDistrict(null); setSelectedNeighborhood(null); setDistricts([]); setNeighborhoods([]); setFilteredProvinces([]); }} className="text-red-500 hover:text-red-600 transition-colors"><XCircle className="w-3.5 h-3.5" /></button>
+                                </span>
+                            )}
+                            {selectedDistrict && (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200 shadow-sm">
+                                    {selectedDistrict}
+                                    <button onClick={() => { setSelectedDistrict(null); setSelectedNeighborhood(null); setNeighborhoods([]); }} className="text-red-500 hover:text-red-600 transition-colors"><XCircle className="w-3.5 h-3.5" /></button>
+                                </span>
+                            )}
+                            {selectedNeighborhood && (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 border border-gray-200 shadow-sm">
+                                    {selectedNeighborhood}
+                                    <button onClick={() => setSelectedNeighborhood(null)} className="text-red-500 hover:text-red-600 transition-colors"><XCircle className="w-3.5 h-3.5" /></button>
+                                </span>
+                            )}
+                            
+                            {searchTerm && (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 shadow-sm border border-gray-200">
+                                    "{searchTerm}"
+                                    <button onClick={() => { const p = new URLSearchParams(searchParams); p.delete('search'); setSearchParams(p); }} className="text-red-500 hover:text-red-600 transition-colors"><XCircle className="w-3.5 h-3.5" /></button>
+                                </span>
+                            )}
+                            {selectedCategory && (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary-50 text-primary-700 border border-primary-200 shadow-sm">
+                                    {ShopCategoryLabels[selectedCategory]}
+                                    <button onClick={() => setSelectedCategory(null)} className="text-red-500 hover:text-red-600 transition-colors"><XCircle className="w-3.5 h-3.5" /></button>
+                                </span>
+                            )}
+                            {activeTags.map(tag => (
+                                <span key={tag} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary-50 text-primary-700 border border-primary-200 shadow-sm">
+                                    {tag === 'kadin' ? 'Kadın' : 'Erkek'}
+                                    <button onClick={() => toggleTag(tag)} className="text-red-500 hover:text-red-600 transition-colors"><XCircle className="w-3.5 h-3.5" /></button>
+                                </span>
+                            ))}
+                            {activeSortTag && (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary-50 text-primary-700 border border-primary-200 shadow-sm">
+                                    {activeSortTag === 'low-price' ? 'Düşük Fiyatlar' : 
+                                     activeSortTag === 'high-price' ? 'Yüksek Fiyatlar' : 
+                                     activeSortTag === 'rating' ? 'En Yüksek Puanlılar' : 
+                                     activeSortTag === 'reviews' ? 'En Çok Yorum Alanlar' : 'En Yeniler'}
+                                    <button onClick={() => toggleSortTag(activeSortTag)} className="text-red-500 hover:text-red-600 transition-colors"><XCircle className="w-3.5 h-3.5" /></button>
+                                </span>
+                            )}
+                            {minRating === 4 && (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary-50 text-primary-700 border border-primary-200 shadow-sm">
+                                    4★ ve Üzeri
+                                    <button onClick={() => setMinRating(null)} className="text-red-500 hover:text-red-600 transition-colors"><XCircle className="w-3.5 h-3.5" /></button>
+                                </span>
+                            )}
+                            <button 
+                                onClick={() => {
+                                    setSelectedCategory(null); setActiveTags([]); setActiveSortTag(null); setMinRating(null);
+                                    setSelectedProvince(null); setSelectedDistrict(null); setSelectedNeighborhood(null);
+                                    setDistricts([]); setNeighborhoods([]); setFilteredProvinces([]);
+                                    const p = new URLSearchParams(searchParams); p.delete('search'); setSearchParams(p);
+                                }}
+                                className="px-3 py-1 bg-red-100 text-red-600 hover:bg-red-200 rounded-full text-xs font-bold transition-colors ml-1"
+                            >
+                                Temizle
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Ana İçerik Alanı */}
             <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-1">
