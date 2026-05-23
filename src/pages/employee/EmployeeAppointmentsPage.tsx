@@ -428,23 +428,23 @@ export const EmployeeAppointmentsPage: React.FC = () => {
                                                                         <div className="flex justify-end gap-2">
                                                                             {appointment.status === AppointmentStatus.Pending && (
                                                                                 <>
-                                                                                    <Button size="sm" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Confirmed, 'Randevuyu Onayla', 'Bu randevuyu onaylamak istediğinize emin misiniz?', grpSize)}>Onayla</Button>
-                                                                                    <Button size="sm" variant="danger" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Rejected, 'Randevuyu Reddet', 'Bu randevuyu reddetmek istediğinize emin misiniz? Lütfen müşteriye iletilecek sebebi girin.', grpSize)}>Reddet</Button>
+                                                                                    <Button size="sm" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Confirmed, 'Randevuyu Onayla', 'Bu randevuyu onaylamak istediğinize emin misiniz?', grpSize, appointment.groupId)}>Onayla</Button>
+                                                                                    <Button size="sm" variant="danger" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Rejected, 'Randevuyu Reddet', 'Bu randevuyu reddetmek istediğinize emin misiniz? Lütfen müşteriye iletilecek sebebi girin.', grpSize, appointment.groupId)}>Reddet</Button>
                                                                                 </>
                                                                             )}
                                                                             {appointment.status === AppointmentStatus.Confirmed && (
                                                                                 <>
                                                                                     {new Date(appointment.startTime) <= new Date() && (
                                                                                         <>
-                                                                                            <Button size="sm" variant="success" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Completed, 'Randevuyu Tamamla', 'Bu randevunun tamamlandığını onaylıyor musunuz?', grpSize)}>Tamamlandı</Button>
-                                                                                            <Button size="sm" variant="warning" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.NoShow, 'Müşteri Gelmedi Mi?', 'Bu randevuyu "Gelmedi" olarak işaretlemek istediğinize emin misiniz?', grpSize)}>Gelmedi</Button>
+                                                                                            <Button size="sm" variant="success" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Completed, 'Randevuyu Tamamla', 'Bu randevunun tamamlandığını onaylıyor musunuz?', grpSize, appointment.groupId)}>Tamamlandı</Button>
+                                                                                            <Button size="sm" variant="warning" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.NoShow, 'Müşteri Gelmedi Mi?', 'Bu randevuyu "Gelmedi" olarak işaretlemek istediğinize emin misiniz?', grpSize, appointment.groupId)}>Gelmedi</Button>
                                                                                         </>
                                                                                     )}
-                                                                                    <Button size="sm" variant="danger" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Cancelled, 'Randevuyu İptal Et', 'Bu randevuyu iptal etmek istediğinize emin misiniz? Lütfen müşteriye iletilecek sebebi girin.', grpSize)}>İptal</Button>
+                                                                                    <Button size="sm" variant="danger" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.Cancelled, 'Randevuyu İptal Et', 'Bu randevuyu iptal etmek istediğinize emin misiniz? Lütfen müşteriye iletilecek sebebi girin.', grpSize, appointment.groupId)}>İptal</Button>
                                                                                 </>
                                                                             )}
                                                                             {appointment.status === AppointmentStatus.Completed && (
-                                                                                <Button size="sm" variant="warning" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.NoShow, 'Müşteri Gelmedi Mi?', 'Bu randevuyu "Gelmedi" olarak işaretlemek istediğinize emin misiniz?', grpSize)}>Gelmedi</Button>
+                                                                                <Button size="sm" variant="warning" onClick={() => requestStatusUpdate(appointment.id, AppointmentStatus.NoShow, 'Müşteri Gelmedi Mi?', 'Bu randevuyu "Gelmedi" olarak işaretlemek istediğinize emin misiniz?', grpSize, appointment.groupId)}>Gelmedi</Button>
                                                                             )}
                                                                         </div>
                                                                     );
