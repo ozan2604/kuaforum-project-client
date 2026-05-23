@@ -33,3 +33,7 @@ Thumbs.db
 # Eğer Client klasörü içindeyse Visual Studio kalıntıları
 .vs/
 Visual Studio 2022/
+
+# Test dosyaları (geliştirme sırasında oluşturulan)
+test*.mp4
+test*.html
