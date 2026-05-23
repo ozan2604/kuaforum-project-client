@@ -162,6 +162,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
     const [minRating, setMinRating] = useState<number | null>(_saved.minRating ?? null);
 
     const [isLocationDropdownOpen, setIsLocationDropdownOpen] = useState(false);
+    const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
     const [isMapModalOpen, setIsMapModalOpen] = useState(false);
     const [mapFocusCenter, setMapFocusCenter] = useState<[number, number] | null>(null);
     const [mapFocusShopId, setMapFocusShopId] = useState<string | null>(null);
@@ -569,8 +570,8 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                             )}
                         </div>
 
-                        {/* ── Filter Tabs — evenly distributed on desktop, scrollable on mobile ── */}
-                        <div className="flex-1 flex items-center overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] min-w-0 sm:justify-evenly">
+                        {/* ── Desktop Filter Tabs ── */}
+                        <div className="hidden sm:flex flex-1 items-center overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] min-w-0 justify-evenly">
                             {[
                                 { label: 'Kadın', active: activeTags.includes('kadin'), onClick: () => toggleTag('kadin') },
                                 { label: 'Erkek', active: activeTags.includes('erkek'), onClick: () => toggleTag('erkek') },
@@ -588,11 +589,155 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                             ))}
                         </div>
 
+                        {/* ── Mobile Filter Button ── */}
+                        <div className="flex-1 flex justify-end sm:hidden h-full">
+                            <button
+                                onClick={() => setIsMobileFiltersOpen(true)}
+                                className="flex items-center gap-1.5 hover:text-primary-700 transition-colors py-3 text-gray-700 font-bold"
+                            >
+                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
+                                Filtreler
+                                {(activeTags.length > 0 || activeSortTag || minRating) && (
+                                    <span className="w-2 h-2 bg-red-500 rounded-full ml-0.5"></span>
+                                )}
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
 
+            {/* Mobile Filters Modal */}
+            {isMobileFiltersOpen && (
+                <div className="fixed inset-0 z-[100] sm:hidden flex flex-col justify-end">
+                    <div className="absolute inset-0 bg-black/50 transition-opacity" onClick={() => setIsMobileFiltersOpen(false)} />
+                    <div className="relative bg-white w-full rounded-t-3xl shadow-xl flex flex-col max-h-[85vh] animate-in slide-in-from-bottom-full">
+                        <div className="flex justify-between items-center p-5 border-b border-gray-100">
+                            <h3 className="font-bold text-lg text-gray-900">Filtrele</h3>
+                            <button onClick={() => setIsMobileFiltersOpen(false)} className="text-gray-400 hover:text-gray-600 p-1"><XCircle className="w-6 h-6" /></button>
+                        </div>
+                        <div className="p-5 overflow-y-auto space-y-6">
+                            <div>
+                                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Cinsiyet</h4>
+                                <div className="flex gap-3">
+                                    <button onClick={() => toggleTag('kadin')} className={`flex-1 py-2.5 rounded-xl border font-bold text-sm transition-all ${activeTags.includes('kadin') ? 'bg-primary-50 border-primary-600 text-primary-700' : 'bg-white border-gray-200 text-gray-700'}`}>Kadın</button>
+                                    <button onClick={() => toggleTag('erkek')} className={`flex-1 py-2.5 rounded-xl border font-bold text-sm transition-all ${activeTags.includes('erkek') ? 'bg-primary-50 border-primary-600 text-primary-700' : 'bg-white border-gray-200 text-gray-700'}`}>Erkek</button>
+                                </div>
+                            </div>
+                            <div>
+                                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Sıralama & Fiyat</h4>
+                                <div className="flex flex-wrap gap-2">
+                                    {[
+                                        { id: 'low-price', label: 'Düşük Fiyatlar' },
+                                        { id: 'high-price', label: 'Yüksek Fiyatlar' },
+                                        { id: 'rating', label: 'En Yüksek Puanlılar' },
+                                        { id: 'reviews', label: 'En Çok Yorum Alanlar' },
+                                        { id: 'newest', label: 'En Yeniler' }
+                                    ].map(sortOption => (
+                                        <button key={sortOption.id} onClick={() => toggleSortTag(sortOption.id)} className={`px-4 py-2 rounded-xl border font-semibold text-sm transition-all ${activeSortTag === sortOption.id ? 'bg-primary-50 border-primary-600 text-primary-700' : 'bg-white border-gray-200 text-gray-700'}`}>
+                                            {sortOption.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div>
+                                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Değerlendirme Puanı</h4>
+                                <button onClick={() => setMinRating(prev => prev === 4 ? null : 4)} className={`px-4 py-2 rounded-xl border font-semibold text-sm transition-all inline-flex items-center gap-2 ${minRating === 4 ? 'bg-primary-50 border-primary-600 text-primary-700' : 'bg-white border-gray-200 text-gray-700'}`}>
+                                    <span className="text-yellow-400">★</span> 4.0 ve Üzeri
+                                </button>
+                            </div>
+                        </div>
+                        <div className="p-5 border-t border-gray-100 bg-gray-50 flex gap-3">
+                            <button onClick={() => { setActiveTags([]); setActiveSortTag(null); setMinRating(null); }} className="px-6 py-3 bg-red-100 text-red-600 rounded-xl font-bold text-sm">Temizle</button>
+                            <button onClick={() => setIsMobileFiltersOpen(false)} className="flex-1 bg-primary-600 text-white rounded-xl font-bold text-sm shadow-md">Sonuçları Gör</button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
+
+
+            {/* Mobil Arama ve Aktif Filtreler Özeti */}
+            <div className="bg-white border-b border-gray-100">
+                <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-3">
+                    {/* Arama Çubuğu (Mobil İçin) */}
+                    <div className="relative mb-3 sm:hidden">
+                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                            <svg className="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                            </svg>
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="Salon veya hizmet ara..."
+                            defaultValue={searchTerm}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    const newParams = new URLSearchParams(searchParams);
+                                    if (e.currentTarget.value) newParams.set('search', e.currentTarget.value);
+                                    else newParams.delete('search');
+                                    setSearchParams(newParams);
+                                }
+                            }}
+                            className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-2xl leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-[15px] transition-colors shadow-sm"
+                        />
+                    </div>
+
+                    {/* Aktif Filtreler Özeti */}
+                    {(selectedCategory || activeTags.length > 0 || activeSortTag || minRating || searchTerm) && (
+                        <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-xs font-semibold text-gray-500 flex items-center gap-1 mr-1">
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                                </svg>
+                                Filtreler:
+                            </span>
+                            
+                            {searchTerm && (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 shadow-sm border border-gray-200">
+                                    "{searchTerm}"
+                                    <button onClick={() => { const p = new URLSearchParams(searchParams); p.delete('search'); setSearchParams(p); }} className="text-red-500 hover:text-red-600 transition-colors"><XCircle className="w-3.5 h-3.5" /></button>
+                                </span>
+                            )}
+                            {selectedCategory && (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary-50 text-primary-700 border border-primary-200 shadow-sm">
+                                    {ShopCategoryLabels[selectedCategory]}
+                                    <button onClick={() => setSelectedCategory(null)} className="text-red-500 hover:text-red-600 transition-colors"><XCircle className="w-3.5 h-3.5" /></button>
+                                </span>
+                            )}
+                            {activeTags.map(tag => (
+                                <span key={tag} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary-50 text-primary-700 border border-primary-200 shadow-sm">
+                                    {tag === 'kadin' ? 'Kadın' : 'Erkek'}
+                                    <button onClick={() => toggleTag(tag)} className="text-red-500 hover:text-red-600 transition-colors"><XCircle className="w-3.5 h-3.5" /></button>
+                                </span>
+                            ))}
+                            {activeSortTag && (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary-50 text-primary-700 border border-primary-200 shadow-sm">
+                                    {activeSortTag === 'low-price' ? 'Düşük Fiyatlar' : 
+                                     activeSortTag === 'high-price' ? 'Yüksek Fiyatlar' : 
+                                     activeSortTag === 'rating' ? 'En Yüksek Puanlılar' : 
+                                     activeSortTag === 'reviews' ? 'En Çok Yorum Alanlar' : 'En Yeniler'}
+                                    <button onClick={() => toggleSortTag(activeSortTag)} className="text-red-500 hover:text-red-600 transition-colors"><XCircle className="w-3.5 h-3.5" /></button>
+                                </span>
+                            )}
+                            {minRating === 4 && (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary-50 text-primary-700 border border-primary-200 shadow-sm">
+                                    4★ ve Üzeri
+                                    <button onClick={() => setMinRating(null)} className="text-red-500 hover:text-red-600 transition-colors"><XCircle className="w-3.5 h-3.5" /></button>
+                                </span>
+                            )}
+                            <button 
+                                onClick={() => {
+                                    setSelectedCategory(null); setActiveTags([]); setActiveSortTag(null); setMinRating(null);
+                                    const p = new URLSearchParams(searchParams); p.delete('search'); setSearchParams(p);
+                                }}
+                                className="px-3 py-1 bg-red-100 text-red-600 hover:bg-red-200 rounded-full text-xs font-bold transition-colors ml-1"
+                            >
+                                Temizle
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
 
             {/* Kategori Yuvarlakları */}
             <div className="bg-white border-b border-gray-100">
@@ -689,89 +834,6 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                             ))}
                         </div>
                     </div>
-                </div>
-            </div>
-
-            {/* Mobil Arama ve Aktif Filtreler Özeti */}
-            <div className="bg-white border-b border-gray-100">
-                <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-3">
-                    {/* Arama Çubuğu (Mobil İçin) */}
-                    <div className="relative mb-3 sm:hidden">
-                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                            <svg className="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
-                                <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
-                            </svg>
-                        </div>
-                        <input
-                            type="text"
-                            placeholder="Salon veya hizmet ara..."
-                            defaultValue={searchTerm}
-                            onKeyDown={(e) => {
-                                if (e.key === 'Enter') {
-                                    const newParams = new URLSearchParams(searchParams);
-                                    if (e.currentTarget.value) newParams.set('search', e.currentTarget.value);
-                                    else newParams.delete('search');
-                                    setSearchParams(newParams);
-                                }
-                            }}
-                            className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-2xl leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-[15px] transition-colors shadow-sm"
-                        />
-                    </div>
-
-                    {/* Aktif Filtreler Özeti */}
-                    {(selectedCategory || activeTags.length > 0 || activeSortTag || minRating || searchTerm) && (
-                        <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-xs font-semibold text-gray-500 flex items-center gap-1 mr-1">
-                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
-                                </svg>
-                                Filtreler:
-                            </span>
-                            
-                            {searchTerm && (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 shadow-sm border border-gray-200">
-                                    "{searchTerm}"
-                                    <button onClick={() => { const p = new URLSearchParams(searchParams); p.delete('search'); setSearchParams(p); }} className="hover:text-red-500 transition-colors"><XCircle className="w-3.5 h-3.5" /></button>
-                                </span>
-                            )}
-                            {selectedCategory && (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary-50 text-primary-700 border border-primary-200 shadow-sm">
-                                    {ShopCategoryLabels[selectedCategory]}
-                                    <button onClick={() => setSelectedCategory(null)} className="hover:text-red-500 transition-colors"><XCircle className="w-3.5 h-3.5" /></button>
-                                </span>
-                            )}
-                            {activeTags.map(tag => (
-                                <span key={tag} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary-50 text-primary-700 border border-primary-200 shadow-sm">
-                                    {tag === 'kadin' ? 'Kadın' : 'Erkek'}
-                                    <button onClick={() => toggleTag(tag)} className="hover:text-red-500 transition-colors"><XCircle className="w-3.5 h-3.5" /></button>
-                                </span>
-                            ))}
-                            {activeSortTag && (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary-50 text-primary-700 border border-primary-200 shadow-sm">
-                                    {activeSortTag === 'low-price' ? 'Düşük Fiyatlar' : 
-                                     activeSortTag === 'high-price' ? 'Yüksek Fiyatlar' : 
-                                     activeSortTag === 'rating' ? 'En Yüksek Puanlılar' : 
-                                     activeSortTag === 'reviews' ? 'En Çok Yorum Alanlar' : 'En Yeniler'}
-                                    <button onClick={() => toggleSortTag(activeSortTag)} className="hover:text-red-500 transition-colors"><XCircle className="w-3.5 h-3.5" /></button>
-                                </span>
-                            )}
-                            {minRating === 4 && (
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary-50 text-primary-700 border border-primary-200 shadow-sm">
-                                    4★ ve Üzeri
-                                    <button onClick={() => setMinRating(null)} className="hover:text-red-500 transition-colors"><XCircle className="w-3.5 h-3.5" /></button>
-                                </span>
-                            )}
-                            <button 
-                                onClick={() => {
-                                    setSelectedCategory(null); setActiveTags([]); setActiveSortTag(null); setMinRating(null);
-                                    const p = new URLSearchParams(searchParams); p.delete('search'); setSearchParams(p);
-                                }}
-                                className="text-xs font-bold text-gray-400 hover:text-gray-600 ml-1 transition-colors"
-                            >
-                                Temizle
-                            </button>
-                        </div>
-                    )}
                 </div>
             </div>
 
