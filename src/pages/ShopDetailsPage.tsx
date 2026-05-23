@@ -211,10 +211,14 @@ export const ShopDetailsPage: React.FC = () => {
 
     const getOptimizedVideoUrl = (path: string) => {
         if (!path) return '';
-        // Cloudinary URL'i direkt kullan - inline transformation ekleme,
-        // bu URL'i bozabilir veya derived video henüz hazır olmayabilir
-        if (path.startsWith('http')) return path;
-        return `https://api.salonbir.com${path}`;
+        if (!path.startsWith('http')) return `https://api.salonbir.com${path}`;
+        // Cloudinary video URL'ini .mp4 uzantısıyla bitir:
+        // Bu Cloudinary'nin videoyu otomatik olarak MP4'e dönüştürmesini sağlar
+        // (iPhone'dan yüklenen MOV dahil). Cloudinary sonucu cache'ler.
+        if (path.includes('res.cloudinary.com') && path.includes('/video/upload/')) {
+            return path.replace(/\.[^./]+$/, '.mp4');
+        }
+        return path;
     };
 
     if (loading) return <LoadingSpinner fullPage />;
@@ -287,16 +291,13 @@ export const ShopDetailsPage: React.FC = () => {
                             <div className="relative w-full h-full bg-black z-30">
                                 <video
                                     key={shop.promoVideoUrl}
+                                    src={getOptimizedVideoUrl(shop.promoVideoUrl)}
                                     className="w-full h-full object-contain"
                                     controls
-                                    autoPlay
                                     playsInline
-                                    muted
                                     preload="auto"
-                                >
-                                    <source src={getOptimizedVideoUrl(shop.promoVideoUrl)} type="video/mp4" />
-                                    Tarayıcınız video oynatmayı desteklemiyor.
-                                </video>
+                                    onError={(e) => console.error('Video yüklenemedi:', (e.target as HTMLVideoElement).error)}
+                                />
                                 <button
                                     onClick={() => setIsPlayingVideo(false)}
                                     className="absolute top-4 right-4 z-40 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 transition"

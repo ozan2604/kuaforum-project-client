@@ -795,10 +795,14 @@ export const MyShopPage: React.FC = () => {
 
     const getOptimizedVideoUrl = (path: string) => {
         if (!path) return '';
-        // Cloudinary URL'i direkt kullan - inline transformation ekleme,
-        // bu URL'i bozabilir veya derived video henüz hazır olmayabilir
-        if (path.startsWith('http')) return path;
-        return `https://api.salonbir.com${path}`;
+        if (!path.startsWith('http')) return `https://api.salonbir.com${path}`;
+        // Cloudinary video URL'ini .mp4 uzantısıyla bitir:
+        // Bu Cloudinary'nin videoyu otomatik olarak MP4'e dönüştürmesini sağlar
+        // (iPhone'dan yüklenen MOV dahil). Cloudinary sonucu cache'ler.
+        if (path.includes('res.cloudinary.com') && path.includes('/video/upload/')) {
+            return path.replace(/\.[^./]+$/, '.mp4');
+        }
+        return path;
     };
 
     const handleAddClosureDate = async () => {
@@ -1036,15 +1040,13 @@ export const MyShopPage: React.FC = () => {
                                         {watchedPromoVideoUrl ? (
                                             <video
                                                 key={watchedPromoVideoUrl}
+                                                src={getOptimizedVideoUrl(watchedPromoVideoUrl)}
                                                 className="w-full h-full object-cover"
                                                 controls
                                                 playsInline
-                                                muted
                                                 preload="metadata"
-                                            >
-                                                <source src={getOptimizedVideoUrl(watchedPromoVideoUrl)} type="video/mp4" />
-                                                Tarayıcınız video oynatmayı desteklemiyor.
-                                            </video>
+                                                onError={(e) => console.error('Video yüklenemedi:', (e.target as HTMLVideoElement).error)}
+                                            />
                                         ) : (
                                             <div className="flex flex-col items-center justify-center w-full h-full text-gray-300 gap-2">
                                                 <Video className="w-8 h-8" />
