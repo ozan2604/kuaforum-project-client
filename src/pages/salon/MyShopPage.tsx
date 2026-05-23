@@ -798,9 +798,6 @@ export const MyShopPage: React.FC = () => {
         
         if (url.includes('res.cloudinary.com') && url.includes('/video/upload/')) {
             url = url.replace(/(\.[^.]+)$/, '.mp4');
-            if (!url.includes('/upload/w_1280,h_720,c_limit,q_auto,f_mp4/')) {
-                url = url.replace('/upload/', '/upload/w_1280,h_720,c_limit,q_auto,f_mp4/');
-            }
         }
         return url;
     };
