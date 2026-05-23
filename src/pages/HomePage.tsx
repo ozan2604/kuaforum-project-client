@@ -125,7 +125,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
     const [loadingMore, setLoadingMore] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-    const [searchParams] = useSearchParams();
+    const [searchParams, setSearchParams] = useSearchParams();
     const searchTerm = searchParams.get('search') || '';
 
     useEffect(() => {
@@ -681,9 +681,9 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                                             className="w-full h-full object-cover"
                                         />
                                     </div>
-                                    <span className={`text-xs sm:text-sm font-semibold text-center leading-tight transition-colors ${selectedCategory === cat.id ? 'text-primary-700' : 'text-gray-700 group-hover:text-primary-600'
+                                    <span className={`text-[11px] sm:text-sm font-semibold text-center leading-[1.15] sm:leading-tight transition-colors whitespace-pre-line sm:whitespace-normal mt-1 sm:mt-0 ${selectedCategory === cat.id ? 'text-primary-700' : 'text-gray-700 group-hover:text-primary-600'
                                         }`}>
-                                        {cat.label}
+                                        {cat.label.replace(' ', '\n')}
                                     </span>
                                 </button>
                             ))}
@@ -692,21 +692,113 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                 </div>
             </div>
 
+            {/* Mobil Arama ve Aktif Filtreler Özeti */}
+            <div className="bg-white border-b border-gray-100">
+                <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-3">
+                    {/* Arama Çubuğu (Mobil İçin) */}
+                    <div className="relative mb-3 sm:hidden">
+                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
+                            <svg className="h-4 w-4 text-gray-400" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
+                            </svg>
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="Salon veya hizmet ara..."
+                            defaultValue={searchTerm}
+                            onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                    const newParams = new URLSearchParams(searchParams);
+                                    if (e.currentTarget.value) newParams.set('search', e.currentTarget.value);
+                                    else newParams.delete('search');
+                                    setSearchParams(newParams);
+                                }
+                            }}
+                            className="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-2xl leading-5 bg-gray-50 placeholder-gray-400 focus:outline-none focus:bg-white focus:ring-1 focus:ring-primary-500 focus:border-primary-500 text-[15px] transition-colors shadow-sm"
+                        />
+                    </div>
+
+                    {/* Aktif Filtreler Özeti */}
+                    {(selectedCategory || activeTags.length > 0 || activeSortTag || minRating || searchTerm) && (
+                        <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-xs font-semibold text-gray-500 flex items-center gap-1 mr-1">
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+                                </svg>
+                                Filtreler:
+                            </span>
+                            
+                            {searchTerm && (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-gray-100 text-gray-700 shadow-sm border border-gray-200">
+                                    "{searchTerm}"
+                                    <button onClick={() => { const p = new URLSearchParams(searchParams); p.delete('search'); setSearchParams(p); }} className="hover:text-red-500 transition-colors"><XCircle className="w-3.5 h-3.5" /></button>
+                                </span>
+                            )}
+                            {selectedCategory && (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary-50 text-primary-700 border border-primary-200 shadow-sm">
+                                    {ShopCategoryLabels[selectedCategory]}
+                                    <button onClick={() => setSelectedCategory(null)} className="hover:text-red-500 transition-colors"><XCircle className="w-3.5 h-3.5" /></button>
+                                </span>
+                            )}
+                            {activeTags.map(tag => (
+                                <span key={tag} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary-50 text-primary-700 border border-primary-200 shadow-sm">
+                                    {tag === 'kadin' ? 'Kadın' : 'Erkek'}
+                                    <button onClick={() => toggleTag(tag)} className="hover:text-red-500 transition-colors"><XCircle className="w-3.5 h-3.5" /></button>
+                                </span>
+                            ))}
+                            {activeSortTag && (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary-50 text-primary-700 border border-primary-200 shadow-sm">
+                                    {activeSortTag === 'low-price' ? 'Düşük Fiyatlar' : 
+                                     activeSortTag === 'high-price' ? 'Yüksek Fiyatlar' : 
+                                     activeSortTag === 'rating' ? 'En Yüksek Puanlılar' : 
+                                     activeSortTag === 'reviews' ? 'En Çok Yorum Alanlar' : 'En Yeniler'}
+                                    <button onClick={() => toggleSortTag(activeSortTag)} className="hover:text-red-500 transition-colors"><XCircle className="w-3.5 h-3.5" /></button>
+                                </span>
+                            )}
+                            {minRating === 4 && (
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary-50 text-primary-700 border border-primary-200 shadow-sm">
+                                    4★ ve Üzeri
+                                    <button onClick={() => setMinRating(null)} className="hover:text-red-500 transition-colors"><XCircle className="w-3.5 h-3.5" /></button>
+                                </span>
+                            )}
+                            <button 
+                                onClick={() => {
+                                    setSelectedCategory(null); setActiveTags([]); setActiveSortTag(null); setMinRating(null);
+                                    const p = new URLSearchParams(searchParams); p.delete('search'); setSearchParams(p);
+                                }}
+                                className="text-xs font-bold text-gray-400 hover:text-gray-600 ml-1 transition-colors"
+                            >
+                                Temizle
+                            </button>
+                        </div>
+                    )}
+                </div>
+            </div>
+
             {/* Ana İçerik Alanı */}
             <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-1">
                 {/* Ana İçerik Listesi */}
                 <main className="flex-1 min-w-0">
-                    <div className="flex items-center justify-end mb-6">
+                    <div className="flex items-center gap-3 mb-6">
+                        {selectedProvince === null && (
+                            <button
+                                onClick={() => setIsLocationDropdownOpen(true)}
+                                className="flex-1 sm:flex-none sm:w-auto flex items-center justify-center gap-2 p-3 sm:px-6 sm:py-3 rounded-2xl bg-gradient-to-r from-gray-900 to-gray-800 text-white border border-gray-800 shadow-lg active:scale-[0.98] transition-transform"
+                            >
+                                <MapPin className="w-5 h-5 text-gray-300" />
+                                <span className="text-sm font-bold">Konum Seç</span>
+                            </button>
+                        )}
                         <button
                             onClick={() => setIsMapModalOpen(!isMapModalOpen)}
-                            className={`px-5 py-2.5 rounded-xl font-semibold transition-all shadow-sm flex items-center justify-center gap-2 border w-full ${
+                            className={`flex-1 sm:flex-none sm:w-auto flex items-center justify-center gap-2 p-3 sm:px-6 sm:py-3 rounded-2xl font-bold transition-all shadow-sm border active:scale-[0.98] ${
                                 isMapModalOpen
-                                    ? 'bg-primary-50 text-primary-700 border-primary-200 hover:bg-primary-100'
-                                    : 'bg-white text-gray-700 border-gray-200 hover:bg-gray-50'
+                                    ? 'bg-primary-50 text-primary-700 border-primary-200'
+                                    : 'bg-white text-gray-800 border-gray-200'
                             }`}
                         >
-                            <Map className="w-4 h-4" />
-                            {isMapModalOpen ? 'Haritayı Gizle' : 'Haritada Gör'}
+                            <Map className={`w-5 h-5 ${isMapModalOpen ? 'text-primary-600' : 'text-gray-500'}`} />
+                            <span className="text-sm font-bold">{isMapModalOpen ? 'Haritayı Gizle' : 'Haritada Gör'}</span>
                         </button>
                     </div>
 
@@ -790,28 +882,6 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                         </div>
                     )}
 
-                    {selectedProvince === null && (
-                        <div className="relative overflow-hidden bg-gradient-to-br from-primary-600 to-primary-800 rounded-2xl p-4 sm:p-5 mb-6 shadow-md">
-                            {/* decorative circles */}
-                            <div className="absolute -right-6 -top-6 w-28 h-28 bg-white/5 rounded-full pointer-events-none" />
-                            <div className="absolute -right-2 bottom-0 w-20 h-20 bg-white/5 rounded-full pointer-events-none" />
-                            <div className="relative flex items-center gap-3">
-                                <div className="shrink-0 w-10 h-10 bg-white/15 rounded-xl flex items-center justify-center">
-                                    <MapPin className="w-5 h-5 text-white" />
-                                </div>
-                                <div className="flex-1 min-w-0">
-                                    <h3 className="text-white font-bold text-sm sm:text-base leading-tight truncate">Size Yakın Kuaförleri Keşfedin!</h3>
-                                    <p className="text-primary-200 text-xs sm:text-sm mt-0.5 leading-snug">Konumunuzu seçin, en yakın salonları bulun.</p>
-                                </div>
-                                <button
-                                    onClick={() => setIsLocationDropdownOpen(true)}
-                                    className="shrink-0 bg-white text-primary-700 px-4 py-2 rounded-xl font-bold text-sm transition-all hover:bg-primary-50 shadow-sm whitespace-nowrap"
-                                >
-                                    Konum Seç
-                                </button>
-                            </div>
-                        </div>
-                    )}
                     {loading ? (
                         <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-5 w-full">
                             {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
