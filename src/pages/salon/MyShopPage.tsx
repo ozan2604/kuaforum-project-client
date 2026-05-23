@@ -38,6 +38,7 @@ interface ShopFormData {
     latitude?: number;
     longitude?: number;
     coverImagePath?: string;
+    promoVideoUrl?: string;
     images?: { id: string; url: string; tags: { id: string; name: string }[] }[];
     genderPreference: TargetGender;
     openTime?: string;
@@ -339,6 +340,7 @@ export const MyShopPage: React.FC = () => {
                     latitude: shop.latitude,
                     longitude: shop.longitude,
                     coverImagePath: shop.coverImagePath,
+                    promoVideoUrl: shop.promoVideoUrl,
                     images: shop.images || [],
                     genderPreference: shop.genderPreference?.toString() as any,
                     openTime: shop.openTime || '',
