@@ -212,11 +212,12 @@ export const ShopDetailsPage: React.FC = () => {
     const getOptimizedVideoUrl = (path: string) => {
         if (!path) return '';
         if (!path.startsWith('http')) return `https://api.salonbir.com${path}`;
-        // Cloudinary video URL'ini .mp4 uzantısıyla bitir:
-        // Bu Cloudinary'nin videoyu otomatik olarak MP4'e dönüştürmesini sağlar
-        // (iPhone'dan yüklenen MOV dahil). Cloudinary sonucu cache'ler.
+        // Cloudinary video: f_mp4 parametresi ekle + .mp4 uzantısına çevir
+        // Bu hem yeni (.mp4) hem eski (.mov) URL'lerin oynatılmasını garantiler
         if (path.includes('res.cloudinary.com') && path.includes('/video/upload/')) {
-            return path.replace(/\.[^./]+$/, '.mp4');
+            return path
+                .replace('/video/upload/', '/video/upload/f_mp4,q_auto/')
+                .replace(/\.[^./]+$/, '.mp4');
         }
         return path;
     };
