@@ -416,14 +416,14 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                     <div className="flex items-center justify-between sm:justify-start h-12 text-sm font-medium select-none w-full">
 
                         {/* ── Location Button — pinned left, outside scroll container ── */}
-                        <div className="relative h-full flex items-center justify-center flex-1 sm:flex-none sm:pr-5 sm:mr-5 border-r border-gray-100 pr-2">
+                        <div className="relative h-full flex items-center justify-center flex-1 sm:flex-none sm:pr-5 sm:mr-5 sm:border-r sm:border-gray-100 pr-2">
                             <button
                                 onClick={() => setIsLocationDropdownOpen(!isLocationDropdownOpen)}
                                 className={`flex items-center gap-1 sm:gap-2 hover:text-primary-700 transition-colors py-3 border-b-2 whitespace-nowrap ${isLocationDropdownOpen || selectedProvince ? 'text-primary-700 border-primary-600' : 'text-gray-600 border-transparent'}`}
                             >
                                 <MapPin className="h-4 w-4 shrink-0" />
                                 <span className="max-w-[75px] sm:max-w-none truncate">
-                                    {selectedNeighborhood || selectedDistrict || selectedProvince || 'Konuma Göre'}
+                                    {selectedNeighborhood || selectedDistrict || selectedProvince || 'Konum'}
                                 </span>
                                 <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${isLocationDropdownOpen ? 'rotate-180' : ''}`} />
                             </button>
@@ -591,10 +591,10 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                         </div>
 
                         {/* ── Mobile Search Button ── */}
-                        <div className="flex-1 flex items-center justify-center sm:hidden h-full border-r border-gray-100">
+                        <div className="flex-1 flex items-center justify-center sm:hidden h-full">
                             <button
                                 onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
-                                className={`flex items-center justify-center gap-1.5 transition-colors py-3 font-bold w-full h-full ${isMobileSearchOpen || searchTerm ? 'text-primary-700 border-b-2 border-primary-600' : 'text-gray-700 hover:text-primary-700'}`}
+                                className={`flex items-center justify-center gap-1.5 transition-colors py-3 font-bold w-full h-full ${isMobileSearchOpen || searchTerm ? 'text-primary-700' : 'text-gray-700 hover:text-primary-700'}`}
                             >
                                 <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
                                 Arama
