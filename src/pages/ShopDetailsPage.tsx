@@ -214,7 +214,7 @@ export const ShopDetailsPage: React.FC = () => {
         let url = path.startsWith('http') ? path : `http://localhost:5000${path}`;
         
         if (url.includes('res.cloudinary.com') && url.includes('/video/upload/')) {
-            url = url.replace(/(\.[^.]+)$/, '.mp4') + '?v=' + new Date().getTime(); // Önbellek kırıcı
+            url = url.replace(/(\.[^.]+)$/, '.mp4');
         }
         return url;
     };
