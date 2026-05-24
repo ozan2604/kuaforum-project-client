@@ -806,13 +806,8 @@ export const MyShopPage: React.FC = () => {
         if (!path) return '';
         if (!path.startsWith('http')) return `https://api.salonbir.com${path}`;
         
-        // Cloudinary video URL'lerini her zaman en uyumlu formatta (H.264, web-safe, fast-start) iste
+        // Backend zaten .mp4 olarak kaydediyor, transformasyonsuz ham URL'i ver
         if (path.includes('res.cloudinary.com') && path.includes('/video/upload/')) {
-            if (!path.includes('/upload/f_') && !path.includes('/upload/q_')) {
-                return path
-                    .replace('/video/upload/', '/video/upload/f_mp4,q_auto,vc_h264/')
-                    .replace(/\.[^/.]+$/, ".mp4");
-            }
             return path.replace(/\.[^/.]+$/, ".mp4");
         }
         
