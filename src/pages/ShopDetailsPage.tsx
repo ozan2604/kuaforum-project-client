@@ -47,6 +47,19 @@ export const ShopDetailsPage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<'services' | 'about' | 'gallery' | 'reviews' | 'hours'>('about');
     const tabsRef = useRef<HTMLDivElement>(null);
     const [isPlayingVideo, setIsPlayingVideo] = useState(false);
+    const videoRef = useRef<HTMLVideoElement>(null);
+
+    useEffect(() => {
+        if (isPlayingVideo && videoRef.current) {
+            videoRef.current.play().catch(error => {
+                console.warn("Video otomatik oynatma engellendi, sessiz başlatılıyor:", error);
+                if (videoRef.current) {
+                    videoRef.current.muted = true;
+                    videoRef.current.play().catch(e => console.error("Sessiz oynatma da başarısız:", e));
+                }
+            });
+        }
+    }, [isPlayingVideo]);
 
     useEffect(() => {
         if (tabsRef.current) {
@@ -290,6 +303,7 @@ export const ShopDetailsPage: React.FC = () => {
                         {isPlayingVideo && (shop.videos?.[0]?.url || shop.promoVideoUrl) ? (
                             <div className="relative w-full h-full bg-black z-30">
                                 <video
+                                    ref={videoRef}
                                     key={shop.videos?.[0]?.url || shop.promoVideoUrl}
                                     src={getOptimizedVideoUrl(shop.videos?.[0]?.url || shop.promoVideoUrl || '')}
                                     className="w-full h-full object-contain"
