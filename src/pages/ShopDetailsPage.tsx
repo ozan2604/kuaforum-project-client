@@ -295,7 +295,7 @@ export const ShopDetailsPage: React.FC = () => {
                                 <video
                                     ref={videoRef}
                                     key={shop.videos?.[0]?.url || shop.promoVideoUrl}
-                                    src={shop.videos?.[0]?.url || shop.promoVideoUrl || ''}
+                                    src={getImageUrl(shop.videos?.[0]?.url || shop.promoVideoUrl || '')}
                                     className="w-full h-full object-contain"
                                     controls
                                     autoPlay

@@ -1046,7 +1046,7 @@ export const MyShopPage: React.FC = () => {
                                                 <div className="w-40 h-24 bg-black rounded-lg overflow-hidden shrink-0">
                                                     <video
                                                         key={video.url}
-                                                        src={video.url}
+                                                        src={getImageUrl(video.url)}
                                                         className="w-full h-full object-contain"
                                                         controls
                                                         playsInline
