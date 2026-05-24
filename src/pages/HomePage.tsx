@@ -727,24 +727,32 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
 
                         {/* Mobil / Tablet Sol Şeffaf Gradient + Ok (Scroll varsa görünür) */}
                         <div 
-                            onClick={() => {
-                                const el = document.getElementById('category-scroll');
-                                if (el) el.scrollBy({ left: -200, behavior: 'smooth' });
-                            }}
-                            className={`sm:hidden absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-white via-white/80 to-transparent z-10 cursor-pointer flex items-center transition-opacity duration-300 ${catScroll.left ? 'opacity-100' : 'opacity-0'}`}
+                            className={`sm:hidden absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-white via-white/80 to-transparent z-10 pointer-events-none flex items-center transition-opacity duration-300 ${catScroll.left ? 'opacity-100' : 'opacity-0'}`}
                         >
-                            <ChevronLeft className="w-5 h-5 text-gray-400 ml-1" />
+                            <div 
+                                onClick={() => {
+                                    const el = document.getElementById('category-scroll');
+                                    if (el) el.scrollBy({ left: -200, behavior: 'smooth' });
+                                }}
+                                className="pointer-events-auto cursor-pointer p-1"
+                            >
+                                <ChevronLeft className="w-5 h-5 text-gray-400" />
+                            </div>
                         </div>
 
                         {/* Mobil / Tablet Sağ Şeffaf Gradient + Ok (Scroll bitmediyse görünür) */}
                         <div 
-                            onClick={() => {
-                                const el = document.getElementById('category-scroll');
-                                if (el) el.scrollBy({ left: 200, behavior: 'smooth' });
-                            }}
-                            className={`sm:hidden absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-white via-white/80 to-transparent z-10 cursor-pointer flex items-center justify-end transition-opacity duration-300 ${catScroll.right ? 'opacity-100' : 'opacity-0'}`}
+                            className={`sm:hidden absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-white via-white/80 to-transparent z-10 pointer-events-none flex items-center justify-end transition-opacity duration-300 ${catScroll.right ? 'opacity-100' : 'opacity-0'}`}
                         >
-                            <ChevronRight className="w-5 h-5 text-gray-400 mr-1 animate-pulse" />
+                            <div 
+                                onClick={() => {
+                                    const el = document.getElementById('category-scroll');
+                                    if (el) el.scrollBy({ left: 200, behavior: 'smooth' });
+                                }}
+                                className="pointer-events-auto cursor-pointer p-1"
+                            >
+                                <ChevronRight className="w-5 h-5 text-gray-400 animate-pulse" />
+                            </div>
                         </div>
 
                         <div
@@ -783,7 +791,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                                         <img
                                             src={cat.image}
                                             alt={cat.label}
-                                            className="w-full h-full object-cover"
+                                            className={`w-full h-full object-cover ${cat.id === ShopCategory.Solaryum ? 'scale-125 -translate-y-1' : ''}`}
                                         />
                                     </div>
                                     <span className={`text-[11px] sm:text-sm font-semibold text-center leading-[1.15] sm:leading-tight transition-colors whitespace-pre-line sm:whitespace-normal mt-1 sm:mt-0 ${selectedCategory === cat.id ? 'text-primary-700' : 'text-gray-700 group-hover:text-primary-600'
