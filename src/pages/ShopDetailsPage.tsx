@@ -45,21 +45,7 @@ export const ShopDetailsPage: React.FC = () => {
     const [reviewsRefreshTrigger, setReviewsRefreshTrigger] = useState(0);
 
     const [activeTab, setActiveTab] = useState<'services' | 'about' | 'gallery' | 'reviews' | 'hours'>('about');
-    const tabsRef = useRef<HTMLDivElement>(null);
-    const [isPlayingVideo, setIsPlayingVideo] = useState(false);
-    const videoRef = useRef<HTMLVideoElement>(null);
 
-    useEffect(() => {
-        if (isPlayingVideo && videoRef.current) {
-            videoRef.current.play().catch(error => {
-                console.warn("Video otomatik oynatma engellendi, sessiz başlatılıyor:", error);
-                if (videoRef.current) {
-                    videoRef.current.muted = true;
-                    videoRef.current.play().catch(e => console.error("Sessiz oynatma da başarısız:", e));
-                }
-            });
-        }
-    }, [isPlayingVideo]);
 
     useEffect(() => {
         if (tabsRef.current) {
@@ -288,51 +274,14 @@ export const ShopDetailsPage: React.FC = () => {
 
                 {/* ── Hero Kart (Fotoğraf) ── */}
                 <div className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl group" style={{ height: 'clamp(240px, 42vw, 500px)' }}>
-                    {/* Fotoğraf veya Video */}
                     <div className="absolute inset-0">
-                        {isPlayingVideo && (shop.videos?.[0]?.url || shop.promoVideoUrl) ? (
-                            <div className="relative w-full h-full bg-black z-30">
-                                <video
-                                    ref={videoRef}
-                                    key={shop.videos?.[0]?.url || shop.promoVideoUrl}
-                                    src={getImageUrl(shop.videos?.[0]?.url || shop.promoVideoUrl || '')}
-                                    className="w-full h-full object-contain"
-                                    controls
-                                    autoPlay
-                                    playsInline
-                                    preload="auto"
-                                    onError={(e) => {
-                                        const el = e.target as HTMLVideoElement;
-                                        console.error('Video hatası:', el.error?.message, 'URL:', el.src);
-                                    }}
-                                />
-                                <button
-                                    onClick={() => setIsPlayingVideo(false)}
-                                    className="absolute top-4 right-4 z-40 p-2 bg-black/50 text-white rounded-full hover:bg-black/70 transition"
-                                >
-                                    <X className="w-6 h-6" />
-                                </button>
-                            </div>
-                        ) : (
-                            <>
-                                <img
-                                    src={shop.coverImagePath ? getImageUrl(shop.coverImagePath) : 'https://images.unsplash.com/photo-1521590832896-bc17251e32ed?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80'}
-                                    alt={shop.name}
-                                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000 ease-in-out"
-                                    onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1521590832896-bc17251e32ed?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80'; }}
-                                />
-                                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
-                                {!isPlayingVideo && (shop.videos?.[0]?.url || shop.promoVideoUrl) && (
-                                    <button
-                                        onClick={() => setIsPlayingVideo(true)}
-                                        className="absolute inset-0 m-auto w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full transition-all hover:scale-110 active:scale-95 group/play z-10"
-                                        title="Tanıtım Videosunu İzle"
-                                    >
-                                        <PlayCircle className="w-10 h-10 sm:w-12 sm:h-12 text-white/90 group-hover/play:text-white drop-shadow-md" />
-                                    </button>
-                                )}
-                            </>
-                        )}
+                        <img
+                            src={shop.coverImagePath ? getImageUrl(shop.coverImagePath) : 'https://images.unsplash.com/photo-1521590832896-bc17251e32ed?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80'}
+                            alt={shop.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000 ease-in-out"
+                            onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1521590832896-bc17251e32ed?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80'; }}
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
                     </div>
 
                     {/* Üst Bar: Geri + Paylaş + Favori */}

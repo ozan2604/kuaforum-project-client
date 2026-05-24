@@ -175,11 +175,7 @@ export const MyShopPage: React.FC = () => {
     const [deletingCover, setDeletingCover] = useState(false);
 
     const [deleteCoverConfirm, setDeleteCoverConfirm] = useState(false);
-    const [deletingPromoVideo, setDeletingPromoVideo] = useState(false);
-    const [deletePromoVideoConfirm, setDeletePromoVideoConfirm] = useState(false);
-    const [shopVideos, setShopVideos] = useState<ShopVideo[]>([]);
-    const [uploadingVideo, setUploadingVideo] = useState(false);
-    const [deletingVideoId, setDeletingVideoId] = useState<string | null>(null);
+
 
     const [weeklyOffDays, setWeeklyOffDays] = useState<number[]>([]);
 
@@ -356,8 +352,7 @@ export const MyShopPage: React.FC = () => {
                 setSelectedCategories(shop.categories ?? []);
                 setClosureDates(shop.closureDates || []);
                 setWeeklyOffDays(shop.weeklyOffDays ?? []);
-                // Yeni video mimarisi - videos array'i set et
-                setShopVideos(shop.videos || []);
+
 
                 setSavedSnapshot({
                     name: shop.name,
@@ -630,56 +625,7 @@ export const MyShopPage: React.FC = () => {
         }
     };
 
-    // Yeni çok-video mimarisi
-    const handleShopVideoUpload = async (file: File) => {
-        if (!shopId) return;
-        if (file.size > 100 * 1024 * 1024) {
-            toast.error('Video boyutu 100 MB\'ı geçemez.');
-            return;
-        }
 
-        // Süre kontrolcüsü — iPhone .mov okuyamayabilir, o zaman 0 dön
-        const checkDuration = (): Promise<number> => new Promise((resolve) => {
-            const v = document.createElement('video');
-            v.preload = 'metadata';
-            v.onloadedmetadata = () => { URL.revokeObjectURL(v.src); resolve(v.duration); };
-            v.onerror = () => { URL.revokeObjectURL(v.src); resolve(0); };
-            v.src = URL.createObjectURL(file);
-        });
-
-        const duration = await checkDuration();
-        if (duration > 61) {
-            toast.error('Tanıtım videosu en fazla 60 saniye olabilir.');
-            return;
-        }
-
-        setUploadingVideo(true);
-        const toastId = toast.loading('Video yükleniyor...');
-        try {
-            const newVideo = await shopService.uploadShopVideo(shopId, file);
-            setShopVideos(prev => [...prev, newVideo]);
-            toast.dismiss(toastId);
-            toast.success('Video eklendi ✅');
-        } catch (err: any) {
-            toast.dismiss(toastId);
-            toast.error(getApiError(err, 'Video yüklenemedi'));
-        } finally {
-            setUploadingVideo(false);
-        }
-    };
-
-    const handleDeleteShopVideo = async (videoId: string) => {
-        setDeletingVideoId(videoId);
-        try {
-            await shopService.deleteShopVideo(videoId);
-            setShopVideos(prev => prev.filter(v => v.id !== videoId));
-            toast.success('Video silindi');
-        } catch (err) {
-            toast.error(getApiError(err, 'Video silinemedi.'));
-        } finally {
-            setDeletingVideoId(null);
-        }
-    };
 
     const handleGalleryUpload = async (files: FileList) => {
         if (!shopId) return;
@@ -714,19 +660,7 @@ export const MyShopPage: React.FC = () => {
         }
     };
 
-    const handleDeletePromoVideo = async () => {
-        if (!shopId) return;
-        setDeletingPromoVideo(true);
-        try {
-            await shopService.deletePromoVideo(shopId);
-            setValue('promoVideoUrl', '');
-            toast.success('Video silindi');
-        } catch (err) {
-            toast.error(getApiError(err, 'Video silinemedi.'));
-        } finally {
-            setDeletingPromoVideo(false);
-        }
-    };
+
 
     const handleDeleteGalleryImage = async (imageId: string) => {
         if (!shopId) return;
@@ -1031,88 +965,7 @@ export const MyShopPage: React.FC = () => {
                                 </div>
                             </div>
 
-                            {/* Tanıtım Videoları - Yeni Çok-Video Mimarisi */}
-                            <div className="border-t border-gray-100 pt-5">
-                                <div className="flex items-center justify-between mb-3">
-                                    <label className="block text-sm font-semibold text-gray-700">Tanıtım Videoları</label>
-                                    <span className="text-xs text-gray-400">{shopVideos.length}/1 video</span>
-                                </div>
 
-                                {/* Video listesi */}
-                                {shopVideos.length > 0 && (
-                                    <div className="space-y-3 mb-4">
-                                        {shopVideos.map((video) => (
-                                            <div key={video.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
-                                                <div className="w-40 h-24 bg-black rounded-lg overflow-hidden shrink-0">
-                                                    <video
-                                                        key={video.url}
-                                                        src={getImageUrl(video.url)}
-                                                        className="w-full h-full object-contain"
-                                                        controls
-                                                        playsInline
-                                                        preload="metadata"
-                                                        onError={(e) => {
-                                                            const el = e.target as HTMLVideoElement;
-                                                            console.error('Video hatası:', el.error?.message, 'URL:', el.src);
-                                                        }}
-                                                    />
-                                                </div>
-                                                <div className="flex-1 min-w-0">
-                                                    <p className="text-xs text-gray-500 break-all line-clamp-2">{video.url.split('/').pop()}</p>
-                                                    <p className="text-xs text-gray-400 mt-1">
-                                                        {new Date(video.createdAt).toLocaleDateString('tr-TR')}
-                                                    </p>
-                                                    <button
-                                                        type="button"
-                                                        disabled={deletingVideoId === video.id}
-                                                        onClick={() => handleDeleteShopVideo(video.id)}
-                                                        className="mt-2 text-xs text-red-500 hover:text-red-700 disabled:opacity-50 flex items-center gap-1"
-                                                    >
-                                                        <Trash2 className="w-3 h-3" />
-                                                        {deletingVideoId === video.id ? 'Siliniyor...' : 'Videoyu Sil'}
-                                                    </button>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                )}
-
-                                {/* Video ekle butonu - max 1 video */}
-                                {shopVideos.length === 0 && (
-                                    <div className="flex flex-col gap-2">
-                                        <div className="w-full h-24 bg-gray-100 rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center text-gray-300 gap-1">
-                                            <Video className="w-7 h-7" />
-                                            <span className="text-xs">Henüz video yok</span>
-                                        </div>
-                                    </div>
-                                )}
-
-                                <div className="flex flex-col gap-2 mt-3">
-                                    <input
-                                        type="file"
-                                        id="shopVideoInput"
-                                        className="hidden"
-                                        accept="video/mp4,video/quicktime,video/avi,video/webm,video/x-matroska"
-                                        onChange={(e) => {
-                                            const file = e.target.files?.[0];
-                                            if (file) handleShopVideoUpload(file);
-                                            e.target.value = '';
-                                        }}
-                                    />
-                                    {shopVideos.length < 1 && (
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            disabled={uploadingVideo}
-                                            onClick={() => document.getElementById('shopVideoInput')?.click()}
-                                        >
-                                            {uploadingVideo ? 'Yükleniyor...' : '+ Video Ekle'}
-                                        </Button>
-                                    )}
-                                    <p className="text-xs text-gray-400">Maks: 60 saniye • 100 MB • MP4, MOV veya WEBM</p>
-                                </div>
-                            </div>
 
                             {/* Galeri */}
                             <div className="border-t border-gray-100 pt-4">
