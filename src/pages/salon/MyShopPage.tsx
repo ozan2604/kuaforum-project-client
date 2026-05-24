@@ -802,17 +802,7 @@ export const MyShopPage: React.FC = () => {
         return `http://localhost:5000${path}`;
     };
 
-    const getOptimizedVideoUrl = (path: string) => {
-        if (!path) return '';
-        if (!path.startsWith('http')) return `https://api.salonbir.com${path}`;
-        
-        // Backend zaten .mp4 olarak kaydediyor, transformasyonsuz ham URL'i ver
-        if (path.includes('res.cloudinary.com') && path.includes('/video/upload/')) {
-            return path.replace(/\.[^/.]+$/, ".mp4");
-        }
-        
-        return path;
-    };
+
 
     const handleAddClosureDate = async () => {
         if (!shopId || !newClosureDate) return;
@@ -1056,7 +1046,7 @@ export const MyShopPage: React.FC = () => {
                                                 <div className="w-40 h-24 bg-black rounded-lg overflow-hidden shrink-0">
                                                     <video
                                                         key={video.url}
-                                                        src={getOptimizedVideoUrl(video.url)}
+                                                        src={video.url}
                                                         className="w-full h-full object-contain"
                                                         controls
                                                         playsInline

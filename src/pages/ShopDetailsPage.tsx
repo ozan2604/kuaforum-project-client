@@ -222,17 +222,7 @@ export const ShopDetailsPage: React.FC = () => {
         return `http://localhost:5000${path}`;
     };
 
-    const getOptimizedVideoUrl = (path: string) => {
-        if (!path) return '';
-        if (!path.startsWith('http')) return `https://api.salonbir.com${path}`;
-        
-        // Backend zaten .mp4 olarak kaydediyor, transformasyonsuz ham URL'i ver
-        if (path.includes('res.cloudinary.com') && path.includes('/video/upload/')) {
-            return path.replace(/\.[^/.]+$/, ".mp4");
-        }
-        
-        return path;
-    };
+
 
     if (loading) return <LoadingSpinner fullPage />;
 
@@ -305,7 +295,7 @@ export const ShopDetailsPage: React.FC = () => {
                                 <video
                                     ref={videoRef}
                                     key={shop.videos?.[0]?.url || shop.promoVideoUrl}
-                                    src={getOptimizedVideoUrl(shop.videos?.[0]?.url || shop.promoVideoUrl || '')}
+                                    src={shop.videos?.[0]?.url || shop.promoVideoUrl || ''}
                                     className="w-full h-full object-contain"
                                     controls
                                     autoPlay
