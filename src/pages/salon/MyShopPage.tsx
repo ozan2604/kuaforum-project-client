@@ -8,14 +8,14 @@ import { getApiError } from '../../utils/storage';
 import {
     MapPin, Phone, Building2, Trash2, CalendarX, Clock,
     Camera, Store, ChevronDown, ChevronUp, ArrowRight, AlertTriangle, CalendarClock, UserX,
-    Scissors, Users, CheckCircle, CheckCircle2, Circle, Video
+    Scissors, Users, CheckCircle, CheckCircle2, Circle
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ServicesPage } from './ServicesPage';
 import { EmployeesPage } from './EmployeesPage';
 import { SearchableSelect } from '../../components/SearchableSelect';
 import { ShopCategoryLabels, TargetGender, TargetGenderLabels } from '../../types/shop';
-import type { ShopClosureDateDto, ShopVideo } from '../../types/shop';
+import type { ShopClosureDateDto } from '../../types/shop';
 import MapPicker from '../../components/MapPicker';
 import { employeeService } from '../../api/employee.service';
 import type { Employee, EmployeeLeaveDate } from '../../types/employee';
@@ -1738,46 +1738,7 @@ export const MyShopPage: React.FC = () => {
                     </AccordionCard>
                 </div>
             )}
-            {/* ── Tanıtım Videosu Silme Onay Modalı ── */}
-            {deletePromoVideoConfirm && createPortal(
-                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
-                        <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-100">
-                            <div className="p-2.5 bg-red-50 text-red-600 rounded-xl shrink-0">
-                                <Trash2 className="w-5 h-5" />
-                            </div>
-                            <div>
-                                <h3 className="text-base font-bold text-gray-900">Tanıtım Videosu Silinecek</h3>
-                                <p className="text-xs text-gray-500 mt-0.5">Bu işlem geri alınamaz</p>
-                            </div>
-                        </div>
-                        <div className="p-6">
-                            <p className="text-sm text-gray-600 mb-6">Tanıtım videosunu silmek istediğinizden emin misiniz?</p>
-                            <div className="flex gap-3">
-                                <Button
-                                    variant="outline"
-                                    className="flex-1 border-gray-200 text-gray-700 hover:bg-gray-50 hover:border-gray-300"
-                                    onClick={() => setDeletePromoVideoConfirm(false)}
-                                    disabled={deletingPromoVideo}
-                                >
-                                    İptal
-                                </Button>
-                                <Button
-                                    className="flex-1 bg-red-600 hover:bg-red-700 text-white border-0 shadow-sm hover:shadow"
-                                    onClick={async () => {
-                                        await handleDeletePromoVideo();
-                                        setDeletePromoVideoConfirm(false);
-                                    }}
-                                    isLoading={deletingPromoVideo}
-                                >
-                                    Sil
-                                </Button>
-                            </div>
-                        </div>
-                    </div>
-                </div>,
-                document.body
-            )}
+
 
             {/* ── Kapak Fotoğrafı Silme Onay Modalı ── */}
             {deleteCoverConfirm && createPortal(

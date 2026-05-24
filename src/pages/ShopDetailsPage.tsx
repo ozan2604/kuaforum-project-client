@@ -7,7 +7,7 @@ import type { Shop } from '../types/shop';
 import { ShopCategoryLabels, ShopCategory, TargetGenderLabels } from '../types/shop';
 import type { ServiceCategoryDto, ShopServiceDto } from '../types/service';
 import type { PublicEmployeeScheduleDto } from '../types/employee';
-import { MapPin, Star, Clock, Calendar, ChevronDown, Heart, Grid, Info, Image, MessageCircle, Users, Undo2, Phone, User, ExternalLink, CheckCircle, Map, Share2, PlayCircle, X } from 'lucide-react';
+import { MapPin, Star, Clock, Calendar, ChevronDown, Heart, Grid, Info, Image, MessageCircle, Users, Undo2, Phone, User, ExternalLink, CheckCircle, Map, Share2 } from 'lucide-react';
 import { Button } from '../components/Button';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { toast } from 'react-hot-toast';
@@ -45,6 +45,7 @@ export const ShopDetailsPage: React.FC = () => {
     const [reviewsRefreshTrigger, setReviewsRefreshTrigger] = useState(0);
 
     const [activeTab, setActiveTab] = useState<'services' | 'about' | 'gallery' | 'reviews' | 'hours'>('about');
+    const tabsRef = useRef<HTMLDivElement>(null);
 
 
     useEffect(() => {
