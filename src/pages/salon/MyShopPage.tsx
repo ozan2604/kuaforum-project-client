@@ -8,7 +8,7 @@ import { getApiError } from '../../utils/storage';
 import {
     MapPin, Phone, Building2, Trash2, CalendarX, Clock,
     Camera, Store, ChevronDown, ChevronUp, ArrowRight, AlertTriangle, CalendarClock, UserX,
-    Scissors, Users, CheckCircle, CheckCircle2, Circle
+    Scissors, Users, CheckCircle, CheckCircle2, Circle, Video
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ServicesPage } from './ServicesPage';
@@ -39,6 +39,7 @@ interface ShopFormData {
     longitude?: number;
     coverImagePath?: string;
     promoVideoUrl?: string;
+    videos?: import('../../types/shop').ShopVideo[];
     images?: { id: string; url: string; tags: { id: string; name: string }[] }[];
     genderPreference: TargetGender;
     openTime?: string;
@@ -167,6 +168,7 @@ export const MyShopPage: React.FC = () => {
     const [refreshImages, setRefreshImages] = useState(0);
     const [tagInputs, setTagInputs] = useState<Record<string, string>>({});
     const watchedImages = watch('images') || [];
+    const watchedVideos = watch('videos') || [];
     const [editingTag, setEditingTag] = useState<{ tagId: string; name: string } | null>(null);
     const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
     const [savedSnapshot, setSavedSnapshot] = useState<ShopSnapshot | null>(null);
@@ -176,6 +178,7 @@ export const MyShopPage: React.FC = () => {
 
     const [deleteCoverConfirm, setDeleteCoverConfirm] = useState(false);
 
+    const [uploadingVideo, setUploadingVideo] = useState(false);
 
     const [weeklyOffDays, setWeeklyOffDays] = useState<number[]>([]);
 
@@ -341,6 +344,7 @@ export const MyShopPage: React.FC = () => {
                     longitude: shop.longitude,
                     coverImagePath: shop.coverImagePath,
                     promoVideoUrl: shop.promoVideoUrl,
+                    videos: shop.videos || [],
                     images: shop.images || [],
                     genderPreference: shop.genderPreference?.toString() as any,
                     openTime: shop.openTime || '',
@@ -660,6 +664,56 @@ export const MyShopPage: React.FC = () => {
         }
     };
 
+    const handleShopVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file || !shopId) return;
+
+        // Size validation (150MB)
+        if (file.size > 150 * 1024 * 1024) {
+            toast.error('Video boyutu en fazla 150MB olabilir.');
+            return;
+        }
+
+        // Duration validation (90 seconds)
+        const videoElement = document.createElement('video');
+        videoElement.preload = 'metadata';
+        
+        videoElement.onloadedmetadata = async () => {
+            window.URL.revokeObjectURL(videoElement.src);
+            if (videoElement.duration > 90) {
+                toast.error('Video uzunluğu en fazla 90 saniye olabilir.');
+                return;
+            }
+
+            try {
+                setUploadingVideo(true);
+                const toastId = toast.loading('Tanıtım videosu yükleniyor, bu işlem biraz sürebilir...');
+                await shopService.uploadShopVideo(shopId, file);
+                toast.dismiss(toastId);
+                toast.success('Tanıtım videosu başarıyla yüklendi!');
+                setRefreshImages(prev => prev + 1);
+            } catch (err) {
+                toast.error(getApiError(err, 'Video yüklenemedi.'));
+            } finally {
+                setUploadingVideo(false);
+            }
+        };
+
+        videoElement.src = URL.createObjectURL(file);
+    };
+
+    const handleDeleteShopVideo = async (id: string) => {
+        try {
+            const toastId = toast.loading('Video siliniyor...');
+            await shopService.deleteShopVideo(id);
+            toast.dismiss(toastId);
+            toast.success('Tanıtım videosu silindi.');
+            setRefreshImages(prev => prev + 1);
+        } catch (err) {
+            toast.error(getApiError(err, 'Video silinemedi.'));
+        }
+    };
+
 
 
     const handleDeleteGalleryImage = async (imageId: string) => {
@@ -966,6 +1020,63 @@ export const MyShopPage: React.FC = () => {
                             </div>
 
 
+
+                            {/* Tanıtım Videosu */}
+                            <div className="border-t border-gray-100 pt-4 mb-6">
+                                <div className="flex justify-between items-center mb-3">
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700">Tanıtım Videosu</label>
+                                        <p className="text-xs text-gray-400">En fazla 1 video • Maks 150MB • Maks 90 saniye</p>
+                                    </div>
+                                    <input
+                                        type="file"
+                                        id="videoInput"
+                                        className="hidden"
+                                        accept="video/mp4,video/x-m4v,video/*"
+                                        onChange={handleShopVideoUpload}
+                                    />
+                                    {watchedVideos.length === 0 && (
+                                        <Button
+                                            type="button"
+                                            variant="outline"
+                                            size="sm"
+                                            disabled={uploadingVideo}
+                                            onClick={() => document.getElementById('videoInput')?.click()}
+                                        >
+                                            <Video className="w-4 h-4 mr-1.5" />
+                                            {uploadingVideo ? 'Yükleniyor...' : 'Video Ekle'}
+                                        </Button>
+                                    )}
+                                </div>
+                                {watchedVideos.length > 0 && (
+                                    <div className="bg-gray-50 p-4 rounded-xl flex flex-col md:flex-row items-center gap-4">
+                                        <div className="w-full md:w-1/2 aspect-video bg-black rounded-lg overflow-hidden relative">
+                                            <video 
+                                                src={getImageUrl(watchedVideos[0].url)} 
+                                                controls 
+                                                className="w-full h-full object-cover"
+                                            />
+                                        </div>
+                                        <div className="flex flex-col gap-2 w-full md:w-auto">
+                                            <Button
+                                                type="button"
+                                                variant="outline"
+                                                size="sm"
+                                                disabled={uploadingVideo}
+                                                onClick={() => {
+                                                    if (confirm('Mevcut videoyu değiştirmek istediğinize emin misiniz?')) {
+                                                        handleDeleteShopVideo(watchedVideos[0].id);
+                                                    }
+                                                }}
+                                                className="text-red-600 border-red-200 hover:bg-red-50"
+                                            >
+                                                <Trash2 className="w-4 h-4 mr-1.5" />
+                                                Videoyu Sil
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )}
+                            </div>
 
                             {/* Galeri */}
                             <div className="border-t border-gray-100 pt-4">
