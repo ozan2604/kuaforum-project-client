@@ -212,13 +212,8 @@ export const ShopDetailsPage: React.FC = () => {
     const getOptimizedVideoUrl = (path: string) => {
         if (!path) return '';
         if (!path.startsWith('http')) return `https://api.salonbir.com${path}`;
-        // Cloudinary video: f_mp4 parametresi ekle + .mp4 uzantısına çevir
-        // Bu hem yeni (.mp4) hem eski (.mov) URL'lerin oynatılmasını garantiler
-        if (path.includes('res.cloudinary.com') && path.includes('/video/upload/')) {
-            return path
-                .replace('/video/upload/', '/video/upload/f_mp4,q_auto/')
-                .replace(/\.[^./]+$/, '.mp4');
-        }
+        // URL'i direkt kullan - backend Format="mp4" ile zaten MP4 olarak kaydediyor
+        // f_mp4 Cloudinary transformation ekleme: async işlenir, ilk requestte boş dönebilir
         return path;
     };
 
@@ -288,16 +283,19 @@ export const ShopDetailsPage: React.FC = () => {
                 <div className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl group" style={{ height: 'clamp(240px, 42vw, 500px)' }}>
                     {/* Fotoğraf veya Video */}
                     <div className="absolute inset-0">
-                        {isPlayingVideo && shop.promoVideoUrl ? (
+                        {isPlayingVideo && (shop.videos?.[0]?.url || shop.promoVideoUrl) ? (
                             <div className="relative w-full h-full bg-black z-30">
                                 <video
-                                    key={shop.promoVideoUrl}
-                                    src={getOptimizedVideoUrl(shop.promoVideoUrl)}
+                                    key={shop.videos?.[0]?.url || shop.promoVideoUrl}
+                                    src={getOptimizedVideoUrl(shop.videos?.[0]?.url || shop.promoVideoUrl || '')}
                                     className="w-full h-full object-contain"
                                     controls
                                     playsInline
                                     preload="auto"
-                                    onError={(e) => console.error('Video yüklenemedi:', (e.target as HTMLVideoElement).error)}
+                                    onError={(e) => {
+                                        const el = e.target as HTMLVideoElement;
+                                        console.error('Video hatası:', el.error?.message, 'URL:', el.src);
+                                    }}
                                 />
                                 <button
                                     onClick={() => setIsPlayingVideo(false)}
@@ -315,7 +313,7 @@ export const ShopDetailsPage: React.FC = () => {
                                     onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1521590832896-bc17251e32ed?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80'; }}
                                 />
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
-                                {shop.promoVideoUrl && (
+                                {!isPlayingVideo && (shop.videos?.[0]?.url || shop.promoVideoUrl) && (
                                     <button
                                         onClick={() => setIsPlayingVideo(true)}
                                         className="absolute inset-0 m-auto w-16 h-16 sm:w-20 sm:h-20 flex items-center justify-center bg-white/20 hover:bg-white/30 backdrop-blur-sm rounded-full transition-all hover:scale-110 active:scale-95 group/play z-10"

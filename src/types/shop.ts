@@ -50,6 +50,13 @@ export interface ShopClosureDateDto {
     reason?: string;
 }
 
+export interface ShopVideo {
+    id: string;
+    url: string;
+    displayOrder: number;
+    createdAt: string;
+}
+
 export interface Shop {
     id: string;
     ownerId: string;
@@ -68,7 +75,8 @@ export interface Shop {
     ownerEmail?: string;
     isActive: boolean;
     coverImagePath?: string;
-    promoVideoUrl?: string;
+    promoVideoUrl?: string;   // Legacy alan
+    videos?: ShopVideo[];     // Yeni çok-video mimarisi
     images?: { id: string; url: string; tags: { id: string; name: string }[] }[];
     averageRating: number;
     reviewCount: number;

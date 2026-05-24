@@ -84,6 +84,25 @@ export const shopService = {
         await api.delete(`/shop/${id}/promo-video`);
     },
 
+    // ─── Yeni Çok-Video Mimarisi ────────────────────────────────────────
+    uploadShopVideo: async (shopId: string, file: File): Promise<import('../types/shop').ShopVideo> => {
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await api.post<import('../types/shop').ShopVideo>(`/shop/${shopId}/videos`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+        return response.data;
+    },
+
+    deleteShopVideo: async (videoId: string): Promise<void> => {
+        await api.delete(`/shop/videos/${videoId}`);
+    },
+
+    getShopVideos: async (shopId: string): Promise<import('../types/shop').ShopVideo[]> => {
+        const response = await api.get<import('../types/shop').ShopVideo[]>(`/shop/${shopId}/videos`);
+        return response.data;
+    },
+
     updateAutoProcess: async (id: string, isEnabled: boolean): Promise<void> => {
         await api.patch(`/shop/${id}/auto-process`, isEnabled, {
             headers: { 'Content-Type': 'application/json' }
