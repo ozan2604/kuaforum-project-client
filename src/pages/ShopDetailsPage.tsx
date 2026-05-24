@@ -212,8 +212,12 @@ export const ShopDetailsPage: React.FC = () => {
     const getOptimizedVideoUrl = (path: string) => {
         if (!path) return '';
         if (!path.startsWith('http')) return `https://api.salonbir.com${path}`;
-        // URL'i direkt kullan - backend Format="mp4" ile zaten MP4 olarak kaydediyor
-        // f_mp4 Cloudinary transformation ekleme: async işlenir, ilk requestte boş dönebilir
+        
+        // Cloudinary video URL'lerini her zaman .mp4 olarak iste (on-the-fly dönüşüm)
+        if (path.includes('res.cloudinary.com') && path.includes('/video/upload/')) {
+            return path.replace(/\.[^/.]+$/, ".mp4");
+        }
+        
         return path;
     };
 
