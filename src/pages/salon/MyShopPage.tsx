@@ -167,7 +167,6 @@ export const MyShopPage: React.FC = () => {
     const [refreshImages, setRefreshImages] = useState(0);
     const [tagInputs, setTagInputs] = useState<Record<string, string>>({});
     const watchedImages = watch('images') || [];
-    const watchedPromoVideoUrl = watch('promoVideoUrl') || '';
     const [editingTag, setEditingTag] = useState<{ tagId: string; name: string } | null>(null);
     const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
     const [savedSnapshot, setSavedSnapshot] = useState<ShopSnapshot | null>(null);
