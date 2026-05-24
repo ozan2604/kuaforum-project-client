@@ -173,6 +173,21 @@ export const MyShopPage: React.FC = () => {
     const [setupStatus, setSetupStatus] = useState<any>(null);
     const [deleteImageId, setDeleteImageId] = useState<string | null>(null);
     const [deletingCover, setDeletingCover] = useState(false);
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [isPlayingVideo, setIsPlayingVideo] = useState(false);
+    const videoRef = useRef<HTMLVideoElement>(null);
+
+    useEffect(() => {
+        if (isPlayingVideo && videoRef.current) {
+            videoRef.current.play().catch(error => {
+                console.warn("Video otomatik oynatma engellendi, sessiz başlatılıyor:", error);
+                if (videoRef.current) {
+                    videoRef.current.muted = true;
+                    videoRef.current.play().catch(e => console.error("Sessiz oynatma da başarısız:", e));
+                }
+            });
+        }
+    }, [isPlayingVideo]);
     const [deleteCoverConfirm, setDeleteCoverConfirm] = useState(false);
     const [deletingPromoVideo, setDeletingPromoVideo] = useState(false);
     const [deletePromoVideoConfirm, setDeletePromoVideoConfirm] = useState(false);
@@ -804,8 +819,17 @@ export const MyShopPage: React.FC = () => {
     const getOptimizedVideoUrl = (path: string) => {
         if (!path) return '';
         if (!path.startsWith('http')) return `https://api.salonbir.com${path}`;
-        // URL'i direkt kullan - Format="mp4" ile backend zaten MP4 kaydediyor
-        // f_mp4 transformation ekleme: Cloudinary async işler, ilk requestte boş dönebilir
+        
+        // Cloudinary video URL'lerini her zaman en uyumlu formatta (H.264, web-safe, fast-start) iste
+        if (path.includes('res.cloudinary.com') && path.includes('/video/upload/')) {
+            if (!path.includes('/upload/f_') && !path.includes('/upload/q_')) {
+                return path
+                    .replace('/video/upload/', '/video/upload/f_mp4,q_auto,vc_h264/')
+                    .replace(/\.[^/.]+$/, ".mp4");
+            }
+            return path.replace(/\.[^/.]+$/, ".mp4");
+        }
+        
         return path;
     };
 
@@ -1050,6 +1074,7 @@ export const MyShopPage: React.FC = () => {
                                             <div key={video.id} className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
                                                 <div className="w-40 h-24 bg-black rounded-lg overflow-hidden shrink-0">
                                                     <video
+                                                        ref={videoRef}
                                                         key={video.url}
                                                         src={getOptimizedVideoUrl(video.url)}
                                                         className="w-full h-full object-contain"
