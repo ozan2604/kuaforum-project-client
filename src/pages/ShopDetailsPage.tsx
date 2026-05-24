@@ -290,6 +290,7 @@ export const ShopDetailsPage: React.FC = () => {
                                     src={getOptimizedVideoUrl(shop.videos?.[0]?.url || shop.promoVideoUrl || '')}
                                     className="w-full h-full object-contain"
                                     controls
+                                    autoPlay
                                     playsInline
                                     preload="auto"
                                     onError={(e) => {
