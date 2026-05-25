@@ -58,8 +58,9 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
     }, []);
 
     const CategoryForm = () => {
-        const { register, handleSubmit, reset } = useForm<CreateCategoryDto>();
+        const { register, handleSubmit, reset, watch } = useForm<CreateCategoryDto>();
         const [isSubmitting, setIsSubmitting] = useState(false);
+        const descriptionValue = watch('description') || '';
 
         const onSubmit = async (data: CreateCategoryDto) => {
             setIsSubmitting(true);
@@ -79,7 +80,19 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
         return (
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <Input label="Kategori Adı" {...register('name', { required: true })} placeholder="Örn: Saç Kesimi" />
-                <Input label="Açıklama" {...register('description')} placeholder="İsteğe bağlı açıklama" />
+                <div className="space-y-1">
+                    <label className="block text-sm font-medium text-gray-700">Açıklama (İsteğe bağlı)</label>
+                    <textarea
+                        {...register('description', { maxLength: 250 })}
+                        placeholder="Kategori hakkında kısa bir açıklama..."
+                        className="w-full rounded-xl border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm resize-none p-3 border outline-none"
+                        rows={3}
+                        maxLength={250}
+                    />
+                    <div className="text-right text-xs text-gray-400">
+                        {descriptionValue.length}/250
+                    </div>
+                </div>
                 <div className="flex justify-end space-x-2 mt-4">
                     <Button variant="outline" onClick={() => setIsCategoryModalOpen(false)} type="button">İptal</Button>
                     <Button isLoading={isSubmitting} type="submit">Kategori Oluştur</Button>
@@ -89,7 +102,7 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
     };
 
     const UpdateCategoryForm = () => {
-        const { register, handleSubmit } = useForm<UpdateServiceCategoryDto>({
+        const { register, handleSubmit, watch } = useForm<UpdateServiceCategoryDto>({
             defaultValues: {
                 name: selectedCategory?.name || '',
                 description: selectedCategory?.description || '',
@@ -97,6 +110,7 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
             }
         });
         const [isSubmitting, setIsSubmitting] = useState(false);
+        const descriptionValue = watch('description') || '';
 
         const onSubmit = async (data: UpdateServiceCategoryDto) => {
             if (!selectedCategory) return;
@@ -116,7 +130,18 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
         return (
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <Input label="Kategori Adı" {...register('name', { required: true })} />
-                <Input label="Açıklama" {...register('description')} />
+                <div className="space-y-1">
+                    <label className="block text-sm font-medium text-gray-700">Açıklama (İsteğe bağlı)</label>
+                    <textarea
+                        {...register('description', { maxLength: 250 })}
+                        className="w-full rounded-xl border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm resize-none p-3 border outline-none"
+                        rows={3}
+                        maxLength={250}
+                    />
+                    <div className="text-right text-xs text-gray-400">
+                        {descriptionValue.length}/250
+                    </div>
+                </div>
 
                 <div className="flex items-center space-x-2 mt-2">
                     <input
@@ -149,8 +174,9 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
     };
 
     const ServiceForm = () => {
-        const { register, handleSubmit, reset } = useForm<CreateServiceDto>();
+        const { register, handleSubmit, reset, watch } = useForm<CreateServiceDto>();
         const [isSubmitting, setIsSubmitting] = useState(false);
+        const descriptionValue = watch('description') || '';
 
         const onSubmit = async (data: CreateServiceDto) => {
             setIsSubmitting(true);
@@ -173,6 +199,19 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
         return (
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <Input label="Hizmet Adı" {...register('name', { required: true })} placeholder="Örn: Erkek Kesimi" />
+                <div className="space-y-1">
+                    <label className="block text-sm font-medium text-gray-700">Açıklama (İsteğe bağlı)</label>
+                    <textarea
+                        {...register('description', { maxLength: 250 })}
+                        placeholder="Hizmet hakkında detaylı bilgi..."
+                        className="w-full rounded-xl border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm resize-none p-3 border outline-none"
+                        rows={3}
+                        maxLength={250}
+                    />
+                    <div className="text-right text-xs text-gray-400">
+                        {descriptionValue.length}/250
+                    </div>
+                </div>
                 <Input
                     label="Fiyat"
                     type="number"
@@ -195,7 +234,7 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
     };
 
     const UpdateServiceForm = () => {
-        const { register, handleSubmit } = useForm<UpdateShopServiceDto>({
+        const { register, handleSubmit, watch } = useForm<UpdateShopServiceDto>({
             defaultValues: {
                 name: selectedService?.name || '',
                 price: selectedService?.price || 0,
@@ -204,6 +243,7 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
             }
         });
         const [isSubmitting, setIsSubmitting] = useState(false);
+        const descriptionValue = watch('description') || '';
 
         const onSubmit = async (data: UpdateShopServiceDto) => {
             if (!selectedService) return;
@@ -223,6 +263,18 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
         return (
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <Input label="Hizmet Adı" {...register('name', { required: true })} />
+                <div className="space-y-1">
+                    <label className="block text-sm font-medium text-gray-700">Açıklama (İsteğe bağlı)</label>
+                    <textarea
+                        {...register('description', { maxLength: 250 })}
+                        className="w-full rounded-xl border-gray-300 shadow-sm focus:border-primary-500 focus:ring-primary-500 sm:text-sm resize-none p-3 border outline-none"
+                        rows={3}
+                        maxLength={250}
+                    />
+                    <div className="text-right text-xs text-gray-400">
+                        {descriptionValue.length}/250
+                    </div>
+                </div>
                 <Input
                     label="Fiyat"
                     type="number"

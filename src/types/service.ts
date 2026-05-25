@@ -13,7 +13,7 @@ export interface Service {
 export interface ServiceCategoryDto {
     id: string;
     name: string;
-    description: string;
+    description?: string;
     isActive?: boolean;
     isDeleted?: boolean;
     services: Service[];
@@ -21,6 +21,7 @@ export interface ServiceCategoryDto {
 
 export interface CreateServiceDto {
     name: string;
+    description?: string;
     price: number;
     duration: number;
     categoryId: string;
@@ -28,17 +29,18 @@ export interface CreateServiceDto {
 
 export interface CreateCategoryDto {
     name: string;
-    description: string;
+    description?: string;
 }
 
 export interface UpdateServiceCategoryDto {
     name: string;
-    description: string;
+    description?: string;
     isActive?: boolean;
 }
 
 export interface UpdateShopServiceDto {
     name: string;
+    description?: string;
     price: number;
     duration: number;
     isActive: boolean;
@@ -57,6 +59,7 @@ export interface ServiceEmployeeDto {
 export interface ShopServiceDto {
     id: string;
     name: string;
+    description?: string;
     price: number;
     duration: number;
     isActive: boolean;

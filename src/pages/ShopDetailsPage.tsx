@@ -478,11 +478,16 @@ export const ShopDetailsPage: React.FC = () => {
                                                         onClick={() => toggleAccordion(setExpandedCategories, cat.id)}
                                                         className="w-full flex items-center justify-between px-5 sm:px-6 py-3.5 bg-gray-50/80 hover:bg-gray-100/60 transition-colors text-left"
                                                     >
-                                                        <div className="flex items-center gap-3">
-                                                            <div className={`w-1.5 h-5 rounded-full shrink-0 transition-colors ${expandedCategories[cat.id] ? 'bg-primary-500' : 'bg-gray-300'
+                                                        <div className="flex items-start gap-3">
+                                                            <div className={`mt-1 w-1.5 h-5 rounded-full shrink-0 transition-colors ${expandedCategories[cat.id] ? 'bg-primary-500' : 'bg-gray-300'
                                                                 }`} />
-                                                            <h3 className={`text-sm sm:text-[15px] font-bold transition-colors ${expandedCategories[cat.id] ? 'text-primary-700' : 'text-gray-700'
-                                                                }`}>{cat.name}</h3>
+                                                            <div>
+                                                                <h3 className={`text-sm sm:text-[15px] font-bold transition-colors ${expandedCategories[cat.id] ? 'text-primary-700' : 'text-gray-700'
+                                                                    }`}>{cat.name}</h3>
+                                                                {cat.description && (
+                                                                    <p className="text-xs text-gray-400 mt-0.5 leading-snug line-clamp-2">{cat.description}</p>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                         <div className="flex items-center gap-2 shrink-0">
                                                             <span className="text-[11px] font-semibold text-gray-400 bg-white px-2.5 py-0.5 rounded-full border border-gray-200">
