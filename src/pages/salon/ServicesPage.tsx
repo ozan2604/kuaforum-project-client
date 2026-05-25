@@ -506,7 +506,7 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
                                         onClick={() => toggleCategory(category.id)}
                                         className="px-5 sm:px-6 py-4 flex justify-between items-center cursor-pointer hover:bg-gray-50 transition-colors select-none relative"
                                     >
-                                        <div className="flex items-center gap-3 pr-4">
+                                        <div className="flex items-center gap-3 pr-4 flex-1 min-w-0">
                                             <div className="p-2 bg-primary-50 text-primary-600 rounded-xl shrink-0">
                                                 <Tag className="h-4 w-4" />
                                             </div>
@@ -584,8 +584,8 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
                                                 </div>
                                             ) : (
                                                 category.services.map((service: Service) => (
-                                                    <div key={service.id} className="px-5 sm:px-6 py-3.5 flex justify-between items-center hover:bg-gray-50 transition-colors">
-                                                        <div className="flex items-center gap-3">
+                                                    <div key={service.id} className="px-5 sm:px-6 py-3.5 flex justify-between items-center hover:bg-gray-50 transition-colors gap-2">
+                                                        <div className="flex items-center gap-3 flex-1 min-w-0">
                                                             <div className={`w-2 h-2 rounded-full shrink-0 ${service.isActive ? 'bg-green-400' : 'bg-gray-300'}`} />
                                                             <div className="min-w-0 flex-1">
                                                                 <p className={`font-medium text-sm break-words line-clamp-2 ${service.isActive ? 'text-gray-900' : 'text-gray-400 line-through'}`}>
