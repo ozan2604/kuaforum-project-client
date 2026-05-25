@@ -179,6 +179,7 @@ export const MyShopPage: React.FC = () => {
     const [deleteCoverConfirm, setDeleteCoverConfirm] = useState(false);
 
     const [uploadingVideo, setUploadingVideo] = useState(false);
+    const [videoError, setVideoError] = useState(false);
 
     const [weeklyOffDays, setWeeklyOffDays] = useState<number[]>([]);
 
@@ -1064,13 +1065,26 @@ export const MyShopPage: React.FC = () => {
                                 {watchedVideos.length > 0 && (
                                     <div className="bg-gray-50 p-4 rounded-xl flex flex-col md:flex-row items-center gap-4">
                                         <div className="w-full md:w-1/2 aspect-video bg-black rounded-lg overflow-hidden relative flex items-center justify-center">
+                                            {videoError ? (
+                                                <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center bg-gray-900/90 z-10">
+                                                    <span className="text-red-500 mb-2">
+                                                        <svg className="w-10 h-10 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                                                        </svg>
+                                                    </span>
+                                                    <p className="text-white text-sm font-semibold mb-1">Video Dosyası Bulunamadı</p>
+                                                    <p className="text-gray-400 text-xs">Bu video eski ve bozuk. Lütfen aşağıdaki 'Videoyu Sil' butonuna basarak silin ve tekrar yükleyin.</p>
+                                                </div>
+                                            ) : null}
                                             <video 
                                                 key={watchedVideos[0].id}
                                                 src={getImageUrl(watchedVideos[0].url)}
                                                 controls 
-                                                className="w-full h-full object-cover"
+                                                className={`w-full h-full object-cover ${videoError ? 'opacity-0' : 'opacity-100'}`}
                                                 preload="metadata"
                                                 playsInline
+                                                onError={() => setVideoError(true)}
+                                                onLoadStart={() => setVideoError(false)}
                                             >
                                                 Tarayıcınız video etiketini desteklemiyor.
                                             </video>
