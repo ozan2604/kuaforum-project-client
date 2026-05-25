@@ -586,7 +586,10 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
                                                 category.services.map((service: Service) => (
                                                     <div key={service.id} className="px-5 sm:px-6 py-3.5 flex justify-between items-center hover:bg-gray-50 transition-colors gap-2">
                                                         <div className="flex items-center gap-3 flex-1 min-w-0">
-                                                            <div className={`w-2 h-2 rounded-full shrink-0 ${service.isActive ? 'bg-green-400' : 'bg-gray-300'}`} />
+                                                            <div 
+                                                                className={`w-2 h-2 rounded-full shrink-0 ${!service.isActive ? 'bg-gray-300' : ((service.employees?.$values || service.employees || []).length === 0 ? 'bg-yellow-400' : 'bg-green-400')}`}
+                                                                title={!service.isActive ? 'Pasif Hizmet' : ((service.employees?.$values || service.employees || []).length === 0 ? 'Aktif ama uzman atanmamış' : 'Aktif ve uzman atanmış')}
+                                                            />
                                                             <div className="min-w-0 flex-1">
                                                                 <p className={`font-medium text-sm break-words line-clamp-2 ${service.isActive ? 'text-gray-900' : 'text-gray-400 line-through'}`}>
                                                                     {service.name}
