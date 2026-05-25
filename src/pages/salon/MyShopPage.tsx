@@ -1063,12 +1063,17 @@ export const MyShopPage: React.FC = () => {
                                 </div>
                                 {watchedVideos.length > 0 && (
                                     <div className="bg-gray-50 p-4 rounded-xl flex flex-col md:flex-row items-center gap-4">
-                                        <div className="w-full md:w-1/2 aspect-video bg-black rounded-lg overflow-hidden relative">
+                                        <div className="w-full md:w-1/2 aspect-video bg-black rounded-lg overflow-hidden relative flex items-center justify-center">
                                             <video 
-                                                src={getImageUrl(watchedVideos[0].url)} 
+                                                key={watchedVideos[0].id}
                                                 controls 
                                                 className="w-full h-full object-cover"
-                                            />
+                                                preload="metadata"
+                                                playsInline
+                                            >
+                                                <source src={getImageUrl(watchedVideos[0].url)} type="video/mp4" />
+                                                Tarayıcınız video etiketini desteklemiyor.
+                                            </video>
                                         </div>
                                         <div className="flex flex-col gap-2 w-full md:w-auto">
                                             <Button
