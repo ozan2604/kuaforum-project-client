@@ -1071,20 +1071,6 @@ export const MyShopPage: React.FC = () => {
                                                 className="w-full h-full object-cover"
                                                 preload="metadata"
                                                 playsInline
-                                                onError={(e) => {
-                                                    const target = e.target as HTMLVideoElement;
-                                                    // Cloudinary arka planda mp4 dönüştürürken 404 dönebilir, 5 sn sonra tekrar dene
-                                                    setTimeout(() => {
-                                                        const currentSrc = target.src;
-                                                        if (currentSrc) {
-                                                            target.src = '';
-                                                            target.src = currentSrc.includes('?retry=') 
-                                                                ? currentSrc.replace(/retry=\d+/, `retry=${Date.now()}`) 
-                                                                : `${currentSrc}?retry=${Date.now()}`;
-                                                            target.load();
-                                                        }
-                                                    }, 5000);
-                                                }}
                                             >
                                                 Tarayıcınız video etiketini desteklemiyor.
                                             </video>
