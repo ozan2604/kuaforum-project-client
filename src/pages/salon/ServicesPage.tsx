@@ -7,7 +7,7 @@ import { employeeService } from '../../api/employee.service';
 import type { Service, ServiceCategoryDto, CreateServiceDto, CreateCategoryDto } from '../../types/service';
 import type { Employee } from '../../types/employee';
 import { toast } from 'react-hot-toast';
-import { Plus, Scissors, Tag, Clock, DollarSign, Edit, Trash2, ChevronDown, ChevronUp, Users } from 'lucide-react';
+import { Plus, Scissors, Tag, Clock, DollarSign, Edit, Trash2, ChevronDown, ChevronUp, Users, AlertTriangle } from 'lucide-react';
 import { LoadingSpinner } from '../../components/LoadingSpinner';
 import { EmptyState } from '../../components/EmptyState';
 import type { UpdateServiceCategoryDto, UpdateShopServiceDto } from '../../types/service';
@@ -58,7 +58,7 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
     }, []);
 
     const CategoryForm = () => {
-        const { register, handleSubmit, reset, watch } = useForm<CreateCategoryDto>();
+        const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<CreateCategoryDto>();
         const [isSubmitting, setIsSubmitting] = useState(false);
         const descriptionValue = watch('description') || '';
         const nameValue = watch('name') || '';
@@ -82,7 +82,7 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
         return (
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <div className="space-y-1">
-                    <Input label="Kategori Adı" {...register('name', { required: true, maxLength: 50 })} placeholder="Örn: Saç Kesimi" maxLength={50} />
+                    <Input label="Kategori Adı" {...register('name', { required: "Kategori adı zorunludur", maxLength: { value: 50, message: "En fazla 50 karakter olabilir" } })} placeholder="Örn: Saç Kesimi" maxLength={50} error={errors.name?.message as string} />
                     <div className="text-right text-xs text-gray-400">
                         {nameValue.length}/50
                     </div>
@@ -109,7 +109,7 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
     };
 
     const UpdateCategoryForm = () => {
-        const { register, handleSubmit, watch } = useForm<UpdateServiceCategoryDto>({
+        const { register, handleSubmit, watch, formState: { errors } } = useForm<UpdateServiceCategoryDto>({
             defaultValues: {
                 name: selectedCategory?.name || '',
                 description: selectedCategory?.description || '',
@@ -139,7 +139,7 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
         return (
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <div className="space-y-1">
-                    <Input label="Kategori Adı" {...register('name', { required: true, maxLength: 50 })} maxLength={50} />
+                    <Input label="Kategori Adı" {...register('name', { required: "Kategori adı zorunludur", maxLength: { value: 50, message: "En fazla 50 karakter olabilir" } })} maxLength={50} error={errors.name?.message as string} />
                     <div className="text-right text-xs text-gray-400">
                         {nameValue.length}/50
                     </div>
@@ -188,7 +188,7 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
     };
 
     const ServiceForm = () => {
-        const { register, handleSubmit, reset, watch } = useForm<CreateServiceDto>();
+        const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<CreateServiceDto>();
         const [isSubmitting, setIsSubmitting] = useState(false);
         const descriptionValue = watch('description') || '';
         const nameValue = watch('name') || '';
@@ -215,7 +215,7 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
         return (
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <div className="space-y-1">
-                    <Input label="Hizmet Adı" {...register('name', { required: true, maxLength: 100 })} placeholder="Örn: Erkek Kesimi" maxLength={100} />
+                    <Input label="Hizmet Adı" {...register('name', { required: "Hizmet adı zorunludur", maxLength: { value: 100, message: "En fazla 100 karakter olabilir" } })} placeholder="Örn: Erkek Kesimi" maxLength={100} error={errors.name?.message as string} />
                     <div className="text-right text-xs text-gray-400">
                         {nameValue.length}/100
                     </div>
@@ -236,14 +236,16 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
                 <Input
                     label="Fiyat"
                     type="number"
-                    {...register('price', { required: true, min: 0 })}
+                    {...register('price', { required: "Fiyat zorunludur", min: { value: 0, message: "Fiyat en az 0 olabilir (ücretsiz için 0 girin)" } })}
                     icon={<DollarSign className="h-4 w-4" />}
+                    error={errors.price?.message as string}
                 />
                 <Input
                     label="Süre (dakika)"
                     type="number"
-                    {...register('duration', { required: true, min: 5 })}
+                    {...register('duration', { required: "Süre zorunludur", min: { value: 5, message: "Süre en az 5 dakika olmalıdır" } })}
                     icon={<Clock className="h-4 w-4" />}
+                    error={errors.duration?.message as string}
                 />
 
                 <div className="flex justify-end space-x-2 mt-4">
@@ -255,7 +257,7 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
     };
 
     const UpdateServiceForm = () => {
-        const { register, handleSubmit, watch } = useForm<UpdateShopServiceDto>({
+        const { register, handleSubmit, watch, formState: { errors } } = useForm<UpdateShopServiceDto>({
             defaultValues: {
                 name: selectedService?.name || '',
                 description: selectedService?.description || '',
@@ -287,7 +289,7 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
         return (
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                 <div className="space-y-1">
-                    <Input label="Hizmet Adı" {...register('name', { required: true, maxLength: 100 })} maxLength={100} />
+                    <Input label="Hizmet Adı" {...register('name', { required: "Hizmet adı zorunludur", maxLength: { value: 100, message: "En fazla 100 karakter olabilir" } })} maxLength={100} error={errors.name?.message as string} />
                     <div className="text-right text-xs text-gray-400">
                         {nameValue.length}/100
                     </div>
@@ -307,14 +309,16 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
                 <Input
                     label="Fiyat"
                     type="number"
-                    {...register('price', { required: true, min: 0 })}
+                    {...register('price', { required: "Fiyat zorunludur", min: { value: 0, message: "Fiyat en az 0 olabilir (ücretsiz için 0 girin)" } })}
                     icon={<DollarSign className="h-4 w-4" />}
+                    error={errors.price?.message as string}
                 />
                 <Input
                     label="Süre (dakika)"
                     type="number"
-                    {...register('duration', { required: true, min: 5 })}
+                    {...register('duration', { required: "Süre zorunludur", min: { value: 5, message: "Süre en az 5 dakika olmalıdır" } })}
                     icon={<Clock className="h-4 w-4" />}
+                    error={errors.duration?.message as string}
                 />
 
                 <div className="flex items-center space-x-2 mt-2">
@@ -608,6 +612,16 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
                                                                         <span className="text-gray-400">(Pasif)</span>
                                                                     )}
                                                                 </div>
+                                                                {service.isActive && getSafeArray(service.employees).length === 0 && (
+                                                                    <div className="flex items-center text-xs text-yellow-600 mt-1.5 gap-1 font-medium bg-yellow-50 w-fit px-2 py-0.5 rounded-md">
+                                                                        <AlertTriangle className="h-3.5 w-3.5" /> Uzman atanmadı (Müşteriler randevu alamaz)
+                                                                    </div>
+                                                                )}
+                                                                {getSafeArray(service.employees).length > 0 && (
+                                                                    <div className="flex items-center text-xs text-primary-600 mt-1.5 gap-1.5 bg-primary-50 w-fit px-2 py-0.5 rounded-md">
+                                                                        <Users className="h-3.5 w-3.5" /> {getSafeArray(service.employees).map((e: any) => `${e.firstName} ${e.lastName}`).join(', ')}
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </div>
                                                         <div className="flex gap-1 shrink-0">
