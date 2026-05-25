@@ -666,6 +666,9 @@ export const MyShopPage: React.FC = () => {
 
     const handleShopVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
+        // Dosya seçimi sıfırla ki aynı dosyayı tekrar seçebilsin
+        e.target.value = '';
+        
         if (!file || !shopId) return;
 
         // Size validation (150MB)
@@ -674,17 +677,7 @@ export const MyShopPage: React.FC = () => {
             return;
         }
 
-        // Duration validation (90 seconds)
-        const videoElement = document.createElement('video');
-        videoElement.preload = 'metadata';
-        
-        videoElement.onloadedmetadata = async () => {
-            window.URL.revokeObjectURL(videoElement.src);
-            if (videoElement.duration > 90) {
-                toast.error('Video uzunluğu en fazla 90 saniye olabilir.');
-                return;
-            }
-
+        const uploadVideoFile = async () => {
             try {
                 setUploadingVideo(true);
                 const toastId = toast.loading('Tanıtım videosu yükleniyor, bu işlem biraz sürebilir...');
@@ -697,6 +690,26 @@ export const MyShopPage: React.FC = () => {
             } finally {
                 setUploadingVideo(false);
             }
+        };
+
+        // Duration validation (90 seconds)
+        const videoElement = document.createElement('video');
+        videoElement.preload = 'metadata';
+        
+        videoElement.onloadedmetadata = async () => {
+            window.URL.revokeObjectURL(videoElement.src);
+            if (videoElement.duration > 90) {
+                toast.error('Video uzunluğu en fazla 90 saniye olabilir.');
+                return;
+            }
+            await uploadVideoFile();
+        };
+
+        videoElement.onerror = async () => {
+            window.URL.revokeObjectURL(videoElement.src);
+            // Tarayıcı videoyu okuyamazsa (ör. desteklenmeyen format), yine de yüklemeyi dene
+            console.warn("Video metadata could not be read. Proceeding with upload anyway.");
+            await uploadVideoFile();
         };
 
         videoElement.src = URL.createObjectURL(file);
