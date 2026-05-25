@@ -478,14 +478,14 @@ export const ShopDetailsPage: React.FC = () => {
                                                         onClick={() => toggleAccordion(setExpandedCategories, cat.id)}
                                                         className="w-full flex items-center justify-between px-5 sm:px-6 py-3.5 bg-gray-50/80 hover:bg-gray-100/60 transition-colors text-left"
                                                     >
-                                                        <div className="flex items-start gap-3">
+                                                        <div className="flex items-start gap-3 min-w-0 flex-1">
                                                             <div className={`mt-1 w-1.5 h-5 rounded-full shrink-0 transition-colors ${expandedCategories[cat.id] ? 'bg-primary-500' : 'bg-gray-300'
                                                                 }`} />
-                                                            <div>
-                                                                <h3 className={`text-sm sm:text-[15px] font-bold transition-colors ${expandedCategories[cat.id] ? 'text-primary-700' : 'text-gray-700'
+                                                            <div className="min-w-0 flex-1">
+                                                                <h3 className={`text-sm sm:text-[15px] font-bold break-words line-clamp-2 transition-colors ${expandedCategories[cat.id] ? 'text-primary-700' : 'text-gray-700'
                                                                     }`}>{cat.name}</h3>
                                                                 {cat.description && (
-                                                                    <p className="text-xs text-gray-400 mt-0.5 leading-snug line-clamp-2">{cat.description}</p>
+                                                                    <p className="text-xs text-gray-400 mt-0.5 leading-snug break-words line-clamp-2">{cat.description}</p>
                                                                 )}
                                                             </div>
                                                         </div>
@@ -507,14 +507,14 @@ export const ShopDetailsPage: React.FC = () => {
                                                                     <div className="flex items-start gap-3">
                                                                         <div className="flex-1 min-w-0">
                                                                             <div className="flex items-center gap-2 flex-wrap">
-                                                                                <span className="font-semibold text-gray-900 text-sm sm:text-base leading-snug">{service.name}</span>
+                                                                                <span className="font-semibold text-gray-900 text-sm sm:text-base leading-snug break-words line-clamp-2">{service.name}</span>
                                                                                 <span className="inline-flex items-center gap-1 text-[10px] sm:text-xs font-semibold text-primary-700 bg-primary-50 border border-primary-200 px-2 py-0.5 rounded-full">
                                                                                     <Clock className="w-3 h-3" />
                                                                                     {service.duration} dk
                                                                                 </span>
                                                                             </div>
                                                                             {service.description && (
-                                                                                <p className="text-xs text-gray-400 mt-1 leading-relaxed line-clamp-2">{service.description}</p>
+                                                                                <p className="text-xs text-gray-400 mt-1 leading-relaxed break-words line-clamp-2">{service.description}</p>
                                                                             )}
                                                                         </div>
                                                                         <div className="flex items-center gap-2.5 shrink-0 mt-0.5">

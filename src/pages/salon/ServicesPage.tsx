@@ -61,6 +61,7 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
         const { register, handleSubmit, reset, watch } = useForm<CreateCategoryDto>();
         const [isSubmitting, setIsSubmitting] = useState(false);
         const descriptionValue = watch('description') || '';
+        const nameValue = watch('name') || '';
 
         const onSubmit = async (data: CreateCategoryDto) => {
             setIsSubmitting(true);
@@ -70,8 +71,9 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
                 setIsCategoryModalOpen(false);
                 reset();
                 loadServices();
-            } catch (error) {
-                toast.error('Kategori oluşturulamadı');
+            } catch (error: any) {
+                const errorMessage = error.response?.data?.message || error.response?.data?.Errors?.[0] || 'Kategori oluşturulamadı';
+                toast.error(errorMessage);
             } finally {
                 setIsSubmitting(false);
             }
@@ -79,7 +81,12 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
 
         return (
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                <Input label="Kategori Adı" {...register('name', { required: true })} placeholder="Örn: Saç Kesimi" />
+                <div className="space-y-1">
+                    <Input label="Kategori Adı" {...register('name', { required: true, maxLength: 50 })} placeholder="Örn: Saç Kesimi" maxLength={50} />
+                    <div className="text-right text-xs text-gray-400">
+                        {nameValue.length}/50
+                    </div>
+                </div>
                 <div className="space-y-1">
                     <label className="block text-sm font-medium text-gray-700">Açıklama (İsteğe bağlı)</label>
                     <textarea
@@ -111,6 +118,7 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
         });
         const [isSubmitting, setIsSubmitting] = useState(false);
         const descriptionValue = watch('description') || '';
+        const nameValue = watch('name') || '';
 
         const onSubmit = async (data: UpdateServiceCategoryDto) => {
             if (!selectedCategory) return;
@@ -120,8 +128,9 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
                 toast.success('Kategori güncellendi');
                 setIsEditCategoryModalOpen(false);
                 loadServices();
-            } catch (error) {
-                toast.error('Kategori güncellenemedi');
+            } catch (error: any) {
+                const errorMessage = error.response?.data?.message || error.response?.data?.Errors?.[0] || 'Kategori güncellenemedi';
+                toast.error(errorMessage);
             } finally {
                 setIsSubmitting(false);
             }
@@ -129,7 +138,12 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
 
         return (
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                <Input label="Kategori Adı" {...register('name', { required: true })} />
+                <div className="space-y-1">
+                    <Input label="Kategori Adı" {...register('name', { required: true, maxLength: 50 })} maxLength={50} />
+                    <div className="text-right text-xs text-gray-400">
+                        {nameValue.length}/50
+                    </div>
+                </div>
                 <div className="space-y-1">
                     <label className="block text-sm font-medium text-gray-700">Açıklama (İsteğe bağlı)</label>
                     <textarea
@@ -177,6 +191,7 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
         const { register, handleSubmit, reset, watch } = useForm<CreateServiceDto>();
         const [isSubmitting, setIsSubmitting] = useState(false);
         const descriptionValue = watch('description') || '';
+        const nameValue = watch('name') || '';
 
         const onSubmit = async (data: CreateServiceDto) => {
             setIsSubmitting(true);
@@ -189,8 +204,9 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
                 setIsServiceModalOpen(false);
                 reset();
                 loadServices();
-            } catch (error) {
-                toast.error('Hizmet oluşturulamadı');
+            } catch (error: any) {
+                const errorMessage = error.response?.data?.message || error.response?.data?.Errors?.[0] || 'Hizmet oluşturulamadı';
+                toast.error(errorMessage);
             } finally {
                 setIsSubmitting(false);
             }
@@ -198,7 +214,12 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
 
         return (
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                <Input label="Hizmet Adı" {...register('name', { required: true })} placeholder="Örn: Erkek Kesimi" />
+                <div className="space-y-1">
+                    <Input label="Hizmet Adı" {...register('name', { required: true, maxLength: 100 })} placeholder="Örn: Erkek Kesimi" maxLength={100} />
+                    <div className="text-right text-xs text-gray-400">
+                        {nameValue.length}/100
+                    </div>
+                </div>
                 <div className="space-y-1">
                     <label className="block text-sm font-medium text-gray-700">Açıklama (İsteğe bağlı)</label>
                     <textarea
@@ -237,6 +258,7 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
         const { register, handleSubmit, watch } = useForm<UpdateShopServiceDto>({
             defaultValues: {
                 name: selectedService?.name || '',
+                description: selectedService?.description || '',
                 price: selectedService?.price || 0,
                 duration: selectedService?.duration || 0,
                 isActive: selectedService?.isActive !== undefined ? selectedService.isActive : true
@@ -244,6 +266,7 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
         });
         const [isSubmitting, setIsSubmitting] = useState(false);
         const descriptionValue = watch('description') || '';
+        const nameValue = watch('name') || '';
 
         const onSubmit = async (data: UpdateShopServiceDto) => {
             if (!selectedService) return;
@@ -253,8 +276,9 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
                 toast.success('Hizmet güncellendi');
                 setIsEditServiceModalOpen(false);
                 loadServices();
-            } catch (error) {
-                toast.error('Hizmet güncellenemedi');
+            } catch (error: any) {
+                const errorMessage = error.response?.data?.message || error.response?.data?.Errors?.[0] || 'Hizmet güncellenemedi';
+                toast.error(errorMessage);
             } finally {
                 setIsSubmitting(false);
             }
@@ -262,7 +286,12 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
 
         return (
             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                <Input label="Hizmet Adı" {...register('name', { required: true })} />
+                <div className="space-y-1">
+                    <Input label="Hizmet Adı" {...register('name', { required: true, maxLength: 100 })} maxLength={100} />
+                    <div className="text-right text-xs text-gray-400">
+                        {nameValue.length}/100
+                    </div>
+                </div>
                 <div className="space-y-1">
                     <label className="block text-sm font-medium text-gray-700">Açıklama (İsteğe bağlı)</label>
                     <textarea
@@ -481,18 +510,18 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
                                             <div className="p-2 bg-primary-50 text-primary-600 rounded-xl shrink-0">
                                                 <Tag className="h-4 w-4" />
                                             </div>
-                                            <div>
+                                            <div className="min-w-0 flex-1">
                                                 <div className="flex items-center gap-2 flex-wrap">
-                                                    <h3 className="font-bold text-gray-900">{category.name}</h3>
+                                                    <h3 className="font-bold text-gray-900 break-words line-clamp-2">{category.name}</h3>
                                                     {!category.isActive && (
                                                         <span className="px-2 py-0.5 bg-gray-200 text-gray-600 text-xs rounded-full font-medium border border-gray-300">Pasif</span>
                                                     )}
-                                                    <span className="text-xs text-gray-400">
+                                                    <span className="text-xs text-gray-400 whitespace-nowrap">
                                                         {category.services.length} hizmet
                                                     </span>
                                                 </div>
                                                 {category.description && (
-                                                    <p className="text-xs text-gray-400 mt-0.5">{category.description}</p>
+                                                    <p className="text-xs text-gray-400 mt-0.5 break-words line-clamp-2">{category.description}</p>
                                                 )}
                                             </div>
                                         </div>
@@ -558,11 +587,14 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
                                                     <div key={service.id} className="px-5 sm:px-6 py-3.5 flex justify-between items-center hover:bg-gray-50 transition-colors">
                                                         <div className="flex items-center gap-3">
                                                             <div className={`w-2 h-2 rounded-full shrink-0 ${service.isActive ? 'bg-green-400' : 'bg-gray-300'}`} />
-                                                            <div>
-                                                                <p className={`font-medium text-sm ${service.isActive ? 'text-gray-900' : 'text-gray-400 line-through'}`}>
+                                                            <div className="min-w-0 flex-1">
+                                                                <p className={`font-medium text-sm break-words line-clamp-2 ${service.isActive ? 'text-gray-900' : 'text-gray-400 line-through'}`}>
                                                                     {service.name}
                                                                 </p>
-                                                                <div className="flex items-center text-xs text-gray-500 mt-0.5 gap-3 flex-wrap">
+                                                                {service.description && (
+                                                                    <p className="text-xs text-gray-400 mt-0.5 break-words line-clamp-2">{service.description}</p>
+                                                                )}
+                                                                <div className="flex items-center text-xs text-gray-500 mt-1 gap-3 flex-wrap">
                                                                     <span className="flex items-center gap-1">
                                                                         <Clock className="h-3 w-3" /> {service.duration} dk
                                                                     </span>
