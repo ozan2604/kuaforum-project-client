@@ -1066,6 +1066,7 @@ export const MyShopPage: React.FC = () => {
                                         <div className="w-full md:w-1/2 aspect-video bg-black rounded-lg overflow-hidden relative flex items-center justify-center">
                                             <video 
                                                 key={watchedVideos[0].id}
+                                                src={getImageUrl(watchedVideos[0].url)}
                                                 controls 
                                                 className="w-full h-full object-cover"
                                                 preload="metadata"
@@ -1085,7 +1086,6 @@ export const MyShopPage: React.FC = () => {
                                                     }, 5000);
                                                 }}
                                             >
-                                                <source src={getImageUrl(watchedVideos[0].url)} type="video/mp4" />
                                                 Tarayıcınız video etiketini desteklemiyor.
                                             </video>
                                         </div>
