@@ -160,23 +160,23 @@ ${printScript}</body></html>`;
   * { box-sizing: border-box; margin: 0; padding: 0; }
   html, body { width: 210mm; height: 297mm; overflow: hidden; background: #c8e6e1; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-family: 'Arial Black', Arial, sans-serif; }
   body { display: flex; align-items: center; justify-content: center; }
-  .page { width: 210mm; height: 297mm; background: #c8e6e1; display: flex; flex-direction: column; align-items: center; padding: 16mm 16mm 10mm; overflow: hidden; }
-  .heading { text-align: center; margin-bottom: 7mm; line-height: 1.0; }
-  .heading .line { font-size: 54pt; font-weight: 900; color: #111111; display: block; letter-spacing: -1pt; }
-  .highlight-wrap { display: flex; justify-content: center; margin: 1.5mm 0; }
-  .highlight { display: inline-block; background: #f5b8c8; border-radius: 14pt; padding: 0pt 14pt; font-size: 54pt; font-weight: 900; color: #111111; letter-spacing: -1pt; line-height: 1.15; }
-  .shop-name { font-size: 13pt; font-weight: 700; color: #2d7a6e; margin-bottom: 8mm; text-align: center; }
-  .qr-outer { background: #f5b8c8; border-radius: 22pt; padding: 9pt; margin-bottom: 10mm; box-shadow: 0 4mm 16mm rgba(0,0,0,0.08); }
-  .qr-inner { background: white; border-radius: 16pt; padding: 10pt; }
-  .qr-inner img { width: 78mm; height: 78mm; display: block; }
-  .steps-container { width: 100%; border: 1.5pt solid #8fbfba; border-radius: 10pt; overflow: hidden; display: flex; margin-bottom: 10mm; }
-  .step { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 4mm 2mm; border-right: 1.5pt solid #8fbfba; text-align: center; gap: 2.5mm; }
+  .page { width: 200mm; height: 278mm; background: #c8e6e1; display: flex; flex-direction: column; align-items: center; padding: 12mm 14mm 8mm; overflow: hidden; }
+  .heading { text-align: center; margin-bottom: 5mm; }
+  .line { font-size: 46pt; font-weight: 900; color: #111111; display: block; letter-spacing: -1pt; line-height: 1.0; }
+  .highlight-wrap { display: flex; justify-content: center; margin: 1mm 0; }
+  .highlight { display: inline-block; background: #f5b8c8; border-radius: 10pt; padding: 0 10pt; font-size: 46pt; font-weight: 900; color: #111111; letter-spacing: -1pt; line-height: 1.15; }
+  .shop-name { font-size: 11pt; font-weight: 700; color: #2d7a6e; margin-bottom: 5mm; text-align: center; }
+  .qr-outer { background: #f5b8c8; border-radius: 16pt; padding: 7pt; margin-bottom: 6mm; }
+  .qr-inner { background: white; border-radius: 12pt; padding: 8pt; }
+  .qr-inner img { width: 64mm; height: 64mm; display: block; }
+  .steps-container { width: 100%; border: 1.5pt solid #8fbfba; border-radius: 8pt; overflow: hidden; display: flex; margin-bottom: 6mm; flex-shrink: 0; }
+  .step { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 3mm 1.5mm; border-right: 1.5pt solid #8fbfba; text-align: center; gap: 2mm; }
   .step:last-child { border-right: none; }
-  .step-num { width: 10mm; height: 10mm; border-radius: 50%; background: #f5b8c8; display: flex; align-items: center; justify-content: center; font-size: 12pt; font-weight: 900; color: #111; }
-  .step-text { font-size: 8pt; font-weight: 700; color: #1a1a1a; line-height: 1.35; font-family: Arial, sans-serif; }
-  .divider { width: 100%; height: 0.5mm; background: #8fbfba; margin-bottom: 5mm; }
-  .footer { width: 100%; display: flex; justify-content: space-between; align-items: center; }
-  .footer-item { font-size: 9pt; color: #2d7a6e; font-weight: 700; font-family: Arial, sans-serif; display: flex; align-items: center; gap: 2mm; }
+  .step-num { width: 8mm; height: 8mm; border-radius: 50%; background: #f5b8c8; display: flex; align-items: center; justify-content: center; font-size: 10pt; font-weight: 900; color: #111; flex-shrink: 0; }
+  .step-text { font-size: 7pt; font-weight: 700; color: #1a1a1a; line-height: 1.3; font-family: Arial, sans-serif; }
+  .divider { width: 100%; height: 0.5mm; background: #8fbfba; margin-bottom: 4mm; flex-shrink: 0; }
+  .footer { width: 100%; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; }
+  .footer-item { font-size: 8pt; color: #2d7a6e; font-weight: 700; font-family: Arial, sans-serif; display: flex; align-items: center; gap: 2mm; white-space: nowrap; }
 </style></head><body>
 <div class="page">
   <div class="heading">
@@ -210,43 +210,34 @@ ${printScript}</body></html>`;
   html, body { width: 210mm; height: 297mm; overflow: hidden; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-family: 'Arial Black', Arial, sans-serif; }
   body { display: flex; align-items: center; justify-content: center; }
   .page {
-    width: 210mm; height: 297mm; overflow: hidden;
+    width: 200mm; height: 278mm; overflow: hidden;
     background: linear-gradient(135deg, #1a00b4 0%, #2e2edd 45%, #1a00b4 100%);
     display: flex; flex-direction: column; align-items: center; position: relative;
   }
-  /* Diagonal stripes */
   .s { position: absolute; background: rgba(255,255,255,0.10); }
-  .s1 { top: -30mm; right: -20mm; width: 120mm; height: 20mm; transform: rotate(45deg); }
-  .s2 { top: -15mm; right: -20mm; width: 80mm; height: 12mm; transform: rotate(45deg); }
-  .s3 { top: 5mm; right: -20mm; width: 60mm; height: 8mm; transform: rotate(45deg); }
-  .s4 { bottom: 50mm; left: -30mm; width: 120mm; height: 20mm; transform: rotate(45deg); }
-  .s5 { bottom: 60mm; left: -30mm; width: 80mm; height: 12mm; transform: rotate(45deg); }
-
-  .content { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; padding: 10mm 14mm 0; flex: 1; width: 100%; }
-
-  .logo { font-size: 10pt; font-weight: 700; color: rgba(255,255,255,0.85); letter-spacing: 4pt; margin-bottom: 4mm; }
-
-  .heading { text-align: center; margin-bottom: 5mm; line-height: 0.92; }
-  .h-line { font-size: 58pt; font-weight: 900; color: white; display: block; letter-spacing: -2pt; }
-
-  .shop-name { font-size: 12pt; font-weight: 700; color: rgba(255,255,255,0.8); margin-bottom: 6mm; letter-spacing: 1pt; text-align: center; }
-
-  .qr-outer { border: 5pt solid #7ec8f0; padding: 6pt; background: white; margin-bottom: 7mm; }
-  .qr-outer img { width: 82mm; height: 82mm; display: block; }
-
-  .scan-bar { display: flex; align-items: center; gap: 5mm; margin-bottom: 0; }
-  .arrows { font-size: 18pt; font-weight: 900; color: white; }
-  .scan-text { font-size: 20pt; font-weight: 900; color: white; letter-spacing: 3pt; }
-
-  .footer { width: 100%; background: rgba(0,0,40,0.55); padding: 5mm 10mm; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; margin-top: auto; }
-  .fi { display: flex; align-items: center; gap: 2mm; font-size: 9pt; color: white; font-weight: 600; font-family: Arial, sans-serif; }
+  .s1 { top: -25mm; right: -15mm; width: 95mm; height: 16mm; transform: rotate(45deg); }
+  .s2 { top: -10mm; right: -15mm; width: 65mm; height: 10mm; transform: rotate(45deg); }
+  .s3 { top: 5mm; right: -15mm; width: 48mm; height: 7mm; transform: rotate(45deg); }
+  .s4 { bottom: 42mm; left: -25mm; width: 95mm; height: 16mm; transform: rotate(45deg); }
+  .s5 { bottom: 52mm; left: -25mm; width: 65mm; height: 10mm; transform: rotate(45deg); }
+  .content { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; padding: 8mm 12mm 0; flex: 1; width: 100%; min-height: 0; }
+  .logo { font-size: 9pt; font-weight: 700; color: rgba(255,255,255,0.85); letter-spacing: 3pt; margin-bottom: 3mm; }
+  .heading { text-align: center; margin-bottom: 4mm; }
+  .h-line { font-size: 50pt; font-weight: 900; color: white; display: block; letter-spacing: -2pt; line-height: 0.92; }
+  .shop-name { font-size: 10pt; font-weight: 700; color: rgba(255,255,255,0.8); margin-bottom: 5mm; letter-spacing: 1pt; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .qr-outer { border: 4pt solid #7ec8f0; padding: 5pt; background: white; margin-bottom: 5mm; flex-shrink: 0; }
+  .qr-outer img { width: 68mm; height: 68mm; display: block; }
+  .scan-bar { display: flex; align-items: center; gap: 4mm; }
+  .arrows { font-size: 16pt; font-weight: 900; color: white; }
+  .scan-text { font-size: 18pt; font-weight: 900; color: white; letter-spacing: 3pt; }
+  .footer { width: 100%; background: rgba(0,0,40,0.55); padding: 4mm 8mm; display: flex; justify-content: space-between; align-items: center; flex-shrink: 0; margin-top: auto; }
+  .fi { display: flex; align-items: center; gap: 2mm; font-size: 8pt; color: white; font-weight: 600; font-family: Arial, sans-serif; white-space: nowrap; }
 </style></head><body>
 <div class="page">
   <div class="s s1"></div><div class="s s2"></div><div class="s s3"></div>
   <div class="s s4"></div><div class="s s5"></div>
-
   <div class="content">
-    <div class="logo">◆ SALONBIR ◆</div>
+    <div class="logo">&#9670; SALONBIR &#9670;</div>
     <div class="heading">
       <span class="h-line">BURADAN</span>
       <span class="h-line">RANDEVU</span>
@@ -260,7 +251,6 @@ ${printScript}</body></html>`;
       <span class="arrows">&lt;&lt;&lt;</span>
     </div>
   </div>
-
   <div class="footer">
     <div class="fi">${PHONE_SVG_WHITE} ${escHtml(shop.phoneNumber || '')}</div>
     <div class="fi">${GLOBE_SVG_WHITE} salonbir.com</div>
