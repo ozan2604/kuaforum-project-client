@@ -8,7 +8,7 @@ import { toast } from 'react-hot-toast';
 import { getApiError } from '../../utils/storage';
 import {
     Calendar, Clock, CheckCircle, XCircle, AlertCircle,
-    Scissors, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Filter, X, Plus, UserX, MessageSquare, User, Phone
+    Scissors, ChevronLeft, ChevronRight, ChevronDown, Filter, X, Plus, UserX, MessageSquare, User, Phone
 } from 'lucide-react';
 import { blockService } from '../../api/block.service';
 import { ManualBookingModal } from '../../components/ManualBookingModal';
@@ -37,7 +37,8 @@ export const EmployeeAppointmentsPage: React.FC = () => {
     const [weeklyAppointments, setWeeklyAppointments] = useState<Appointment[]>([]);
     const [weeklyLoading, setWeeklyLoading] = useState(true);
 
-    const [managementOpen, setManagementOpen] = useState(false);
+    const [activeMainTab, setActiveMainTab] = useState<'calendar' | 'management'>('calendar');
+    const [managementEnabled, setManagementEnabled] = useState(false);
     const [bookingDaysAhead, setBookingDaysAhead] = useState(30);
     const [shopId, setShopId] = useState('');
     const [myEmployeeId, setMyEmployeeId] = useState('');
@@ -90,9 +91,14 @@ export const EmployeeAppointmentsPage: React.FC = () => {
         }
     };
 
-    useEffect(() => { loadData(); }, [page, pageSize, statusFilter, searchTerm, filterDate, filterServiceId]);
+    useEffect(() => { if (managementEnabled) loadData(); }, [managementEnabled, page, pageSize, statusFilter, searchTerm, filterDate, filterServiceId]);
 
     const isAutoProcessEnabled = false; // Add for compatibility with salon UI
+
+    const handleMainTabChange = (tab: 'calendar' | 'management') => {
+        setActiveMainTab(tab);
+        if (tab === 'management') setManagementEnabled(true);
+    };
 
     const requestSingleUpdate = (id: string, status: AppointmentStatus, label: string, actionText: string, firstStartTime?: string) =>
         setConfirmAction({ appointmentId: id, isGroup: false, status, label, actionText, reason: '', firstStartTime });
@@ -196,46 +202,55 @@ export const EmployeeAppointmentsPage: React.FC = () => {
                     </button>
                 </div>
 
-                {/* ── Haftalık Takvim ── */}
-                <WeeklyCalendarCard
-                    appointments={weeklyAppointments}
-                    loading={weeklyLoading}
-                    daysAhead={bookingDaysAhead}
-                />
-
-                {/* ══════════════════════════════════════════
-                CARD 2 — Randevu Yönetimi
-            ══════════════════════════════════════════ */}
-                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-200">
-                    <div
-                        onClick={() => setManagementOpen(v => !v)}
-                        className="w-full p-5 sm:p-6 flex justify-between items-center hover:bg-gray-50 cursor-pointer transition-colors relative"
+            {/* ── Main Tab Bar ── */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100">
+                <div className="flex">
+                    <button
+                        onClick={() => handleMainTabChange('calendar')}
+                        className={`flex items-center gap-2 px-6 py-4 text-sm font-semibold border-b-2 transition-colors rounded-tl-2xl ${
+                            activeMainTab === 'calendar'
+                                ? 'border-primary-600 text-primary-700 bg-primary-50/40'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                        }`}
                     >
-                        <div className="flex items-center gap-3 pr-10">
-                            <div className="p-2.5 bg-indigo-50 text-indigo-600 rounded-xl">
-                                <Filter className="w-6 h-6" />
-                            </div>
-                            <div>
-                                <h2 className="text-lg font-bold text-gray-900">Randevu Yönetimi</h2>
-                                <p className="text-xs text-gray-500 mt-0.5">Filtrele, ara ve randevu durumlarını güncelle</p>
-                            </div>
-                        </div>
-
-                        {!managementOpen && !loading && totalCount > 0 && (
-                            <div className="hidden sm:flex items-center gap-2 mr-10">
-                                <span className="text-xs bg-indigo-50 text-indigo-700 font-semibold px-2.5 py-1 rounded-full border border-indigo-100">
-                                    {totalCount} kayıt
-                                </span>
-                            </div>
+                        <Calendar className="w-4 h-4" />
+                        Randevu Takvimi
+                    </button>
+                    <button
+                        onClick={() => handleMainTabChange('management')}
+                        className={`flex items-center gap-2 px-6 py-4 text-sm font-semibold border-b-2 transition-colors ${
+                            activeMainTab === 'management'
+                                ? 'border-primary-600 text-primary-700 bg-primary-50/40'
+                                : 'border-transparent text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                        }`}
+                    >
+                        <Filter className="w-4 h-4" />
+                        Randevu Yönetimi
+                        {managementEnabled && !loading && totalCount > 0 && (
+                            <span className="text-[10px] bg-indigo-100 text-indigo-700 font-bold px-1.5 py-0.5 rounded-full">
+                                {totalCount}
+                            </span>
                         )}
+                    </button>
+                </div>
+            </div>
 
-                        <div className="absolute right-5 sm:right-6 p-1 bg-gray-50 rounded-full text-gray-400">
-                            {managementOpen ? <ChevronUp className="w-5 h-5" /> : <ChevronDown className="w-5 h-5" />}
-                        </div>
-                    </div>
+            {/* ── Calendar Tab ── */}
+            {activeMainTab === 'calendar' && (
+                <div className="space-y-4">
+                    <WeeklyCalendarCard
+                        appointments={weeklyAppointments}
+                        loading={weeklyLoading}
+                        daysAhead={bookingDaysAhead}
+                        defaultOpen
+                    />
+                </div>
+            )}
 
-                    {managementOpen && (
-                        <div className="border-t border-gray-50 animate-in fade-in slide-in-from-top-4 duration-300">
+            {/* ── Management Tab ── */}
+            {activeMainTab === 'management' && (
+                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-200">
+                    <div className="animate-in fade-in slide-in-from-top-4 duration-300">
 
                             {/* Filters */}
                             <div className="px-5 sm:px-6 py-4">
@@ -484,7 +499,7 @@ export const EmployeeAppointmentsPage: React.FC = () => {
                                                                             {/* Tek satır: ikon | isim | [PC butonlar] | fiyat | badge */}
                                                                             <div className="flex items-center gap-2 min-w-0">
                                                                                 <Scissors className="w-3.5 h-3.5 text-gray-300 shrink-0" />
-                                                                                <span className="text-sm text-gray-700 flex-1 min-w-0 truncate">{apt.serviceName}</span>
+                                                                                <span className="text-sm text-gray-700 flex-1 min-w-0 break-words whitespace-normal">{apt.serviceName}</span>
                                                                                 {hasAptBtns && (
                                                                                     <div className="hidden sm:flex items-center gap-1 shrink-0">{aptBtns}</div>
                                                                                 )}
@@ -577,9 +592,9 @@ export const EmployeeAppointmentsPage: React.FC = () => {
                             </div>
                         </>
                     )}
+                    </div>
                 </div>
             )}
-        </div>
 
             {/* Confirmation Modal */}
             {confirmAction && createPortal(

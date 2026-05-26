@@ -631,7 +631,7 @@ export const SalonAppointmentsPage: React.FC = () => {
                                                                             {/* Tek satır: ikon | isim | [PC butonlar] | fiyat | badge */}
                                                                             <div className="flex items-center gap-2 min-w-0">
                                                                                 <Scissors className="w-3.5 h-3.5 text-gray-300 shrink-0" />
-                                                                                <span className="text-sm text-gray-700 flex-1 min-w-0 truncate">{apt.serviceName}</span>
+                                                                                <span className="text-sm text-gray-700 flex-1 min-w-0 break-words whitespace-normal">{apt.serviceName}</span>
                                                                                 {hasAptBtns && (
                                                                                     <div className="hidden sm:flex items-center gap-1 shrink-0">{aptBtns}</div>
                                                                                 )}
