@@ -62,10 +62,6 @@ export const Navbar: React.FC = () => {
                     {/* Right: Actions */}
                     <div className="flex items-center shrink-0 gap-2 sm:gap-4">
 
-                        <Link to="/isletmeler-icin" className="hidden lg:flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-full transition-colors border border-transparent hover:border-primary-100">
-                            İşletmeler İçin
-                        </Link>
-
                         {isAuthenticated ? (
                             <>
                                 <Link to="/favorites" className={`px-4 py-2 rounded-full flex items-center gap-2 transition-colors border ${location.pathname === '/favorites' ? 'bg-red-50 text-red-600 border-red-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-gray-200'}`} title="Favorilerim">

@@ -20,7 +20,7 @@ interface Neighborhood { id: number; name: string }
 const steps = ['Genel Bilgiler', 'İletişim', 'Adres'];
 
 export const SalonApplicationPage: React.FC = () => {
-    const { user } = useAuth();
+    const { user, isAuthenticated } = useAuth();
     const navigate = useNavigate();
 
     const [application, setApplication] = useState<any>(null);
@@ -216,7 +216,25 @@ export const SalonApplicationPage: React.FC = () => {
                         <p className="text-indigo-200 mt-2 text-sm">İşletmenizi platforma ekleyin, binlerce müşteriye ulaşın.</p>
                     </div>
                 </div>
-                {application ? (
+                {!isAuthenticated ? (
+                    <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden p-8 sm:p-12 text-center animate-in fade-in zoom-in-95 duration-500">
+                        <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-indigo-50 text-indigo-600 mb-6 border border-indigo-100">
+                            <ShieldCheck className="h-10 w-10" />
+                        </div>
+                        <h2 className="text-2xl font-bold text-gray-900 mb-3">Giriş Yapmanız Gerekiyor</h2>
+                        <p className="text-gray-600 mb-8 max-w-md mx-auto leading-relaxed text-sm">
+                            Salon başvurusu yapabilmek için sisteme kayıtlı olmanız gerekmektedir. Bilgilerinizin kaybolmaması için lütfen önce giriş yapın veya ücretsiz kayıt olun.
+                        </p>
+                        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                            <Button onClick={() => navigate('/login')} className="w-full sm:w-auto px-8 py-3.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-md shadow-indigo-200">
+                                Giriş Yap
+                            </Button>
+                            <Button onClick={() => navigate('/register')} className="w-full sm:w-auto px-8 py-3.5 bg-white text-indigo-600 border border-indigo-200 hover:border-indigo-300 hover:bg-indigo-50 rounded-xl font-bold transition-all">
+                                Ücretsiz Kayıt Ol
+                            </Button>
+                        </div>
+                    </div>
+                ) : application ? (
                     /* Application Status Card */
                     <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
                         <div className={`p-6 ${application.status === 0 ? 'bg-amber-50 border-b-2 border-amber-200' : application.status === 1 ? 'bg-emerald-50 border-b-2 border-emerald-200' : 'bg-red-50 border-b-2 border-red-200'}`}>
