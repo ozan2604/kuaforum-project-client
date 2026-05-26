@@ -274,12 +274,17 @@ ${printScript}</body></html>`;
         setPngLoading(true);
         const toastId = toast.loading('PNG oluşturuluyor...');
         try {
-            const canvas = await html2canvas(previewRef.current, {
-                scale: 3,
+            const el = previewRef.current;
+            const canvas = await html2canvas(el, {
+                scale: 2,
                 useCORS: true,
                 allowTaint: true,
                 backgroundColor: null,
                 logging: false,
+                width: el.offsetWidth,
+                height: el.offsetHeight,
+                windowWidth: el.offsetWidth,
+                windowHeight: el.offsetHeight,
             });
             const link = document.createElement('a');
             link.download = `${shop.name}-qr-afis.png`;
@@ -448,59 +453,69 @@ ${printScript}</body></html>`;
                                             </div>
                                         ))}
                                     </div>
-                                    <div className="w-full h-px mb-4" style={{ background: '#8fbfba' }} />
-                                    <div className="w-full flex justify-between items-center">
-                                        <span className="text-xs font-bold" style={{ color: '#2d7a6e' }}>salonbir.com</span>
-                                        <span className="text-xs font-bold flex items-center gap-1" style={{ color: '#2d7a6e' }}>
-                                            <MapPin className="w-3 h-3" />{locationText}
+                                    <div style={{ width: '100%', height: '1px', background: '#8fbfba', marginBottom: '16px', flexShrink: 0 }} />
+                                    <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px' }}>
+                                        <span style={{ color: '#2d7a6e', fontSize: '11px', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}>salonbir.com</span>
+                                        <span style={{ color: '#2d7a6e', fontSize: '11px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 1, minWidth: 0 }}>
+                                            <MapPin color="#2d7a6e" className="w-3 h-3 shrink-0" style={{ flexShrink: 0 }} />{locationText}
                                         </span>
-                                        <span className="text-xs font-bold" style={{ color: '#2d7a6e' }}>{shop.phoneNumber || ''}</span>
+                                        <span style={{ color: '#2d7a6e', fontSize: '11px', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}>{shop.phoneNumber || ''}</span>
                                     </div>
                                 </div>
                             )}
 
-                            {/* BLUE / DİNAMİK */}
+                            {/* BLUE / DİNAMİK — tüm stiller inline (html2canvas uyumluluğu için) */}
                             {activeTab === 'blue' && (
-                                <div ref={previewRef} className="flex flex-col rounded-3xl overflow-hidden relative" style={{ background: 'linear-gradient(135deg, #1a00b4 0%, #2e2edd 50%, #1a00b4 100%)', minHeight: '480px' }}>
-                                    {/* Stripes */}
-                                    {[
-                                        { top: '-20px', right: '-20px', width: '180px', height: '28px', rotate: '45deg' },
-                                        { top: '-5px', right: '-20px', width: '120px', height: '16px', rotate: '45deg' },
-                                        { bottom: '80px', left: '-30px', width: '160px', height: '24px', rotate: '45deg' },
-                                        { bottom: '96px', left: '-30px', width: '110px', height: '14px', rotate: '45deg' },
-                                    ].map((s, i) => (
-                                        <div key={i} className="absolute" style={{ background: 'rgba(255,255,255,0.12)', top: s.top, right: s.right, bottom: s.bottom, left: s.left, width: s.width, height: s.height, transform: `rotate(${s.rotate})` }} />
-                                    ))}
+                                <div ref={previewRef} style={{
+                                    display: 'flex', flexDirection: 'column', borderRadius: '24px',
+                                    overflow: 'hidden', position: 'relative',
+                                    background: 'linear-gradient(135deg, #1a00b4 0%, #2e2edd 50%, #1a00b4 100%)',
+                                    minHeight: '520px',
+                                }}>
+                                    {/* Dekoratif çizgiler */}
+                                    <div style={{ position: 'absolute', background: 'rgba(255,255,255,0.12)', top: '-20px', right: '-20px', width: '180px', height: '28px', transform: 'rotate(45deg)' }} />
+                                    <div style={{ position: 'absolute', background: 'rgba(255,255,255,0.12)', top: '-5px', right: '-20px', width: '120px', height: '16px', transform: 'rotate(45deg)' }} />
+                                    <div style={{ position: 'absolute', background: 'rgba(255,255,255,0.12)', bottom: '80px', left: '-30px', width: '160px', height: '24px', transform: 'rotate(45deg)' }} />
+                                    <div style={{ position: 'absolute', background: 'rgba(255,255,255,0.12)', bottom: '96px', left: '-30px', width: '110px', height: '14px', transform: 'rotate(45deg)' }} />
 
-                                    {/* Content */}
-                                    <div className="relative z-10 flex flex-col items-center flex-1 pt-6 px-5">
-                                        <div className="text-white/80 font-bold tracking-[4px] text-[10px] mb-4">◆ SALONBIR ◆</div>
-                                        <div className="text-center mb-4" style={{ lineHeight: 0.9 }}>
+                                    {/* İçerik */}
+                                    <div style={{
+                                        position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column',
+                                        alignItems: 'center', flex: '1 1 auto', paddingTop: '24px',
+                                        paddingLeft: '20px', paddingRight: '20px',
+                                    }}>
+                                        <div style={{ color: 'rgba(255,255,255,0.8)', fontWeight: 700, letterSpacing: '4px', fontSize: '10px', marginBottom: '14px' }}>
+                                            ◆ SALONBIR ◆
+                                        </div>
+                                        <div style={{ textAlign: 'center', marginBottom: '14px' }}>
                                             {['BURADAN', 'RANDEVU', 'ALINIR'].map(w => (
-                                                <div key={w} className="font-black text-white" style={{ fontSize: 'clamp(28px, 9vw, 44px)', letterSpacing: '-1px' }}>{w}</div>
+                                                <div key={w} style={{ fontWeight: 900, color: '#ffffff', fontSize: '40px', letterSpacing: '-1px', lineHeight: '0.92', display: 'block' }}>{w}</div>
                                             ))}
                                         </div>
-                                        <div className="text-white/75 text-xs font-bold tracking-widest mb-4">{shop.name.toUpperCase()}</div>
-                                        {/* QR */}
-                                        <div className="p-1.5 mb-4" style={{ border: '4px solid #7ec8f0', background: 'white' }}>
+                                        <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: '11px', fontWeight: 700, letterSpacing: '3px', marginBottom: '14px', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
+                                            {shop.name.toUpperCase()}
+                                        </div>
+                                        <div style={{ padding: '6px', marginBottom: '14px', border: '4px solid #7ec8f0', background: 'white', flexShrink: 0 }}>
                                             <QRCodeCanvas value={shopUrl} size={130} fgColor="#0f172a" bgColor="#ffffff" level="H" marginSize={1} />
                                         </div>
-                                        {/* Scan bar */}
-                                        <div className="flex items-center gap-3 mb-2">
-                                            <span className="text-white font-black text-lg">&gt;&gt;&gt;</span>
-                                            <span className="text-white font-black tracking-[4px] text-base">TARA</span>
-                                            <span className="text-white font-black text-lg">&lt;&lt;&lt;</span>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                                            <span style={{ color: '#ffffff', fontWeight: 900, fontSize: '18px' }}>&gt;&gt;&gt;</span>
+                                            <span style={{ color: '#ffffff', fontWeight: 900, letterSpacing: '4px', fontSize: '16px' }}>TARA</span>
+                                            <span style={{ color: '#ffffff', fontWeight: 900, fontSize: '18px' }}>&lt;&lt;&lt;</span>
                                         </div>
                                     </div>
 
                                     {/* Footer */}
-                                    <div className="relative z-10 flex justify-between items-center px-4 py-3 mt-auto" style={{ background: 'rgba(0,0,40,0.55)' }}>
-                                        <span className="text-white text-[10px] font-bold flex items-center gap-1">
-                                            <Phone className="w-3 h-3" />{shop.phoneNumber || ''}
+                                    <div style={{
+                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                                        padding: '10px 16px', background: 'rgba(0,0,40,0.55)', flexShrink: 0,
+                                    }}>
+                                        <span style={{ color: '#ffffff', fontSize: '10px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
+                                            <Phone color="#ffffff" className="w-3 h-3" />{shop.phoneNumber || ''}
                                         </span>
-                                        <span className="text-white text-[10px] font-bold">salonbir.com</span>
-                                        <span className="text-white text-[10px] font-bold flex items-center gap-1">
-                                            <MapPin className="w-3 h-3" />{locationText}
+                                        <span style={{ color: '#ffffff', fontSize: '10px', fontWeight: 600, whiteSpace: 'nowrap' }}>salonbir.com</span>
+                                        <span style={{ color: '#ffffff', fontSize: '10px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
+                                            <MapPin color="#ffffff" className="w-3 h-3" />{locationText}
                                         </span>
                                     </div>
                                 </div>
