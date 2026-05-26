@@ -516,17 +516,16 @@ ${printScript}</body></html>`;
                                         </div>
                                     </div>
 
-                                    {/* Footer */}
-                                    <div style={{
-                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                        padding: '10px 16px', background: 'rgba(0,0,40,0.55)', flexShrink: 0,
-                                    }}>
-                                        <span style={{ color: '#ffffff', fontSize: '10px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
-                                            <Phone color="#ffffff" className="w-3 h-3" />{shop.phoneNumber || ''}
+                                    {/* Footer — flex:1 1 0% ile sol/sağ eşit, orta auto */}
+                                    <div style={{ display: 'flex', alignItems: 'center', padding: '10px 16px', background: 'rgba(0,0,40,0.55)', flexShrink: 0 }}>
+                                        <span style={{ flex: '1 1 0%', color: '#ffffff', fontSize: '10px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden' }}>
+                                            <Phone color="#ffffff" style={{ width: '12px', height: '12px', flexShrink: 0 }} />
+                                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{shop.phoneNumber || ''}</span>
                                         </span>
-                                        <span style={{ color: '#ffffff', fontSize: '10px', fontWeight: 600, whiteSpace: 'nowrap' }}>salonbir.com</span>
-                                        <span style={{ color: '#ffffff', fontSize: '10px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', whiteSpace: 'nowrap' }}>
-                                            <MapPin color="#ffffff" className="w-3 h-3" />{locationText}
+                                        <span style={{ flex: '0 0 auto', color: '#ffffff', fontSize: '10px', fontWeight: 600, whiteSpace: 'nowrap', padding: '0 6px', textAlign: 'center' }}>salonbir.com</span>
+                                        <span style={{ flex: '1 1 0%', color: '#ffffff', fontSize: '10px', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px', overflow: 'hidden' }}>
+                                            <MapPin color="#ffffff" style={{ width: '12px', height: '12px', flexShrink: 0 }} />
+                                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{locationText}</span>
                                         </span>
                                     </div>
                                 </div>
