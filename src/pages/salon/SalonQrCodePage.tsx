@@ -429,37 +429,48 @@ ${printScript}</body></html>`;
                                 </div>
                             )}
 
-                            {/* MODERN */}
+                            {/* MODERN — tüm stiller inline (html2canvas uyumluluğu için) */}
                             {activeTab === 'modern' && (
-                                <div ref={previewRef} className="flex flex-col items-center rounded-3xl" style={{ background: '#c8e6e1', padding: '28px 20px 20px' }}>
-                                    <div className="text-center mb-5 leading-none">
-                                        <div className="font-black text-gray-900" style={{ fontSize: 'clamp(26px, 9vw, 42px)', lineHeight: 1 }}>BU KODU</div>
-                                        <div className="flex justify-center my-1.5">
-                                            <span className="font-black text-gray-900 px-4 py-0.5 rounded-xl" style={{ background: '#f5b8c8', fontSize: 'clamp(26px, 9vw, 42px)', lineHeight: 1.15 }}>OKUTARAK</span>
+                                <div ref={previewRef} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', borderRadius: '24px', background: '#c8e6e1', padding: '28px 20px 20px' }}>
+                                    {/* Başlık */}
+                                    <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                                        <div style={{ fontWeight: 900, color: '#111111', fontSize: '36px', lineHeight: 1 }}>BU KODU</div>
+                                        <div style={{ display: 'flex', justifyContent: 'center', margin: '6px 0' }}>
+                                            <span style={{ fontWeight: 900, color: '#111111', background: '#f5b8c8', fontSize: '36px', lineHeight: 1.15, borderRadius: '10px', padding: '0 14px' }}>OKUTARAK</span>
                                         </div>
-                                        <div className="font-black text-gray-900" style={{ fontSize: 'clamp(26px, 9vw, 42px)', lineHeight: 1 }}>RANDEVU AL</div>
+                                        <div style={{ fontWeight: 900, color: '#111111', fontSize: '36px', lineHeight: 1 }}>RANDEVU AL</div>
                                     </div>
-                                    <div className="text-sm font-bold mb-5 text-center" style={{ color: '#2d7a6e' }}>{shop.name}</div>
-                                    <div className="rounded-2xl p-2 mb-5 shadow-lg" style={{ background: '#f5b8c8' }}>
-                                        <div className="bg-white rounded-xl p-2.5">
+                                    {/* Salon adı */}
+                                    <div style={{ fontSize: '14px', fontWeight: 700, marginBottom: '20px', textAlign: 'center', color: '#2d7a6e' }}>{shop.name}</div>
+                                    {/* QR */}
+                                    <div style={{ background: '#f5b8c8', borderRadius: '16px', padding: '8px', marginBottom: '20px', boxShadow: '0 8px 20px rgba(0,0,0,0.1)' }}>
+                                        <div style={{ background: 'white', borderRadius: '12px', padding: '10px' }}>
                                             <QRCodeCanvas value={shopUrl} size={140} fgColor="#0f172a" bgColor="#ffffff" level="H" marginSize={1} />
                                         </div>
                                     </div>
-                                    <div className="w-full flex rounded-xl overflow-hidden mb-5" style={{ border: '1.5px solid #8fbfba' }}>
+                                    {/* Adımlar */}
+                                    <div style={{ width: '100%', display: 'flex', borderRadius: '12px', overflow: 'hidden', marginBottom: '20px', border: '1.5px solid #8fbfba' }}>
                                         {STEPS.map((step, i) => (
-                                            <div key={i} className="flex-1 flex flex-col items-center py-3 px-1 text-center gap-2" style={{ borderRight: i < 3 ? '1.5px solid #8fbfba' : 'none' }}>
-                                                <div className="w-7 h-7 rounded-full flex items-center justify-center text-sm font-black text-gray-900 shrink-0" style={{ background: '#f5b8c8' }}>{step.n}</div>
-                                                <div className="text-[10px] font-bold text-gray-800 leading-snug whitespace-pre-line">{step.text}</div>
+                                            <div key={i} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '12px 4px', textAlign: 'center', gap: '8px', borderRight: i < 3 ? '1.5px solid #8fbfba' : 'none' }}>
+                                                <div style={{ width: '28px', height: '28px', borderRadius: '50%', background: '#f5b8c8', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', fontWeight: 900, color: '#111111', flexShrink: 0 }}>{step.n}</div>
+                                                <div style={{ fontSize: '10px', fontWeight: 700, color: '#1a1a1a', lineHeight: 1.3, textAlign: 'center' }}>
+                                                    {step.text.split('\n').map((line, j, arr) => (
+                                                        <React.Fragment key={j}>{line}{j < arr.length - 1 && <br />}</React.Fragment>
+                                                    ))}
+                                                </div>
                                             </div>
                                         ))}
                                     </div>
-                                    <div style={{ width: '100%', height: '1px', background: '#8fbfba', marginBottom: '16px', flexShrink: 0 }} />
-                                    <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '6px' }}>
-                                        <span style={{ color: '#2d7a6e', fontSize: '11px', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}>salonbir.com</span>
-                                        <span style={{ color: '#2d7a6e', fontSize: '11px', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '3px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flexShrink: 1, minWidth: 0 }}>
-                                            <MapPin color="#2d7a6e" className="w-3 h-3 shrink-0" style={{ flexShrink: 0 }} />{locationText}
+                                    {/* Divider */}
+                                    <div style={{ width: '100%', height: '1px', background: '#8fbfba', marginBottom: '14px', flexShrink: 0 }} />
+                                    {/* Footer — flex: 1 1 0% her item için eşit alan */}
+                                    <div style={{ width: '100%', display: 'flex', alignItems: 'center' }}>
+                                        <span style={{ flex: '1 1 0%', color: '#2d7a6e', fontSize: '10px', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>salonbir.com</span>
+                                        <span style={{ flex: '1 1 0%', color: '#2d7a6e', fontSize: '10px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '3px', overflow: 'hidden' }}>
+                                            <MapPin color="#2d7a6e" style={{ width: '12px', height: '12px', flexShrink: 0 }} />
+                                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{locationText}</span>
                                         </span>
-                                        <span style={{ color: '#2d7a6e', fontSize: '11px', fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0 }}>{shop.phoneNumber || ''}</span>
+                                        <span style={{ flex: '1 1 0%', color: '#2d7a6e', fontSize: '10px', fontWeight: 700, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', textAlign: 'right' }}>{shop.phoneNumber || ''}</span>
                                     </div>
                                 </div>
                             )}
