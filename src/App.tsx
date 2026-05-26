@@ -13,6 +13,7 @@ import { AuthLayout } from './layouts/AuthLayout';
 import { ProtectedRoute } from './routes/ProtectedRoute';
 
 import { HomePage } from './pages/HomePage';
+import { BusinessMarketingPage } from './pages/BusinessMarketingPage';
 import { ShopDetailsPage } from './pages/ShopDetailsPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { LoginPage } from './pages/LoginPage';
@@ -76,6 +77,7 @@ function App() {
         {/* ── Genel Sayfalar ── */}
         <Route element={<MainLayout />}>
           <Route path="/" element={<HomePage />} />
+          <Route path="/isletmeler-icin" element={<BusinessMarketingPage />} />
           <Route path="/shop/:id" element={<ShopDetailsPage />} />
           <Route path="/favorites" element={<HomePage showFavoritesOnly={true} />} />
           <Route path="/profile" element={<ProfilePage />} />

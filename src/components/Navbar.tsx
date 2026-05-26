@@ -62,6 +62,9 @@ export const Navbar: React.FC = () => {
                     {/* Right: Actions */}
                     <div className="flex items-center shrink-0 gap-2 sm:gap-4">
 
+                        <Link to="/isletmeler-icin" className="hidden lg:flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-full transition-colors border border-transparent hover:border-primary-100">
+                            İşletmeler İçin
+                        </Link>
 
                         {isAuthenticated ? (
                             <>
