@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { shopService } from '../../api/shop.service';
 import { QRCodeCanvas } from 'qrcode.react';
-import { QrCode, X, Loader2, Printer, Phone } from 'lucide-react';
+import { QrCode, X, Loader2, Printer, Phone, LayoutTemplate, Sparkles } from 'lucide-react';
 import { ShopCategoryLabels } from '../../types/shop';
 import type { Shop } from '../../types/shop';
 import { toast } from 'react-hot-toast';
@@ -17,10 +17,20 @@ const getAbsImageUrl = (path: string | null | undefined): string | null => {
     return `http://localhost:5000${path}`;
 };
 
+type TabType = 'classic' | 'modern';
+
+const STEPS = [
+    { n: 1, text: 'Kameranı\nAç' },
+    { n: 2, text: "QR'ı\nTara" },
+    { n: 3, text: 'Hizmet &\nUzman Seç' },
+    { n: 4, text: 'Randevunu\nOnayla' },
+];
+
 export const SalonQrCodePage: React.FC = () => {
     const [shop, setShop] = useState<Shop | null>(null);
     const [loading, setLoading] = useState(true);
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [activeTab, setActiveTab] = useState<TabType>('classic');
     const canvasRef = useRef<HTMLCanvasElement>(null);
 
     useEffect(() => {
@@ -60,28 +70,41 @@ export const SalonQrCodePage: React.FC = () => {
         .map((c: any) => ShopCategoryLabels[c as keyof typeof ShopCategoryLabels])
         .filter(Boolean);
 
-    const handlePrintFlyer = () => {
-        if (!canvasRef.current) return;
-        const qrDataUrl = canvasRef.current.toDataURL('image/png');
+    /* ─── Print helpers ─── */
+    const printScript = `
+<script>
+  var imgs = document.querySelectorAll('img');
+  var count = 0, total = imgs.length;
+  function tryPrint() { if (++count >= total) { setTimeout(function () { window.print(); setTimeout(function () { window.close(); }, 1500); }, 250); } }
+  if (total === 0) { setTimeout(function () { window.print(); setTimeout(function () { window.close(); }, 1500); }, 250); }
+  else { imgs.forEach(function (img) { if (img.complete) { tryPrint(); } else { img.addEventListener('load', tryPrint); img.addEventListener('error', tryPrint); } }); }
+<\/script>`;
 
+    const openPrintWindow = (html: string) => {
+        const pw = window.open('', '_blank', 'width=640,height=920');
+        if (!pw) { toast.error('Popup engelleyici aktif — lütfen izin verin.'); return; }
+        pw.document.open();
+        pw.document.write(html);
+        pw.document.close();
+    };
+
+    /* ─── Classic PDF ─── */
+    const buildClassicHtml = (qrDataUrl: string) => {
         const coverHtml = coverUrl
             ? `<img class="cover-img" src="${escHtml(coverUrl)}" alt="">`
             : `<div class="cover-ph"><span>${escHtml(shop.name.slice(0, 2).toUpperCase())}</span></div>`;
 
-        const PHONE_SVG_WHITE = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.73 12.9a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.64 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.16 6.16l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`;
+        const PHONE_SVG = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.73 12.9a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.64 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.16 6.16l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`;
 
         const phoneHtml = shop.phoneNumber
-            ? `<div class="phone-btn">
-                 ${PHONE_SVG_WHITE}
-                 <span>${escHtml(shop.phoneNumber)}</span>
-               </div>`
+            ? `<div class="phone-btn">${PHONE_SVG}<span>${escHtml(shop.phoneNumber)}</span></div>`
             : '';
 
         const catsHtml = categoryNames.length > 0
             ? `<div class="cats">${categoryNames.map(c => `<span class="badge">${escHtml(c)}</span>`).join('')}</div>`
             : '';
 
-        const html = `<!DOCTYPE html>
+        return `<!DOCTYPE html>
 <html lang="tr">
 <head>
 <meta charset="UTF-8">
@@ -89,176 +112,114 @@ export const SalonQrCodePage: React.FC = () => {
 <style>
   @page { size: A4 portrait; margin: 0; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  html {
-    width: 210mm;
-    background: #eef0f3;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-  body {
-    width: 210mm;
-    min-height: 297mm;
-    overflow: hidden;
-    background: #eef0f3;
-    font-family: 'Segoe UI', Arial, sans-serif;
-    display: flex; align-items: center; justify-content: center;
-  }
-
-  .card {
-    width: 196mm; height: 258mm;
-    border-radius: 8mm;
-    overflow: hidden;
-    display: flex; flex-direction: column;
-    box-shadow: 0 0 0 0.4mm #d1d5db;
-    background: #ffffff;
-    position: relative;
-  }
-  
-  .cover-container {
-    position: relative;
-    height: 85mm;
-    width: 100%;
-    flex-shrink: 0;
-  }
+  html { width: 210mm; background: #eef0f3; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  body { width: 210mm; min-height: 297mm; overflow: hidden; background: #eef0f3; font-family: 'Segoe UI', Arial, sans-serif; display: flex; align-items: center; justify-content: center; }
+  .card { width: 196mm; height: 258mm; border-radius: 8mm; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 0 0 0.4mm #d1d5db; background: #ffffff; position: relative; }
+  .cover-container { position: relative; height: 85mm; width: 100%; flex-shrink: 0; }
   .cover-img { width: 100%; height: 100%; object-fit: cover; display: block; }
-  .cover-ph {
-    width: 100%; height: 100%;
-    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-    display: flex; align-items: center; justify-content: center;
-  }
+  .cover-ph { width: 100%; height: 100%; background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); display: flex; align-items: center; justify-content: center; }
   .cover-ph span { font-size: 72pt; font-weight: 900; color: rgba(255,255,255,.05); letter-spacing: 10pt; }
-  .cover-overlay {
-    position: absolute; bottom: 0; left: 0; right: 0; height: 30mm;
-    background: linear-gradient(to top, rgba(0,0,0,0.4), transparent);
-  }
-
-  .content-wrapper {
-    position: relative;
-    margin-top: -12mm;
-    padding: 0 12mm;
-    display: flex; flex-direction: column; align-items: center;
-    flex: 1;
-  }
-
-  .shop-name-card {
-    background: #1e293b;
-    padding: 5mm 10mm;
-    border-radius: 6mm;
-    box-shadow: 0 4mm 10mm rgba(30, 41, 59, 0.25);
-    width: 92%;
-    text-align: center;
-    margin-bottom: 8mm;
-    border: 1px solid rgba(255,255,255,0.1);
-  }
-  .shop-name {
-    font-size: 22pt; font-weight: 900; color: #ffffff;
-    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-    letter-spacing: -0.5pt;
-  }
-
-  .buttons-row {
-    display: flex; flex-direction: column; align-items: center; gap: 4mm;
-    margin-bottom: 8mm;
-    width: 100%;
-  }
-  
-  .phone-btn {
-    background: #1e293b; color: #ffffff;
-    font-size: 13pt; font-weight: 800;
-    padding: 3.5mm 8mm; border-radius: 12mm;
-    display: inline-flex; align-items: center; gap: 3mm;
-    box-shadow: 0 2mm 6mm rgba(30, 41, 59, 0.3);
-  }
-
+  .cover-overlay { position: absolute; bottom: 0; left: 0; right: 0; height: 30mm; background: linear-gradient(to top, rgba(0,0,0,0.4), transparent); }
+  .content-wrapper { position: relative; margin-top: -12mm; padding: 0 12mm; display: flex; flex-direction: column; align-items: center; flex: 1; }
+  .shop-name-card { background: #1e293b; padding: 5mm 10mm; border-radius: 6mm; box-shadow: 0 4mm 10mm rgba(30,41,59,0.25); width: 92%; text-align: center; margin-bottom: 8mm; border: 1px solid rgba(255,255,255,0.1); }
+  .shop-name { font-size: 22pt; font-weight: 900; color: #ffffff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; letter-spacing: -0.5pt; }
+  .buttons-row { display: flex; flex-direction: column; align-items: center; gap: 4mm; margin-bottom: 8mm; width: 100%; }
+  .phone-btn { background: #1e293b; color: #ffffff; font-size: 13pt; font-weight: 800; padding: 3.5mm 8mm; border-radius: 12mm; display: inline-flex; align-items: center; gap: 3mm; box-shadow: 0 2mm 6mm rgba(30,41,59,0.3); }
   .cats { display: flex; flex-wrap: wrap; justify-content: center; gap: 2.5mm; }
-  .badge { 
-    background: #f8fafc; color: #0f172a;
-    border: 1.5px solid #1e293b;
-    padding: 2.5mm 5mm; border-radius: 8mm; font-size: 10pt; font-weight: 800; 
-  }
-
-  .qr-section {
-    width: 100%;
-    background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%);
-    border-radius: 8mm;
-    padding: 6mm;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    border: 1px solid #f1f5f9;
-    flex: 1;
-    margin-bottom: 6mm;
-  }
-  .qr-lbl { 
-    font-size: 8pt; font-weight: 900; letter-spacing: 4pt; 
-    text-transform: uppercase; color: #475569; text-align: center; 
-    margin-bottom: 5mm;
-  }
-  .qr-frame { 
-    padding: 5mm; border-radius: 6mm; background: #fff; 
-    box-shadow: 0 4mm 15mm rgba(0,0,0,0.08);
-    margin-bottom: 4mm;
-  }
+  .badge { background: #f8fafc; color: #0f172a; border: 1.5px solid #1e293b; padding: 2.5mm 5mm; border-radius: 8mm; font-size: 10pt; font-weight: 800; }
+  .qr-section { width: 100%; background: linear-gradient(180deg, #f8fafc 0%, #ffffff 100%); border-radius: 8mm; padding: 6mm; display: flex; flex-direction: column; align-items: center; justify-content: center; border: 1px solid #f1f5f9; flex: 1; margin-bottom: 6mm; }
+  .qr-lbl { font-size: 8pt; font-weight: 900; letter-spacing: 4pt; text-transform: uppercase; color: #475569; text-align: center; margin-bottom: 5mm; }
+  .qr-frame { padding: 5mm; border-radius: 6mm; background: #fff; box-shadow: 0 4mm 15mm rgba(0,0,0,0.08); margin-bottom: 4mm; }
   .qr-frame img { width: 75mm; height: 75mm; display: block; }
   .qr-url { font-size: 7.5pt; color: #94a3b8; font-family: monospace; word-break: break-all; text-align: center; max-width: 120mm; }
-
-  .footer { 
-    height: 18mm; flex-shrink: 0; background: #0f172a; 
-    display: flex; align-items: center; justify-content: center; 
-    width: 100%;
-  }
+  .footer { height: 18mm; flex-shrink: 0; background: #0f172a; display: flex; align-items: center; justify-content: center; width: 100%; }
   .footer-text { font-size: 8pt; letter-spacing: 6pt; text-transform: uppercase; color: rgba(255,255,255,0.95); font-weight: 800; }
 </style>
 </head>
 <body>
 <div class="card">
-  <div class="cover-container">
-    ${coverHtml}
-    <div class="cover-overlay"></div>
-  </div>
-  
+  <div class="cover-container">${coverHtml}<div class="cover-overlay"></div></div>
   <div class="content-wrapper">
-    <div class="shop-name-card">
-      <div class="shop-name">${escHtml(shop.name)}</div>
-    </div>
-    
-    <div class="buttons-row">
-      ${phoneHtml}
-      ${catsHtml}
-    </div>
-    
+    <div class="shop-name-card"><div class="shop-name">${escHtml(shop.name)}</div></div>
+    <div class="buttons-row">${phoneHtml}${catsHtml}</div>
     <div class="qr-section">
       <div class="qr-lbl">Rezervasyon İçin QR Kodu Okutun</div>
       <div class="qr-frame"><img src="${qrDataUrl}" alt="QR"></div>
       <div class="qr-url">${escHtml(shopUrl)}</div>
     </div>
   </div>
-  
   <div class="footer"><div class="footer-text">www.salonbir.com</div></div>
 </div>
-<script>
-  var imgs = document.querySelectorAll('img');
-  var count = 0, total = imgs.length;
-  function tryPrint() {
-    if (++count >= total) {
-      setTimeout(function () { window.print(); setTimeout(function () { window.close(); }, 1500); }, 250);
-    }
-  }
-  if (total === 0) {
-    setTimeout(function () { window.print(); setTimeout(function () { window.close(); }, 1500); }, 250);
-  } else {
-    imgs.forEach(function (img) {
-      if (img.complete) { tryPrint(); }
-      else { img.addEventListener('load', tryPrint); img.addEventListener('error', tryPrint); }
-    });
-  }
-</script>
+${printScript}
+</body>
+</html>`;
+    };
+
+    /* ─── Modern / Canva PDF ─── */
+    const buildModernHtml = (qrDataUrl: string) => `<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<title>${escHtml(shop.name)} — QR Afiş</title>
+<style>
+  @page { size: A4 portrait; margin: 0; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { width: 210mm; min-height: 297mm; background: #c8e6e1; -webkit-print-color-adjust: exact; print-color-adjust: exact; font-family: 'Arial Black', 'Helvetica Neue', Arial, sans-serif; }
+  body { display: flex; align-items: center; justify-content: center; }
+  .page { width: 210mm; min-height: 297mm; background: #c8e6e1; display: flex; flex-direction: column; align-items: center; padding: 18mm 16mm 12mm; }
+  .heading { text-align: center; margin-bottom: 8mm; line-height: 1.0; }
+  .heading .line { font-size: 54pt; font-weight: 900; color: #111111; display: block; letter-spacing: -1pt; }
+  .highlight-wrap { display: flex; justify-content: center; margin: 1.5mm 0; }
+  .highlight { display: inline-block; background: #f5b8c8; border-radius: 14pt; padding: 0pt 14pt; font-size: 54pt; font-weight: 900; color: #111111; letter-spacing: -1pt; line-height: 1.15; }
+  .shop-name { font-size: 13pt; font-weight: 700; color: #2d7a6e; margin-bottom: 10mm; text-align: center; letter-spacing: 0.5pt; }
+  .qr-outer { background: #f5b8c8; border-radius: 22pt; padding: 9pt; margin-bottom: 12mm; box-shadow: 0 4mm 16mm rgba(0,0,0,0.08); }
+  .qr-inner { background: white; border-radius: 16pt; padding: 10pt; }
+  .qr-inner img { width: 80mm; height: 80mm; display: block; }
+  .steps-container { width: 100%; border: 1.5pt solid #8fbfba; border-radius: 10pt; overflow: hidden; display: flex; margin-bottom: 12mm; }
+  .step { flex: 1; display: flex; flex-direction: column; align-items: center; padding: 5mm 2mm; border-right: 1.5pt solid #8fbfba; text-align: center; gap: 3mm; }
+  .step:last-child { border-right: none; }
+  .step-num { width: 11mm; height: 11mm; border-radius: 50%; background: #f5b8c8; display: flex; align-items: center; justify-content: center; font-size: 13pt; font-weight: 900; color: #111; }
+  .step-text { font-size: 8pt; font-weight: 700; color: #1a1a1a; line-height: 1.35; font-family: Arial, sans-serif; }
+  .divider { width: 100%; height: 0.5mm; background: #8fbfba; margin-bottom: 6mm; }
+  .footer { width: 100%; display: flex; justify-content: space-between; align-items: center; }
+  .footer-item { font-size: 9pt; color: #2d7a6e; font-weight: 700; font-family: Arial, sans-serif; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="heading">
+    <span class="line">BU KODU</span>
+    <div class="highlight-wrap"><span class="highlight">OKUTARAK</span></div>
+    <span class="line">RANDEVU AL</span>
+  </div>
+  <div class="shop-name">${escHtml(shop.name)}</div>
+  <div class="qr-outer">
+    <div class="qr-inner"><img src="${qrDataUrl}" alt="QR Kod"></div>
+  </div>
+  <div class="steps-container">
+    <div class="step"><div class="step-num">1</div><div class="step-text">Kameranı<br>Aç</div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-text">QR'ı<br>Tara</div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-text">Hizmet &amp;<br>Uzman Seç</div></div>
+    <div class="step"><div class="step-num">4</div><div class="step-text">Randevunu<br>Onayla</div></div>
+  </div>
+  <div class="divider"></div>
+  <div class="footer">
+    <span class="footer-item">salonbir.com</span>
+    <span class="footer-item">info@salonbir.com</span>
+    <span class="footer-item">${shop.phoneNumber ? escHtml(shop.phoneNumber) : ''}</span>
+  </div>
+</div>
+${printScript}
 </body>
 </html>`;
 
-        const pw = window.open('', '_blank', 'width=640,height=920');
-        if (!pw) { toast.error('Popup engelleyici aktif — lütfen izin verin.'); return; }
-        pw.document.open();
-        pw.document.write(html);
-        pw.document.close();
+    const handlePrintFlyer = () => {
+        if (!canvasRef.current) return;
+        const qrDataUrl = canvasRef.current.toDataURL('image/png');
+        const html = activeTab === 'classic'
+            ? buildClassicHtml(qrDataUrl)
+            : buildModernHtml(qrDataUrl);
+        openPrintWindow(html);
     };
 
     return (
@@ -300,13 +261,26 @@ export const SalonQrCodePage: React.FC = () => {
                 Afişi Önizle ve İndir
             </button>
 
-            {/* Modal */}
+            {/* ═══════════════ MODAL ═══════════════ */}
             {isModalOpen && (
                 <div
                     className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6"
                     onClick={(e) => { if (e.target === e.currentTarget) setIsModalOpen(false); }}
                 >
                     <div className="absolute inset-0 bg-black/65 backdrop-blur-sm" />
+
+                    {/* Hidden canvas — always mounted while modal is open, used for PDF export */}
+                    <div style={{ position: 'fixed', top: 0, left: 0, opacity: 0, pointerEvents: 'none', zIndex: -1 }}>
+                        <QRCodeCanvas
+                            ref={canvasRef}
+                            value={shopUrl}
+                            size={300}
+                            fgColor="#0f172a"
+                            bgColor="#ffffff"
+                            level="H"
+                            marginSize={1}
+                        />
+                    </div>
 
                     <div className="relative z-10 w-full max-w-md flex flex-col max-h-[92dvh]">
                         {/* Close */}
@@ -317,93 +291,174 @@ export const SalonQrCodePage: React.FC = () => {
                             <X className="w-4 h-4" />
                         </button>
 
-                        {/* Flyer preview card */}
-                        <div className="overflow-y-auto rounded-3xl shadow-2xl flex-1 bg-[#eef0f3] p-2">
-                            <div className="bg-white rounded-[1.25rem] overflow-hidden shadow-sm ring-1 ring-gray-200 flex flex-col relative pb-4">
-                                
-                                {/* Cover */}
-                                <div className="relative h-44 sm:h-52 shrink-0 w-full">
-                                    {coverUrl ? (
-                                        <img src={coverUrl} alt="" className="w-full h-full object-cover block" />
-                                    ) : (
-                                        <div className="w-full h-full bg-gradient-to-br from-primary-800 to-primary-900 flex items-center justify-center">
-                                            <span className="text-6xl font-black text-white/10 tracking-widest">
-                                                {shop.name.slice(0, 2).toUpperCase()}
-                                            </span>
-                                        </div>
-                                    )}
-                                    <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/40 to-transparent"></div>
-                                </div>
-
-                                {/* Content overlaying the cover */}
-                                <div className="relative -mt-8 px-4 sm:px-6 flex flex-col items-center flex-1">
-                                    
-                                    {/* Shop Name Card */}
-                                    <div className="bg-primary-900 px-6 py-4 rounded-[1rem] shadow-lg shadow-primary-900/30 border border-primary-800 w-[92%] text-center mb-5">
-                                        <h3 className="text-xl sm:text-2xl font-black text-white truncate drop-shadow-sm">
-                                            {shop.name}
-                                        </h3>
-                                    </div>
-
-                                    {/* Buttons */}
-                                    <div className="flex flex-col gap-3 w-full items-center mb-6">
-                                        {shop.phoneNumber && (
-                                            <div className="bg-primary-900 text-white px-6 py-2.5 rounded-full flex items-center gap-2.5 shadow-lg shadow-primary-900/25">
-                                                <Phone className="w-4 h-4" />
-                                                <span className="text-[15px] font-bold tracking-wide">{shop.phoneNumber}</span>
-                                            </div>
-                                        )}
-                                        {categoryNames.length > 0 && (
-                                            <div className="flex flex-wrap items-center justify-center gap-2">
-                                                {categoryNames.map(cat => (
-                                                    <span key={cat} className="px-4 py-1.5 bg-primary-50 text-primary-950 ring-[1.5px] ring-primary-900 rounded-full text-xs font-bold">
-                                                        {cat}
-                                                    </span>
-                                                ))}
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* QR Section */}
-                                    <div className="w-full bg-gradient-to-b from-gray-50 to-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col items-center relative overflow-hidden mt-auto mb-6">
-                                        <p className="text-[10px] font-black tracking-[3px] uppercase text-gray-500 text-center mb-4 relative z-10">
-                                            Rezervasyon İçin QR Kodu Okutun
-                                        </p>
-                                        
-                                        <div className="bg-white p-3.5 rounded-[1rem] shadow-[0_4px_20px_rgb(0,0,0,0.06)] ring-1 ring-gray-100 relative z-10 mb-3">
-                                            <QRCodeCanvas
-                                                ref={canvasRef}
-                                                value={shopUrl}
-                                                size={160}
-                                                fgColor="#0f172a"
-                                                bgColor="#ffffff"
-                                                level="H"
-                                                marginSize={1}
-                                            />
-                                        </div>
-                                        
-                                        <p className="text-[9px] text-gray-400 font-mono break-all text-center max-w-[260px] relative z-10">
-                                            {shopUrl}
-                                        </p>
-                                    </div>
-                                </div>
-                                
-                                {/* Footer inside the white card */}
-                                <div className="bg-[#0f172a] py-4 text-center mt-auto w-full shrink-0">
-                                    <span className="text-[10px] font-bold tracking-[4px] uppercase text-white/90">
-                                        www.salonbir.com
-                                    </span>
-                                </div>
-                            </div>
+                        {/* ── Tab switcher ── */}
+                        <div className="flex mb-3 bg-white/15 backdrop-blur-sm rounded-2xl p-1 gap-1 shrink-0">
+                            <button
+                                onClick={() => setActiveTab('classic')}
+                                className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-bold text-sm transition-all duration-200 ${
+                                    activeTab === 'classic'
+                                        ? 'bg-white text-primary-800 shadow-sm'
+                                        : 'text-white/80 hover:text-white'
+                                }`}
+                            >
+                                <LayoutTemplate className="w-4 h-4" />
+                                Klasik
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('modern')}
+                                className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl font-bold text-sm transition-all duration-200 ${
+                                    activeTab === 'modern'
+                                        ? 'bg-white text-primary-800 shadow-sm'
+                                        : 'text-white/80 hover:text-white'
+                                }`}
+                            >
+                                <Sparkles className="w-4 h-4" />
+                                Modern
+                            </button>
                         </div>
 
-                        {/* PDF download button */}
+                        {/* ── Preview area ── */}
+                        <div className="overflow-y-auto rounded-3xl shadow-2xl flex-1">
+
+                            {activeTab === 'classic' ? (
+                                /* ── CLASSIC PREVIEW ── */
+                                <div className="bg-[#eef0f3] p-2 rounded-3xl">
+                                    <div className="bg-white rounded-[1.25rem] overflow-hidden shadow-sm ring-1 ring-gray-200 flex flex-col relative pb-4">
+                                        {/* Cover */}
+                                        <div className="relative h-44 sm:h-52 shrink-0 w-full">
+                                            {coverUrl ? (
+                                                <img src={coverUrl} alt="" className="w-full h-full object-cover block" />
+                                            ) : (
+                                                <div className="w-full h-full bg-gradient-to-br from-primary-800 to-primary-900 flex items-center justify-center">
+                                                    <span className="text-6xl font-black text-white/10 tracking-widest">
+                                                        {shop.name.slice(0, 2).toUpperCase()}
+                                                    </span>
+                                                </div>
+                                            )}
+                                            <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/40 to-transparent" />
+                                        </div>
+
+                                        {/* Content */}
+                                        <div className="relative -mt-8 px-4 sm:px-6 flex flex-col items-center flex-1">
+                                            <div className="bg-primary-900 px-6 py-4 rounded-[1rem] shadow-lg shadow-primary-900/30 border border-primary-800 w-[92%] text-center mb-5">
+                                                <h3 className="text-xl sm:text-2xl font-black text-white truncate drop-shadow-sm">
+                                                    {shop.name}
+                                                </h3>
+                                            </div>
+
+                                            <div className="flex flex-col gap-3 w-full items-center mb-6">
+                                                {shop.phoneNumber && (
+                                                    <div className="bg-primary-900 text-white px-6 py-2.5 rounded-full flex items-center gap-2.5 shadow-lg shadow-primary-900/25">
+                                                        <Phone className="w-4 h-4" />
+                                                        <span className="text-[15px] font-bold tracking-wide">{shop.phoneNumber}</span>
+                                                    </div>
+                                                )}
+                                                {categoryNames.length > 0 && (
+                                                    <div className="flex flex-wrap items-center justify-center gap-2">
+                                                        {categoryNames.map(cat => (
+                                                            <span key={cat} className="px-4 py-1.5 bg-primary-50 text-primary-950 ring-[1.5px] ring-primary-900 rounded-full text-xs font-bold">
+                                                                {cat}
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            <div className="w-full bg-gradient-to-b from-gray-50 to-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col items-center mb-6">
+                                                <p className="text-[10px] font-black tracking-[3px] uppercase text-gray-500 text-center mb-4">
+                                                    Rezervasyon İçin QR Kodu Okutun
+                                                </p>
+                                                <div className="bg-white p-3.5 rounded-[1rem] shadow-[0_4px_20px_rgb(0,0,0,0.06)] ring-1 ring-gray-100 mb-3">
+                                                    <QRCodeCanvas value={shopUrl} size={160} fgColor="#0f172a" bgColor="#ffffff" level="H" marginSize={1} />
+                                                </div>
+                                                <p className="text-[9px] text-gray-400 font-mono break-all text-center max-w-[260px]">
+                                                    {shopUrl}
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        {/* Footer */}
+                                        <div className="bg-[#0f172a] py-4 text-center w-full shrink-0">
+                                            <span className="text-[10px] font-bold tracking-[4px] uppercase text-white/90">
+                                                www.salonbir.com
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                            ) : (
+                                /* ── MODERN / CANVA PREVIEW ── */
+                                <div className="flex flex-col items-center rounded-3xl" style={{ background: '#c8e6e1', padding: '28px 20px 20px' }}>
+                                    {/* Heading */}
+                                    <div className="text-center mb-5 leading-none">
+                                        <div className="font-black text-gray-900" style={{ fontSize: 'clamp(26px, 9vw, 42px)', lineHeight: 1 }}>
+                                            BU KODU
+                                        </div>
+                                        <div className="flex justify-center my-1.5">
+                                            <span
+                                                className="font-black text-gray-900 px-4 py-0.5 rounded-xl"
+                                                style={{ background: '#f5b8c8', fontSize: 'clamp(26px, 9vw, 42px)', lineHeight: 1.15 }}
+                                            >
+                                                OKUTARAK
+                                            </span>
+                                        </div>
+                                        <div className="font-black text-gray-900" style={{ fontSize: 'clamp(26px, 9vw, 42px)', lineHeight: 1 }}>
+                                            RANDEVU AL
+                                        </div>
+                                    </div>
+
+                                    {/* Shop name */}
+                                    <div className="text-sm font-bold mb-5 text-center" style={{ color: '#2d7a6e' }}>
+                                        {shop.name}
+                                    </div>
+
+                                    {/* QR frame */}
+                                    <div className="rounded-2xl p-2 mb-5 shadow-lg" style={{ background: '#f5b8c8' }}>
+                                        <div className="bg-white rounded-xl p-2.5">
+                                            <QRCodeCanvas value={shopUrl} size={140} fgColor="#0f172a" bgColor="#ffffff" level="H" marginSize={1} />
+                                        </div>
+                                    </div>
+
+                                    {/* Steps */}
+                                    <div className="w-full flex rounded-xl overflow-hidden mb-5" style={{ border: '1.5px solid #8fbfba' }}>
+                                        {STEPS.map((step, i) => (
+                                            <div
+                                                key={i}
+                                                className="flex-1 flex flex-col items-center py-3 px-1 text-center gap-2"
+                                                style={{ borderRight: i < 3 ? '1.5px solid #8fbfba' : 'none' }}
+                                            >
+                                                <div
+                                                    className="w-7 h-7 rounded-full flex items-center justify-center text-sm font-black text-gray-900 shrink-0"
+                                                    style={{ background: '#f5b8c8' }}
+                                                >
+                                                    {step.n}
+                                                </div>
+                                                <div className="text-[10px] font-bold text-gray-800 leading-snug whitespace-pre-line">
+                                                    {step.text}
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {/* Divider */}
+                                    <div className="w-full h-px mb-4" style={{ background: '#8fbfba' }} />
+
+                                    {/* Footer */}
+                                    <div className="w-full flex justify-between items-center">
+                                        <span className="text-xs font-bold" style={{ color: '#2d7a6e' }}>salonbir.com</span>
+                                        <span className="text-xs font-bold" style={{ color: '#2d7a6e' }}>info@salonbir.com</span>
+                                        <span className="text-xs font-bold" style={{ color: '#2d7a6e' }}>{shop.phoneNumber || ''}</span>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {/* ── PDF Download button ── */}
                         <button
                             onClick={handlePrintFlyer}
                             className="mt-4 w-full flex items-center justify-center gap-2 py-4 bg-primary-800 hover:bg-primary-900 text-white font-bold text-base rounded-2xl shadow-xl shadow-primary-700/25 transition-all duration-200 active:scale-[0.98] shrink-0"
                         >
                             <Printer className="w-5 h-5" />
-                            PDF Olarak İndir
+                            {activeTab === 'classic' ? 'Klasik Afişi İndir' : 'Modern Afişi İndir'}
                         </button>
                     </div>
                 </div>
