@@ -29,7 +29,6 @@ const STEPS = [
 
 const PHONE_SVG_WHITE = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.73 12.9a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.64 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6.16 6.16l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>`;
 const GLOBE_SVG_WHITE = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`;
-const PIN_SVG_WHITE = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`;
 const PIN_SVG_GREEN = `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#2d7a6e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>`;
 
 const printScript = `
@@ -48,7 +47,6 @@ export const SalonQrCodePage: React.FC = () => {
     const [activeTab, setActiveTab] = useState<TabType>('classic');
     const [pngLoading, setPngLoading] = useState(false);
     const canvasRef = useRef<HTMLCanvasElement>(null);
-    const previewRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         shopService.getMyShop()
@@ -254,7 +252,6 @@ ${printScript}</body></html>`;
   <div class="footer">
     <div class="fi">${PHONE_SVG_WHITE} ${escHtml(shop.phoneNumber || '')}</div>
     <div class="fi">${GLOBE_SVG_WHITE} salonbir.com</div>
-    <div class="fi">${PIN_SVG_WHITE} ${escHtml(locationText)}</div>
   </div>
 </div>
 ${printScript}</body></html>`;
@@ -268,24 +265,48 @@ ${printScript}</body></html>`;
         else openPrintWindow(buildBlueHtml(qrDataUrl));
     };
 
-    /* ─── PNG download ─── */
+    /* ─── PNG download — PDF HTML'ini iframe'de render edip yakalar ─── */
     const handleDownloadPng = async () => {
-        if (!previewRef.current) return;
+        if (!canvasRef.current || !shop) return;
         setPngLoading(true);
         const toastId = toast.loading('PNG oluşturuluyor...');
         try {
-            const el = previewRef.current;
-            const canvas = await html2canvas(el, {
+            const qrDataUrl = canvasRef.current.toDataURL('image/png');
+            const rawHtml = activeTab === 'classic'
+                ? buildClassicHtml(qrDataUrl)
+                : activeTab === 'modern'
+                    ? buildModernHtml(qrDataUrl)
+                    : buildBlueHtml(qrDataUrl);
+            // Script etiketlerini kaldır (yazdırma scripti çalışmasın)
+            const screenHtml = rawHtml.replace(/<script[\s\S]*?<\/script>/gi, '');
+
+            const iframe = document.createElement('iframe');
+            iframe.style.cssText = 'position:fixed;left:-9999px;top:0;width:794px;height:1123px;border:none;visibility:hidden;';
+            document.body.appendChild(iframe);
+            const iDoc = iframe.contentDocument!;
+            iDoc.open();
+            iDoc.write(screenHtml);
+            iDoc.close();
+
+            // Resimlerin ve layout'un yüklenmesi için bekle
+            await new Promise<void>(resolve => {
+                if (iDoc.readyState === 'complete') setTimeout(resolve, 500);
+                else iframe.addEventListener('load', () => setTimeout(resolve, 500), { once: true });
+            });
+
+            const canvas = await html2canvas(iDoc.body, {
                 scale: 2,
                 useCORS: true,
                 allowTaint: true,
                 backgroundColor: null,
                 logging: false,
-                width: el.offsetWidth,
-                height: el.offsetHeight,
-                windowWidth: el.offsetWidth,
-                windowHeight: el.offsetHeight,
+                width: 794,
+                height: 1123,
+                windowWidth: 794,
+                windowHeight: 1123,
             });
+
+            document.body.removeChild(iframe);
             const link = document.createElement('a');
             link.download = `${shop.name}-qr-afis.png`;
             link.href = canvas.toDataURL('image/png');
@@ -383,7 +404,7 @@ ${printScript}</body></html>`;
 
                             {/* CLASSIC */}
                             {activeTab === 'classic' && (
-                                <div ref={previewRef} className="bg-[#eef0f3] p-2 rounded-3xl">
+                                <div className="bg-[#eef0f3] p-2 rounded-3xl">
                                     <div className="bg-white rounded-[1.25rem] overflow-hidden shadow-sm ring-1 ring-gray-200 flex flex-col relative pb-4">
                                         <div className="relative h-44 sm:h-52 shrink-0 w-full">
                                             {coverUrl ? (
@@ -431,7 +452,7 @@ ${printScript}</body></html>`;
 
                             {/* MODERN — tüm stiller inline (html2canvas uyumluluğu için) */}
                             {activeTab === 'modern' && (
-                                <div ref={previewRef} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', borderRadius: '24px', background: '#c8e6e1', padding: '28px 20px 20px' }}>
+                                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', borderRadius: '24px', background: '#c8e6e1', padding: '28px 20px 20px' }}>
                                     {/* Başlık */}
                                     <div style={{ textAlign: 'center', marginBottom: '20px' }}>
                                         <div style={{ fontWeight: 900, color: '#111111', fontSize: '36px', lineHeight: 1 }}>BU KODU</div>
@@ -477,7 +498,7 @@ ${printScript}</body></html>`;
 
                             {/* BLUE / DİNAMİK — tüm stiller inline (html2canvas uyumluluğu için) */}
                             {activeTab === 'blue' && (
-                                <div ref={previewRef} style={{
+                                <div style={{
                                     display: 'flex', flexDirection: 'column', borderRadius: '24px',
                                     overflow: 'hidden', position: 'relative',
                                     background: 'linear-gradient(135deg, #1a00b4 0%, #2e2edd 50%, #1a00b4 100%)',
@@ -503,7 +524,7 @@ ${printScript}</body></html>`;
                                                 <div key={w} style={{ fontWeight: 900, color: '#ffffff', fontSize: '40px', letterSpacing: '-1px', lineHeight: '0.92', display: 'block' }}>{w}</div>
                                             ))}
                                         </div>
-                                        <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: '11px', fontWeight: 700, letterSpacing: '3px', marginBottom: '14px', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%' }}>
+                                        <div style={{ color: 'rgba(255,255,255,0.75)', fontSize: '11px', fontWeight: 700, letterSpacing: '3px', marginBottom: '14px', textAlign: 'center', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '100%', lineHeight: 1.6 }}>
                                             {shop.name.toUpperCase()}
                                         </div>
                                         <div style={{ padding: '6px', marginBottom: '14px', border: '4px solid #7ec8f0', background: 'white', flexShrink: 0 }}>
@@ -516,17 +537,13 @@ ${printScript}</body></html>`;
                                         </div>
                                     </div>
 
-                                    {/* Footer — flex:1 1 0% ile sol/sağ eşit, orta auto */}
-                                    <div style={{ display: 'flex', alignItems: 'center', padding: '10px 16px', background: 'rgba(0,0,40,0.55)', flexShrink: 0 }}>
-                                        <span style={{ flex: '1 1 0%', color: '#ffffff', fontSize: '10px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden' }}>
+                                    {/* Footer — sol: telefon, sağ: salonbir.com */}
+                                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 16px', background: 'rgba(0,0,40,0.55)', flexShrink: 0 }}>
+                                        <span style={{ color: '#ffffff', fontSize: '10px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', overflow: 'hidden', maxWidth: '60%' }}>
                                             <Phone color="#ffffff" style={{ width: '12px', height: '12px', flexShrink: 0 }} />
                                             <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{shop.phoneNumber || ''}</span>
                                         </span>
-                                        <span style={{ flex: '0 0 auto', color: '#ffffff', fontSize: '10px', fontWeight: 600, whiteSpace: 'nowrap', padding: '0 6px', textAlign: 'center' }}>salonbir.com</span>
-                                        <span style={{ flex: '1 1 0%', color: '#ffffff', fontSize: '10px', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: '4px', overflow: 'hidden' }}>
-                                            <MapPin color="#ffffff" style={{ width: '12px', height: '12px', flexShrink: 0 }} />
-                                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{locationText}</span>
-                                        </span>
+                                        <span style={{ color: '#ffffff', fontSize: '10px', fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 }}>salonbir.com</span>
                                     </div>
                                 </div>
                             )}
