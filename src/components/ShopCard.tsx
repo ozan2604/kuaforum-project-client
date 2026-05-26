@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { MapPin, Star, Calendar, Heart, Map } from 'lucide-react';
-import { Button } from './Button';
+import { MapPin, Star, Heart, Map, ArrowRight } from 'lucide-react';
 import { ShopCategoryLabels, type Shop, type ShopCategory } from '../types/shop';
 import { useAuth } from '../context/AuthContext';
 import { favoriteService } from '../services/favorite.service';
@@ -36,7 +35,7 @@ export const ShopCard: React.FC<ShopCardProps> = ({ shop, initialIsFavorite = fa
     }, [initialIsFavorite]);
 
     const handleFavoriteClick = async (e: React.MouseEvent) => {
-        e.preventDefault(); // Prevent Link navigation
+        e.preventDefault();
         e.stopPropagation();
 
         if (!isAuthenticated) {
@@ -46,7 +45,6 @@ export const ShopCard: React.FC<ShopCardProps> = ({ shop, initialIsFavorite = fa
 
         if (isLoading) return;
 
-        // Optimistic update
         const newStatus = !isFavorite;
         setIsFavorite(newStatus);
         setIsLoading(true);
@@ -56,13 +54,18 @@ export const ShopCard: React.FC<ShopCardProps> = ({ shop, initialIsFavorite = fa
             if (onToggleFavorite) onToggleFavorite(newStatus);
             toast.success(newStatus ? 'Favorilere eklendi' : 'Favorilerden çıkarıldı');
         } catch (error) {
-            // Revert on error
             setIsFavorite(!newStatus);
             console.error('Favorite toggle failed', error);
             toast.error('İşlem başarısız oldu');
         } finally {
             setIsLoading(false);
         }
+    };
+
+    const handleMapClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        navigate(`/?mapLat=${shop.latitude}&mapLng=${shop.longitude}&mapShopId=${shop.id}`);
     };
 
     const getImageUrl = (path: string | undefined) => {
@@ -73,7 +76,8 @@ export const ShopCard: React.FC<ShopCardProps> = ({ shop, initialIsFavorite = fa
 
     return (
         <div className="group bg-white rounded-xl sm:rounded-2xl overflow-hidden hover:shadow-xl hover:shadow-primary-900/8 hover:-translate-y-1 transition-all duration-400 border border-gray-100 flex flex-col h-full relative">
-            {/* Görsel Bölümü */}
+
+            {/* ── Görsel Bölümü ── */}
             <Link to={`/shop/${shop.id}`} className="block relative w-full h-[170px] sm:h-[230px] overflow-hidden shrink-0">
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent z-10" />
                 <img
@@ -83,7 +87,7 @@ export const ShopCard: React.FC<ShopCardProps> = ({ shop, initialIsFavorite = fa
                     onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1560066984-12186d30b435?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'; }}
                 />
 
-                {/* Favori Butonu - Navbar stili */}
+                {/* Favori Butonu — sağ üst */}
                 <button
                     onClick={handleFavoriteClick}
                     disabled={isLoading}
@@ -97,14 +101,28 @@ export const ShopCard: React.FC<ShopCardProps> = ({ shop, initialIsFavorite = fa
                     <Heart className={`h-3.5 w-3.5 sm:h-4 sm:w-4 text-red-500 ${isFavorite ? 'fill-current' : ''}`} />
                 </button>
 
-                {/* Kategori Etiketi */}
+                {/* Kategori Etiketi — sol üst */}
                 <div className="absolute top-2 sm:top-3 left-2 sm:left-3 z-20">
                     <span className="inline-flex items-center px-1.5 sm:px-2.5 py-0.5 sm:py-1 rounded-md sm:rounded-lg text-[8px] sm:text-[10px] font-bold uppercase tracking-wider bg-white/90 text-gray-800 backdrop-blur-sm shadow-sm">
-                        {shop.categories?.length > 0 ? ShopCategoryLabels[shop.categories[0] as ShopCategory] : 'Güzellik Salonu'}{shop.categories?.length > 1 ? ` +${shop.categories.length - 1}` : ''}
+                        {shop.categories?.length > 0
+                            ? ShopCategoryLabels[shop.categories[0] as ShopCategory]
+                            : 'Güzellik Salonu'}
+                        {shop.categories?.length > 1 ? ` +${shop.categories.length - 1}` : ''}
                     </span>
                 </div>
 
-                {/* Puan */}
+                {/* Haritada Gör — sol alt */}
+                {shop.latitude && shop.longitude && (
+                    <button
+                        onClick={handleMapClick}
+                        className="absolute bottom-2 sm:bottom-3 left-2 sm:left-3 z-20 bg-white/90 backdrop-blur-sm px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md sm:rounded-lg shadow-sm flex items-center gap-0.5 sm:gap-1 hover:bg-white transition-colors"
+                    >
+                        <Map className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-primary-600" />
+                        <span className="text-[9px] sm:text-[10px] font-semibold text-primary-600">Haritada Gör</span>
+                    </button>
+                )}
+
+                {/* Puan — sağ alt */}
                 {shop.averageRating > 0 && (
                     <div className="absolute bottom-2 sm:bottom-3 right-2 sm:right-3 z-20 bg-white/90 backdrop-blur-sm px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md sm:rounded-lg shadow-sm flex items-center gap-0.5 sm:gap-1">
                         <Star className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-amber-400 fill-current" />
@@ -113,7 +131,7 @@ export const ShopCard: React.FC<ShopCardProps> = ({ shop, initialIsFavorite = fa
                 )}
             </Link>
 
-            {/* İçerik Bölümü */}
+            {/* ── İçerik Bölümü ── */}
             <div className="p-2.5 sm:p-4 flex-1 flex flex-col w-full">
                 <Link to={`/shop/${shop.id}`} className="mb-0.5 sm:mb-1">
                     <h3 className="text-sm sm:text-base font-bold text-gray-900 group-hover:text-primary-600 transition-colors line-clamp-1">
@@ -121,24 +139,15 @@ export const ShopCard: React.FC<ShopCardProps> = ({ shop, initialIsFavorite = fa
                     </h3>
                 </Link>
 
-                <div className="flex items-center justify-between text-gray-500 text-[11px] sm:text-xs mb-1.5 sm:mb-2 gap-2">
-                    <div className="flex items-center min-w-0">
-                        <MapPin className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-0.5 sm:mr-1 text-secondary-400 shrink-0" />
-                        <span className="truncate">{shop.district}, {shop.city}</span>
-                    </div>
-                    {shop.latitude && shop.longitude && (
-                        <button
-                            onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/?mapLat=${shop.latitude}&mapLng=${shop.longitude}&mapShopId=${shop.id}`); }}
-                            className="flex items-center gap-0.5 sm:gap-1 text-primary-600 hover:text-primary-700 font-semibold shrink-0 transition-colors"
-                        >
-                            <Map className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
-                            <span>Haritada Gör</span>
-                        </button>
-                    )}
+                {/* Adres */}
+                <div className="flex items-center text-gray-500 text-[11px] sm:text-xs mb-1.5 sm:mb-2 min-w-0">
+                    <MapPin className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-0.5 sm:mr-1 text-secondary-400 shrink-0" />
+                    <span className="truncate">{shop.district}, {shop.city}</span>
                 </div>
 
-                <div className="flex items-center justify-between pt-2 sm:pt-3 border-t border-gray-100 mt-auto">
-                    <div className="flex items-center gap-1.5 flex-wrap">
+                {/* Alt satır: Açık/Kapalı + Salona Git */}
+                <div className="flex items-center justify-between pt-2 sm:pt-3 border-t border-gray-100 mt-auto gap-2">
+                    <div className="flex items-center">
                         {openStatus === null ? null : openStatus ? (
                             <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 bg-green-50 text-green-700 rounded-md">
                                 <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-green-500 animate-pulse"></span>
@@ -150,21 +159,15 @@ export const ShopCard: React.FC<ShopCardProps> = ({ shop, initialIsFavorite = fa
                                 Kapalı
                             </span>
                         )}
-
                     </div>
-                    <Button
-                        size="sm"
-                        variant="secondary"
-                        className="rounded-lg sm:rounded-xl shadow-md shadow-secondary-500/15 hover:shadow-secondary-500/30 transition-all font-semibold px-2.5 sm:px-4 py-1 sm:py-1.5 text-[10px] sm:text-xs"
-                        onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            window.location.href = `/shop/${shop.id}`;
-                        }}
+
+                    <button
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/shop/${shop.id}`); }}
+                        className="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-primary-700 bg-primary-50 hover:bg-primary-100 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg transition-colors shrink-0"
                     >
-                        <Calendar className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1" />
-                        Randevu Al
-                    </Button>
+                        Salona Git
+                        <ArrowRight className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
+                    </button>
                 </div>
             </div>
         </div>
