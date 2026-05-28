@@ -5,6 +5,7 @@ import { appointmentService } from '../../api/appointment.service';
 import { shopService } from '../../api/shop.service';
 import { employeeService } from '../../api/employee.service';
 import { serviceManagementService } from '../../api/service.service';
+import { useSalon } from '../../context/SalonContext';
 import { type Appointment, AppointmentStatus } from '../../types/appointment';
 import type { Employee } from '../../types/employee';
 import { toast } from 'react-hot-toast';
@@ -24,7 +25,8 @@ type MainTab = 'calendar' | 'management';
 
 export const SalonAppointmentsPage: React.FC = () => {
     // ── Shop / shared ──────────────────────────────────────────────────────
-    const [shopId, setShopId] = useState<string | null>(null);
+    const { currentShop } = useSalon();
+    const shopId = currentShop?.id ?? null;
     const [isAutoProcessEnabled, setIsAutoProcessEnabled] = useState(false);
     const [bookingDaysAhead, setBookingDaysAhead] = useState(7);
     const [employees, setEmployees] = useState<Employee[]>([]);
@@ -71,27 +73,25 @@ export const SalonAppointmentsPage: React.FC = () => {
         noShowCount: number;
     } | null>(null);
 
-    // ── Load shop info + employees + services on mount ─────────────────────
+    // ── Load employees + services when shop is available ──────────────────
     useEffect(() => {
+        if (!currentShop) return;
         (async () => {
             try {
-                const [shop, emps, cats] = await Promise.all([
-                    shopService.getMyShop(),
-                    employeeService.getEmployees(),
-                    serviceManagementService.getShopServices(),
+                setIsAutoProcessEnabled(currentShop.isAutoProcessEnabled || false);
+                setBookingDaysAhead(currentShop.bookingDaysAhead ?? 7);
+                setWeeklyOffDays(currentShop.weeklyOffDays ?? []);
+                const [emps, cats] = await Promise.all([
+                    employeeService.getEmployees(currentShop.id),
+                    serviceManagementService.getShopServices(currentShop.id),
                 ]);
-                if (!shop) { toast.error('Salon bilgileri bulunamadı'); return; }
-                setShopId(shop.id);
-                setIsAutoProcessEnabled(shop.isAutoProcessEnabled || false);
-                setBookingDaysAhead(shop.bookingDaysAhead ?? 7);
-                setWeeklyOffDays(shop.weeklyOffDays ?? []);
                 setEmployees(emps);
                 setServices(cats.flatMap(c => c.services || []).map(s => ({ id: s.id, name: s.name })));
             } catch (err) {
                 toast.error(getApiError(err, 'Sayfa yüklenemedi'));
             }
         })();
-    }, []);
+    }, [currentShop?.id]);
 
     // ── Calendar: load N days of appointments in parallel ─────────────────
     const loadCalendarAppointments = async (id: string, days: number) => {

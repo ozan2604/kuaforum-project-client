@@ -2,29 +2,62 @@ import api from './axios';
 import type { Employee, CreateEmployeeDto, UpdateScheduleDto, ScheduleDto, EmployeeProfile, UpdateEmployeeProfileDto, PublicEmployeeScheduleDto, EmployeeLeaveDate } from '../types/employee';
 
 export const employeeService = {
-    // Get all employees for the logged-in salon owner's shop
-    getEmployees: async (): Promise<Employee[]> => {
-        const response = await api.get<Employee[]>('/employee');
+    // Owner-facing: all require shopId
+
+    getEmployees: async (shopId: string): Promise<Employee[]> => {
+        const response = await api.get<Employee[]>(`/employee?shopId=${shopId}`);
         return response.data;
     },
 
-    // Add a new employee
-    addEmployee: async (data: CreateEmployeeDto): Promise<{ message: string, temporaryPassword?: string, isNewUser: boolean }> => {
-        const response = await api.post<{ message: string, temporaryPassword?: string, isNewUser: boolean }>('/employee', data);
+    addEmployee: async (shopId: string, data: CreateEmployeeDto): Promise<{ message: string, temporaryPassword?: string, isNewUser: boolean }> => {
+        const response = await api.post<{ message: string, temporaryPassword?: string, isNewUser: boolean }>(`/employee?shopId=${shopId}`, data);
         return response.data;
     },
 
-    updateEmployee: async (employeeId: string, data: any): Promise<void> => {
-        await api.put(`/employee/${employeeId}`, data);
+    updateEmployee: async (shopId: string, employeeId: string, data: any): Promise<void> => {
+        await api.put(`/employee/${employeeId}?shopId=${shopId}`, data);
     },
 
-    deleteEmployee: async (employeeId: string): Promise<void> => {
-        await api.delete(`/employee/${employeeId}`);
+    deleteEmployee: async (shopId: string, employeeId: string): Promise<void> => {
+        await api.delete(`/employee/${employeeId}?shopId=${shopId}`);
     },
 
-    restoreEmployee: async (employeeId: string): Promise<void> => {
-        await api.patch(`/employee/${employeeId}/restore`);
+    restoreEmployee: async (shopId: string, employeeId: string): Promise<void> => {
+        await api.patch(`/employee/${employeeId}/restore?shopId=${shopId}`);
     },
+
+    assignServices: async (shopId: string, employeeId: string, serviceIds: string[]): Promise<void> => {
+        await api.post(`/employee/${employeeId}/services?shopId=${shopId}`, { serviceIds });
+    },
+
+    getEmployeeServices: async (shopId: string, employeeId: string): Promise<any[]> => {
+        const response = await api.get(`/employee/${employeeId}/services?shopId=${shopId}`);
+        return response.data;
+    },
+
+    updateSchedule: async (shopId: string, employeeId: string, data: UpdateScheduleDto): Promise<void> => {
+        await api.put(`/employee/${employeeId}/schedule?shopId=${shopId}`, data);
+    },
+
+    getSchedule: async (shopId: string, employeeId: string): Promise<ScheduleDto[]> => {
+        const response = await api.get<ScheduleDto[]>(`/employee/${employeeId}/schedule?shopId=${shopId}`);
+        return response.data;
+    },
+
+    getLeaveDates: async (shopId: string, employeeId: string): Promise<EmployeeLeaveDate[]> => {
+        const res = await api.get<EmployeeLeaveDate[]>(`/employee/${employeeId}/leave-dates?shopId=${shopId}`);
+        return res.data;
+    },
+
+    addLeaveDate: async (shopId: string, employeeId: string, leaveDate: string, reason?: string): Promise<void> => {
+        await api.post(`/employee/${employeeId}/leave-dates?shopId=${shopId}`, { leaveDate, reason });
+    },
+
+    removeLeaveDate: async (shopId: string, leaveDateId: string): Promise<void> => {
+        await api.delete(`/employee/leave-dates/${leaveDateId}?shopId=${shopId}`);
+    },
+
+    // Public endpoints (no shopId required)
 
     getPublicShopEmployees: async (shopId: string): Promise<Employee[]> => {
         const response = await api.get<Employee[]>(`/employee/public/shop/${shopId}`);
@@ -36,30 +69,13 @@ export const employeeService = {
         return response.data;
     },
 
-    // Assign services to an employee
-    assignServices: async (employeeId: string, serviceIds: string[]): Promise<void> => {
-        await api.post(`/employee/${employeeId}/services`, { serviceIds });
+    getPublicLeaveDates: async (employeeId: string): Promise<EmployeeLeaveDate[]> => {
+        const res = await api.get<EmployeeLeaveDate[]>(`/employee/${employeeId}/leave-dates/public`);
+        return res.data;
     },
 
-    // Get services assigned to an employee
-    // Note: Backend returns ShopServiceDto list
-    getEmployeeServices: async (employeeId: string): Promise<any[]> => {
-        const response = await api.get(`/employee/${employeeId}/services`);
-        return response.data;
-    },
+    // Employee self-service (no shopId required)
 
-    // update schedule
-    updateSchedule: async (employeeId: string, data: UpdateScheduleDto): Promise<void> => {
-        await api.put(`/employee/${employeeId}/schedule`, data);
-    },
-
-    // get schedule
-    getSchedule: async (employeeId: string): Promise<ScheduleDto[]> => {
-        const response = await api.get<ScheduleDto[]>(`/employee/${employeeId}/schedule`);
-        return response.data;
-    },
-
-    // Employee Profile
     getProfile: async (): Promise<EmployeeProfile> => {
         const response = await api.get<EmployeeProfile>('/employee/me');
         return response.data;
@@ -78,27 +94,6 @@ export const employeeService = {
         await api.put('/employee/me/schedule', data);
     },
 
-    // Leave dates (owner)
-    getLeaveDates: async (employeeId: string): Promise<EmployeeLeaveDate[]> => {
-        const res = await api.get<EmployeeLeaveDate[]>(`/employee/${employeeId}/leave-dates`);
-        return res.data;
-    },
-
-    addLeaveDate: async (employeeId: string, leaveDate: string, reason?: string): Promise<void> => {
-        await api.post(`/employee/${employeeId}/leave-dates`, { leaveDate, reason });
-    },
-
-    removeLeaveDate: async (leaveDateId: string): Promise<void> => {
-        await api.delete(`/employee/leave-dates/${leaveDateId}`);
-    },
-
-    // Leave dates (public — randevu ekranı)
-    getPublicLeaveDates: async (employeeId: string): Promise<EmployeeLeaveDate[]> => {
-        const res = await api.get<EmployeeLeaveDate[]>(`/employee/${employeeId}/leave-dates/public`);
-        return res.data;
-    },
-
-    // Leave dates (self-managed by employee)
     getMyLeaveDates: async (): Promise<EmployeeLeaveDate[]> => {
         const res = await api.get<EmployeeLeaveDate[]>('/employee/me/leave-dates');
         return res.data;

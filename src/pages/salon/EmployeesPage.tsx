@@ -4,6 +4,7 @@ import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { employeeService } from '../../api/employee.service';
 import { serviceManagementService } from '../../api/service.service';
+import { useSalon } from '../../context/SalonContext';
 import type { Employee, CreateEmployeeDto } from '../../types/employee';
 import type { ServiceCategoryDto } from '../../types/service';
 import { toast } from 'react-hot-toast';
@@ -15,6 +16,8 @@ import { ScheduleEditor, SCHEDULE_DAYS } from '../../components/ScheduleEditor';
 import type { DaySchedule } from '../../components/ScheduleEditor';
 
 export const EmployeesPage: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
+    const { currentShop } = useSalon();
+    const shopId = currentShop?.id ?? null;
     const [employees, setEmployees] = useState<Employee[]>([]);
     const [loading, setLoading] = useState(true);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -35,9 +38,10 @@ export const EmployeesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fal
     const [servicesLoading, setServicesLoading] = useState(false);
 
     const loadEmployees = async () => {
+        if (!shopId) return;
         setLoading(true);
         try {
-            const data = await employeeService.getEmployees();
+            const data = await employeeService.getEmployees(shopId);
             setEmployees(data);
         } catch (error) {
             console.error('Çalışanlar yüklenemedi:', error);
@@ -49,14 +53,15 @@ export const EmployeesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fal
 
     useEffect(() => {
         loadEmployees();
-    }, []);
+    }, [shopId]);
 
     const handleOpenServicesModal = async (employee: Employee) => {
+        if (!shopId) return;
         setSelectedEmployee(employee);
         setIsServicesModalOpen(true);
         setServicesLoading(true);
         try {
-            const rawServices = await serviceManagementService.getShopServices();
+            const rawServices = await serviceManagementService.getShopServices(shopId);
             
             const getSafeArray = (arr: any) => {
                 if (Array.isArray(arr)) return arr;
@@ -76,7 +81,7 @@ export const EmployeesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fal
                 
             setAvailableServices(activeServices);
 
-            const assigned = await employeeService.getEmployeeServices(employee.id);
+            const assigned = await employeeService.getEmployeeServices(shopId, employee.id);
             setAssignedServiceIds(getSafeArray(assigned).map((s: any) => s.id));
         } catch (error) {
             toast.error('Hizmet verileri yüklenemedi');
@@ -86,9 +91,9 @@ export const EmployeesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fal
     };
 
     const handleAssignServices = async () => {
-        if (!selectedEmployee) return;
+        if (!shopId || !selectedEmployee) return;
         try {
-            await employeeService.assignServices(selectedEmployee.id, assignedServiceIds);
+            await employeeService.assignServices(shopId, selectedEmployee.id, assignedServiceIds);
             toast.success('Hizmetler başarıyla atandı');
             setIsServicesModalOpen(false);
         } catch (error) {
@@ -108,10 +113,11 @@ export const EmployeesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fal
     const [schedule, setSchedule] = useState<DaySchedule[]>([]);
 
     const handleOpenScheduleModal = async (employee: Employee) => {
+        if (!shopId) return;
         setSelectedEmployee(employee);
         setIsScheduleModalOpen(true);
         try {
-            const data = await employeeService.getSchedule(employee.id);
+            const data = await employeeService.getSchedule(shopId, employee.id);
             const t5 = (v: string | null | undefined, fallback = '') =>
                 (v ?? fallback).substring(0, 5);
             const fullSchedule = SCHEDULE_DAYS.map((d) => {
@@ -127,7 +133,7 @@ export const EmployeesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fal
     };
 
     const handleSaveSchedule = async () => {
-        if (!selectedEmployee) return;
+        if (!shopId || !selectedEmployee) return;
         try {
             const sanitized = schedule.map(d => ({
                 ...d,
@@ -136,7 +142,7 @@ export const EmployeesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fal
                 breakStartTime: d.breakStartTime || '',
                 breakEndTime:   d.breakEndTime   || '',
             }));
-            await employeeService.updateSchedule(selectedEmployee.id, { schedules: sanitized });
+            await employeeService.updateSchedule(shopId, selectedEmployee.id, { schedules: sanitized });
             toast.success('Çalışma saatleri başarıyla güncellendi');
             setIsScheduleModalOpen(false);
         } catch (error) {
@@ -149,9 +155,10 @@ export const EmployeesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fal
         const [isSubmitting, setIsSubmitting] = useState(false);
 
         const onSubmit = async (data: CreateEmployeeDto) => {
+            if (!shopId) return;
             setIsSubmitting(true);
             try {
-                const result = await employeeService.addEmployee(data);
+                const result = await employeeService.addEmployee(shopId, data);
                 
                 if (result.temporaryPassword) {
                     setCreatedEmployeeInfo({
@@ -208,9 +215,9 @@ export const EmployeesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fal
     };
 
     const handleRestoreEmployee = async () => {
-        if (!employeeToRestore) return;
+        if (!shopId || !employeeToRestore) return;
         try {
-            await employeeService.restoreEmployee(employeeToRestore.id);
+            await employeeService.restoreEmployee(shopId, employeeToRestore.id);
             toast.success(`${employeeToRestore.firstName} ${employeeToRestore.lastName} başarıyla geri yüklendi.`);
             setIsRestoreModalOpen(false);
             setEmployeeToRestore(null);
@@ -226,9 +233,9 @@ export const EmployeesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fal
     };
 
     const handleDeleteEmployee = async () => {
-        if (!employeeToDelete) return;
+        if (!shopId || !employeeToDelete) return;
         try {
-            await employeeService.deleteEmployee(employeeToDelete.id);
+            await employeeService.deleteEmployee(shopId, employeeToDelete.id);
             toast.success('Çalışan başarıyla silindi');
             setIsDeleteModalOpen(false);
             setEmployeeToDelete(null);
@@ -250,9 +257,10 @@ export const EmployeesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fal
         const [isSubmitting, setIsSubmitting] = useState(false);
 
         const onSubmit = async (data: UpdateEmployeeOwnerDto) => {
+            if (!shopId) return;
             setIsSubmitting(true);
             try {
-                await employeeService.updateEmployee(employee.id, data);
+                await employeeService.updateEmployee(shopId, employee.id, data);
                 toast.success('Çalışan bilgileri güncellendi.');
                 setIsEditModalOpen(false);
                 loadEmployees();

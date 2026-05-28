@@ -4,6 +4,7 @@ import { Button } from '../../components/Button';
 import { Input } from '../../components/Input';
 import { serviceManagementService } from '../../api/service.service';
 import { employeeService } from '../../api/employee.service';
+import { useSalon } from '../../context/SalonContext';
 import type { Service, ServiceCategoryDto, CreateServiceDto, CreateCategoryDto } from '../../types/service';
 import type { Employee } from '../../types/employee';
 import { toast } from 'react-hot-toast';
@@ -13,6 +14,8 @@ import { EmptyState } from '../../components/EmptyState';
 import type { UpdateServiceCategoryDto, UpdateShopServiceDto } from '../../types/service';
 
 export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = false }) => {
+    const { currentShop } = useSalon();
+    const shopId = currentShop?.id ?? null;
     const [categories, setCategories] = useState<ServiceCategoryDto[]>([]);
     const [loading, setLoading] = useState(true);
     const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
@@ -41,9 +44,10 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
         setOpenCategories(prev => ({ ...prev, [id]: !prev[id] }));
 
     const loadServices = async () => {
+        if (!shopId) return;
         setLoading(true);
         try {
-            const data = await serviceManagementService.getShopServices();
+            const data = await serviceManagementService.getShopServices(shopId);
             setCategories(data);
         } catch (error) {
             console.error('Hizmetler yüklenemedi:', error);
@@ -55,7 +59,7 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
 
     useEffect(() => {
         loadServices();
-    }, []);
+    }, [shopId]);
 
     const CategoryForm = () => {
         const { register, handleSubmit, reset, watch, formState: { errors } } = useForm<CreateCategoryDto>();
@@ -64,9 +68,10 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
         const nameValue = watch('name') || '';
 
         const onSubmit = async (data: CreateCategoryDto) => {
+            if (!shopId) return;
             setIsSubmitting(true);
             try {
-                await serviceManagementService.createCategory(data);
+                await serviceManagementService.createCategory(shopId, data);
                 toast.success('Kategori oluşturuldu');
                 setIsCategoryModalOpen(false);
                 reset();
@@ -121,10 +126,10 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
         const nameValue = watch('name') || '';
 
         const onSubmit = async (data: UpdateServiceCategoryDto) => {
-            if (!selectedCategory) return;
+            if (!shopId || !selectedCategory) return;
             setIsSubmitting(true);
             try {
-                await serviceManagementService.updateCategory(selectedCategory.id, data);
+                await serviceManagementService.updateCategory(shopId, selectedCategory.id, data);
                 toast.success('Kategori güncellendi');
                 setIsEditCategoryModalOpen(false);
                 loadServices();
@@ -176,9 +181,9 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
     };
 
     const handleDeleteCategory = async () => {
-        if (!selectedCategory) return;
+        if (!shopId || !selectedCategory) return;
         try {
-            await serviceManagementService.deleteCategory(selectedCategory.id);
+            await serviceManagementService.deleteCategory(shopId, selectedCategory.id);
             toast.success('Kategori başarıyla silindi');
             setIsDeleteCategoryModalOpen(false);
             loadServices();
@@ -194,9 +199,10 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
         const nameValue = watch('name') || '';
 
         const onSubmit = async (data: CreateServiceDto) => {
+            if (!shopId) return;
             setIsSubmitting(true);
             try {
-                await serviceManagementService.createService({
+                await serviceManagementService.createService(shopId, {
                     ...data,
                     categoryId: selectedCategoryId
                 });
@@ -271,10 +277,10 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
         const nameValue = watch('name') || '';
 
         const onSubmit = async (data: UpdateShopServiceDto) => {
-            if (!selectedService) return;
+            if (!shopId || !selectedService) return;
             setIsSubmitting(true);
             try {
-                await serviceManagementService.updateService(selectedService.id, data);
+                await serviceManagementService.updateService(shopId, selectedService.id, data);
                 toast.success('Hizmet güncellendi');
                 setIsEditServiceModalOpen(false);
                 loadServices();
@@ -340,9 +346,9 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
     };
 
     const handleDeleteService = async () => {
-        if (!selectedService) return;
+        if (!shopId || !selectedService) return;
         try {
-            await serviceManagementService.deleteService(selectedService.id);
+            await serviceManagementService.deleteService(shopId, selectedService.id);
             toast.success('Hizmet başarıyla silindi');
             setIsDeleteServiceModalOpen(false);
             loadServices();
@@ -358,16 +364,17 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
     };
 
     const handleOpenEmployeesModal = async (service: any) => {
+        if (!shopId) return;
         setSelectedService(service);
         setIsEmployeesModalOpen(true);
         setEmployeesLoading(true);
         try {
-            const allEmployees = await employeeService.getEmployees();
+            const allEmployees = await employeeService.getEmployees(shopId);
             const activeEmployees = allEmployees.filter((e: Employee) => !e.isDeleted && e.isActive);
 
             const serviceLists = await Promise.all(
                 activeEmployees.map((e: Employee) =>
-                    employeeService.getEmployeeServices(e.id).then(services => ({
+                    employeeService.getEmployeeServices(shopId, e.id).then(services => ({
                         employeeId: e.id,
                         serviceIds: getSafeArrayIds(services),
                     }))
@@ -394,7 +401,7 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
     };
 
     const handleAssignEmployees = async () => {
-        if (!selectedService) return;
+        if (!shopId || !selectedService) return;
         try {
             const changedEmployees = availableEmployees.filter(e => {
                 const hadService = originalEmployeeServiceMap[e.id]?.includes(selectedService.id) ?? false;
@@ -409,7 +416,7 @@ export const ServicesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fals
                     const newServices = hasService
                         ? [...currentServices, selectedService.id]
                         : currentServices.filter(id => id !== selectedService.id);
-                    return employeeService.assignServices(e.id, newServices);
+                    return employeeService.assignServices(shopId, e.id, newServices);
                 })
             );
 

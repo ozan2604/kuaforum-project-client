@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { useForm } from 'react-hook-form';
 import { Button } from '../../components/Button';
 import { shopService } from '../../api/shop.service';
+import { useSalon } from '../../context/SalonContext';
 import { toast } from 'react-hot-toast';
 import { getApiError } from '../../utils/storage';
 import {
@@ -162,10 +163,11 @@ const AccordionCard: React.FC<AccordionCardProps> = ({
 export const MyShopPage: React.FC = () => {
     const { register, formState: { errors }, reset, setValue, getValues, watch, trigger } =
         useForm<ShopFormData>();
+    const { currentShop, refresh: refreshContext } = useSalon();
+    const shopId = currentShop?.id ?? null;
 
     const [loading, setLoading] = useState(false);
     const [initialLoading, setInitialLoading] = useState(true);
-    const [shopId, setShopId] = useState<string | null>(null);
     const [refreshImages, setRefreshImages] = useState(0);
     const [tagInputs, setTagInputs] = useState<Record<string, string>>({});
     const watchedImages = watch('images') || [];
@@ -327,10 +329,10 @@ export const MyShopPage: React.FC = () => {
     };
 
     useEffect(() => {
+        if (!shopId) return;
         const fetchShop = async () => {
             try {
-                const shop = await shopService.getMyShop();
-                setShopId(shop.id);
+                const shop = await shopService.getPublicShopById(shopId);
 
                 reset({
                     name: shop.name,
@@ -406,10 +408,10 @@ export const MyShopPage: React.FC = () => {
             }
         };
         fetchShop();
-        shopService.getDashboardStats()
+        shopService.getDashboardStats(shopId)
             .then(data => setSetupStatus(data.setupStatus))
             .catch(() => {});
-    }, [reset, refreshImages]);
+    }, [shopId, reset, refreshImages]);
 
     // Computes the human-readable diff between current form values and the last saved snapshot
     const buildChanges = (section: 'info' | 'location' | 'hours', payload: ShopUpdatePayload): ChangeItem[] => {
@@ -545,9 +547,11 @@ export const MyShopPage: React.FC = () => {
         if (!confirmUpdate) return;
         const { section, payload } = confirmUpdate;
 
+        if (!shopId) return;
         setLoading(true);
         try {
-            await shopService.update(payload);
+            await shopService.update(shopId, payload);
+            refreshContext();
 
             setSavedSnapshot(prev => {
                 if (!prev) return prev;
@@ -838,8 +842,9 @@ export const MyShopPage: React.FC = () => {
     // ─── EMPLOYEE LEAVE DATE HANDLERS ────────────────────────────────────────
 
     const loadAllEmployees = async () => {
+        if (!shopId) return;
         try {
-            const data = await employeeService.getEmployees();
+            const data = await employeeService.getEmployees(shopId);
             setAllEmployees(data.filter(e => !e.isDeleted && e.isActive));
         } catch {
             toast.error('Çalışanlar yüklenemedi.');
@@ -847,10 +852,11 @@ export const MyShopPage: React.FC = () => {
     };
 
     const handleSelectLeaveEmployee = async (emp: Employee) => {
+        if (!shopId) return;
         setSelectedLeaveEmployee(emp);
         setLoadingLeaveDates(true);
         try {
-            const data = await employeeService.getLeaveDates(emp.id);
+            const data = await employeeService.getLeaveDates(shopId, emp.id);
             setEmployeeLeaveDates(data);
         } catch {
             toast.error('İzin günleri yüklenemedi.');
@@ -860,11 +866,11 @@ export const MyShopPage: React.FC = () => {
     };
 
     const handleAddLeaveDate = async () => {
-        if (!selectedLeaveEmployee || !newLeaveDate) return;
+        if (!selectedLeaveEmployee || !newLeaveDate || !shopId) return;
         setAddingLeave(true);
         try {
-            await employeeService.addLeaveDate(selectedLeaveEmployee.id, newLeaveDate, newLeaveReason || undefined);
-            const updated = await employeeService.getLeaveDates(selectedLeaveEmployee.id);
+            await employeeService.addLeaveDate(shopId, selectedLeaveEmployee.id, newLeaveDate, newLeaveReason || undefined);
+            const updated = await employeeService.getLeaveDates(shopId, selectedLeaveEmployee.id);
             setEmployeeLeaveDates(updated);
             setNewLeaveDate('');
             setNewLeaveReason('');
@@ -877,8 +883,9 @@ export const MyShopPage: React.FC = () => {
     };
 
     const handleRemoveLeaveDate = async (id: string) => {
+        if (!shopId) return;
         try {
-            await employeeService.removeLeaveDate(id);
+            await employeeService.removeLeaveDate(shopId, id);
             setEmployeeLeaveDates(prev => prev.filter(l => l.id !== id));
             toast.success('İzin günü silindi.');
         } catch (error: any) {

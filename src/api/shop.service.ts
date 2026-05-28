@@ -11,13 +11,18 @@ export const shopService = {
         return response.data;
     },
 
-    getDashboardStats: async (): Promise<any> => {
-        const response = await api.get<any>('/shop/my-shop/dashboard-stats');
+    getMyShops: async (): Promise<Shop[]> => {
+        const response = await api.get<Shop[]>('/shop/my-shops');
         return response.data;
     },
 
-    update: async (data: CreateShopDto): Promise<void> => {
-        await api.put('/shop', data);
+    getDashboardStats: async (shopId: string): Promise<any> => {
+        const response = await api.get<any>(`/shop/${shopId}/dashboard-stats`);
+        return response.data;
+    },
+
+    update: async (shopId: string, data: CreateShopDto): Promise<void> => {
+        await api.put(`/shop/${shopId}`, data);
     },
 
     getAllShops: async (page: number = 1, pageSize: number = 10, search: string = ''): Promise<{ totalCount: number, shops: Shop[] }> => {
@@ -42,6 +47,11 @@ export const shopService = {
 
     getPublicShopById: async (id: string): Promise<Shop> => {
         const response = await api.get<Shop>(`/shop/public/${id}`);
+        return response.data;
+    },
+
+    getShopById: async (id: string): Promise<Shop> => {
+        const response = await api.get<Shop>(`/shop/${id}`);
         return response.data;
     },
 
@@ -84,7 +94,6 @@ export const shopService = {
         await api.delete(`/shop/${id}/promo-video`);
     },
 
-    // ─── Yeni Çok-Video Mimarisi ────────────────────────────────────────
     uploadShopVideo: async (shopId: string, file: File): Promise<import('../types/shop').ShopVideo> => {
         const formData = new FormData();
         formData.append('file', file);

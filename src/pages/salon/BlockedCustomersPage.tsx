@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { blockService, type BlockedCustomer, type CustomerShopInfo } from '../../api/block.service';
-import { shopService } from '../../api/shop.service';
+import { useSalon } from '../../context/SalonContext';
 import { toast } from 'react-hot-toast';
 import { getApiError } from '../../utils/storage';
 import {
@@ -32,7 +32,8 @@ const StatCard: React.FC<{ label: string; value: number | string; icon: React.Re
 );
 
 export const BlockedCustomersPage: React.FC = () => {
-    const [shopId, setShopId] = useState<string | null>(null);
+    const { currentShop } = useSalon();
+    const shopId = currentShop?.id ?? null;
     const [blocked, setBlocked] = useState<BlockedCustomer[]>([]);
     const [loadingBlocked, setLoadingBlocked] = useState(true);
     const [unblocking, setUnblocking] = useState<string | null>(null);
@@ -49,16 +50,13 @@ export const BlockedCustomersPage: React.FC = () => {
     const [showAllReviews, setShowAllReviews] = useState(false);
 
     useEffect(() => {
-        shopService.getMyShop().then(shop => {
-            if (!shop) return;
-            setShopId(shop.id);
-            return blockService.getBlockedCustomers(shop.id);
-        }).then(list => {
-            if (list) setBlocked(list);
-        }).catch(err => {
-            toast.error(getApiError(err, 'Engellenen müşteriler yüklenemedi'));
-        }).finally(() => setLoadingBlocked(false));
-    }, []);
+        if (!shopId) return;
+        setLoadingBlocked(true);
+        blockService.getBlockedCustomers(shopId)
+            .then(list => setBlocked(list))
+            .catch(err => toast.error(getApiError(err, 'Engellenen müşteriler yüklenemedi')))
+            .finally(() => setLoadingBlocked(false));
+    }, [shopId]);
 
     const handleSearch = async () => {
         const phone = phoneInput.trim();

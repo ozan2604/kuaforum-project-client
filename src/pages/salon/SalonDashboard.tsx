@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import { useSalon } from '../../context/SalonContext';
 import { useNavigate, Link } from 'react-router-dom';
 import { shopService } from '../../api/shop.service';
 import { reviewService } from '../../api/review.service';
@@ -48,6 +49,7 @@ interface Stats {
 
 export const SalonDashboard: React.FC = () => {
     const { user } = useAuth();
+    const { currentShop } = useSalon();
     const navigate = useNavigate();
     const [stats, setStats] = useState<Stats | null>(null);
     const [reviews, setReviews] = useState<Review[]>([]);
@@ -76,9 +78,10 @@ export const SalonDashboard: React.FC = () => {
     };
 
     useEffect(() => {
+        if (!currentShop) return;
         const loadDashboard = async () => {
             try {
-                const data = await shopService.getDashboardStats();
+                const data = await shopService.getDashboardStats(currentShop.id);
                 setStats(data);
             } catch (error) {
                 console.error('Failed to load dashboard', error);
@@ -89,7 +92,7 @@ export const SalonDashboard: React.FC = () => {
         };
 
         loadDashboard();
-    }, []);
+    }, [currentShop?.id]);
 
     useEffect(() => {
         if (!openCards.reviews || reviewsFetched) return;

@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { shopService } from '../../api/shop.service';
+import React, { useRef, useState } from 'react';
+import { useSalon } from '../../context/SalonContext';
 import { QRCodeCanvas } from 'qrcode.react';
 import { QrCode, X, Loader2, Printer, Phone, LayoutTemplate, Sparkles, MapPin, Zap, ImageDown } from 'lucide-react';
 import { ShopCategoryLabels } from '../../types/shop';
@@ -26,19 +26,13 @@ const STEPS = [
 ];
 
 export const SalonQrCodePage: React.FC = () => {
-    const [shop, setShop] = useState<Shop | null>(null);
-    const [loading, setLoading] = useState(true);
+    const { currentShop } = useSalon();
+    const shop = currentShop;
+    const loading = !currentShop;
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [activeTab, setActiveTab] = useState<TabType>('classic');
     const [downloading, setDownloading] = useState(false);
     const previewRef = useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-        shopService.getMyShop()
-            .then(setShop)
-            .catch(() => toast.error('Salon bilgileri yüklenemedi.'))
-            .finally(() => setLoading(false));
-    }, []);
 
     useEffect(() => {
         document.body.style.overflow = isModalOpen ? 'hidden' : '';
