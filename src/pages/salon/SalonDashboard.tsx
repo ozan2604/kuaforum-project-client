@@ -95,11 +95,16 @@ export const SalonDashboard: React.FC = () => {
     }, [currentShop?.id]);
 
     useEffect(() => {
-        if (!openCards.reviews || reviewsFetched) return;
+        setReviewsFetched(false);
+        setReviews([]);
+    }, [currentShop?.id]);
+
+    useEffect(() => {
+        if (!openCards.reviews || reviewsFetched || !currentShop) return;
         const loadReviews = async () => {
             setReviewsLoading(true);
             try {
-                const shopReviews = await reviewService.getMyShopReviews();
+                const shopReviews = await reviewService.getMyShopReviews(currentShop.id);
                 setReviews(shopReviews);
                 setReviewsFetched(true);
             } catch (error) {
@@ -110,7 +115,7 @@ export const SalonDashboard: React.FC = () => {
             }
         };
         loadReviews();
-    }, [openCards.reviews, reviewsFetched]);
+    }, [openCards.reviews, reviewsFetched, currentShop]);
 
     // Date formatting helpers
     const now = new Date();
