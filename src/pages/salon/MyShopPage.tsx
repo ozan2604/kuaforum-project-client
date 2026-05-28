@@ -19,6 +19,7 @@ import type { ShopClosureDateDto } from '../../types/shop';
 import MapPicker from '../../components/MapPicker';
 import { employeeService } from '../../api/employee.service';
 import type { Employee, EmployeeLeaveDate } from '../../types/employee';
+import { DEFAULT_SALON_COVER } from '../../constants/images';
 
 const TURKIYE_API = 'https://turkiyeapi.dev/api/v1';
 
@@ -991,13 +992,14 @@ export const MyShopPage: React.FC = () => {
                                                 src={getImageUrl(getValues('coverImagePath') || '')}
                                                 alt="Kapak"
                                                 className="w-full h-full object-cover"
-                                                onError={(e) => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/300x150'; }}
+                                                onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_SALON_COVER; }}
                                             />
                                         ) : (
-                                            <div className="flex flex-col items-center justify-center w-full h-full text-gray-300 gap-2">
-                                                <Camera className="w-8 h-8" />
-                                                <span className="text-xs">Fotoğraf Yok</span>
-                                            </div>
+                                            <img
+                                                src={DEFAULT_SALON_COVER}
+                                                alt="Varsayılan kapak"
+                                                className="w-full h-full object-cover opacity-70"
+                                            />
                                         )}
                                     </div>
                                     <div className="flex flex-col gap-2">

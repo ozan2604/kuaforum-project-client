@@ -9,6 +9,7 @@ import { MapPin, ChevronDown, ChevronLeft, ChevronRight, Map, XCircle, Navigatio
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { DEFAULT_SALON_COVER } from '../constants/images';
 
 // ─── Session-storage helpers ──────────────────────────────────────────────────
 const SS_KEY = 'homepage_filters';
@@ -953,13 +954,12 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                                             <Popup className="shop-popup rounded-2xl border-0 overflow-visible" closeButton={false}>
                                                 <div className="-mx-[20px] -my-[14px] min-w-[220px] font-sans flex flex-col overflow-hidden rounded-xl">
                                                     <div className="w-full h-28 bg-gray-100 relative shrink-0">
-                                                        {shop.coverImagePath ? (
-                                                            <img src={shop.coverImagePath} className="w-full h-full object-cover" alt="" />
-                                                        ) : (
-                                                            <div className="w-full h-full bg-primary-50 flex items-center justify-center">
-                                                                <span className="text-4xl">✂️</span>
-                                                            </div>
-                                                        )}
+                                                        <img
+                                                            src={shop.coverImagePath ? shop.coverImagePath : DEFAULT_SALON_COVER}
+                                                            alt={shop.name}
+                                                            className="w-full h-full object-cover"
+                                                            onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_SALON_COVER; }}
+                                                        />
                                                         <div className="absolute top-2 right-2 bg-white/95 backdrop-blur-sm px-2 py-1 rounded-lg text-xs font-bold text-gray-900 shadow-sm flex items-center gap-1">
                                                             ★ {shop.averageRating?.toFixed(1) || 'Yeni'}
                                                         </div>

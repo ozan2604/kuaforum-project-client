@@ -5,6 +5,7 @@ import { ShopCategoryLabels, type Shop, type ShopCategory } from '../types/shop'
 import { useAuth } from '../context/AuthContext';
 import { favoriteService } from '../services/favorite.service';
 import { toast } from 'react-hot-toast';
+import { DEFAULT_SALON_COVER } from '../constants/images';
 
 interface ShopCardProps {
     shop: Shop;
@@ -69,7 +70,7 @@ export const ShopCard: React.FC<ShopCardProps> = ({ shop, initialIsFavorite = fa
     };
 
     const getImageUrl = (path: string | undefined) => {
-        if (!path) return 'https://images.unsplash.com/photo-1560066984-12186d30b435?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80';
+        if (!path) return DEFAULT_SALON_COVER;
         if (path.startsWith('http')) return path;
         return `http://localhost:5000${path}`;
     };
@@ -84,7 +85,7 @@ export const ShopCard: React.FC<ShopCardProps> = ({ shop, initialIsFavorite = fa
                     src={getImageUrl(shop.coverImagePath)}
                     alt={shop.name}
                     className="w-full h-full object-cover absolute inset-0 group-hover:scale-105 transition-transform duration-500 ease-out"
-                    onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1560066984-12186d30b435?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'; }}
+                    onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_SALON_COVER; }}
                 />
 
                 {/* Favori Butonu — sağ üst */}

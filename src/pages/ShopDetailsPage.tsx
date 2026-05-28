@@ -21,6 +21,7 @@ import { appointmentService } from '../api/appointment.service';
 import { reviewService } from '../api/review.service';
 import type { Appointment } from '../types/appointment';
 import { CustomSelect } from '../components/CustomSelect';
+import { DEFAULT_SALON_COVER } from '../constants/images';
 
 export const ShopDetailsPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -277,10 +278,10 @@ export const ShopDetailsPage: React.FC = () => {
                 <div className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl group" style={{ height: 'clamp(240px, 42vw, 500px)' }}>
                     <div className="absolute inset-0">
                         <img
-                            src={shop.coverImagePath ? getImageUrl(shop.coverImagePath) : 'https://images.unsplash.com/photo-1521590832896-bc17251e32ed?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80'}
+                            src={shop.coverImagePath ? getImageUrl(shop.coverImagePath) : DEFAULT_SALON_COVER}
                             alt={shop.name}
                             className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000 ease-in-out"
-                            onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1521590832896-bc17251e32ed?ixlib=rb-1.2.1&auto=format&fit=crop&w=1200&q=80'; }}
+                            onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_SALON_COVER; }}
                         />
                         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
                     </div>

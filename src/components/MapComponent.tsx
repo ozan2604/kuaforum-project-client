@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import 'leaflet/dist/leaflet.css';
 import L from 'leaflet';
 import type { Shop } from '../types/shop';
+import { DEFAULT_SALON_COVER } from '../constants/images';
 
 
 // Fix for default marker icon in Leaflet with React
@@ -116,10 +117,10 @@ export const MapComponent: React.FC<MapComponentProps> = ({ shops, userLocation,
                                 {/* Cover Image in Popup */}
                                 <div className="h-24 w-full relative bg-gray-100">
                                     <img
-                                        src={shop.coverImagePath ? (shop.coverImagePath.startsWith('http') ? shop.coverImagePath : `http://localhost:5000${shop.coverImagePath}`) : `https://source.unsplash.com/random/400x200/?salon,${shop.id}`}
+                                        src={shop.coverImagePath ? (shop.coverImagePath.startsWith('http') ? shop.coverImagePath : `http://localhost:5000${shop.coverImagePath}`) : DEFAULT_SALON_COVER}
                                         alt={shop.name}
                                         className="w-full h-full object-cover"
-                                        onError={(e) => { (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1560066984-12186d30b435?ixlib=rb-1.2.1&auto=format&fit=crop&w=800&q=80'; }}
+                                        onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_SALON_COVER; }}
                                     />
                                     <div className="absolute top-2 right-2 bg-white/90 backdrop-blur px-1.5 py-0.5 rounded-md flex items-center shadow-sm">
                                         <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="#facc15" stroke="none" className="mr-1"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" /></svg>
