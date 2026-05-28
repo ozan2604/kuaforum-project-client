@@ -61,6 +61,7 @@ export const SalonApplicationPage: React.FC = () => {
     const [kvkkAccepted, setKvkkAccepted] = useState(false);
     const [kvkkModalOpen, setKvkkModalOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
+    const [showNewApplicationForm, setShowNewApplicationForm] = useState(false);
 
     useEffect(() => {
         loadSalonApplication();
@@ -182,6 +183,7 @@ export const SalonApplicationPage: React.FC = () => {
         try {
             await salonApplicationService.apply(form);
             toast.success('Başvurunuz alındı! Onay bekleniyor.');
+            setShowNewApplicationForm(false);
             loadSalonApplication();
         } catch (err) {
             toast.error(getApiError(err, 'Başvuru yapılamadı.'));
@@ -234,7 +236,7 @@ export const SalonApplicationPage: React.FC = () => {
                             </Button>
                         </div>
                     </div>
-                ) : application ? (
+                ) : !showNewApplicationForm && application ? (
                     /* Application Status Card */
                     <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden">
                         <div className={`p-6 ${application.status === 0 ? 'bg-amber-50 border-b-2 border-amber-200' : application.status === 1 ? 'bg-emerald-50 border-b-2 border-emerald-200' : 'bg-red-50 border-b-2 border-red-200'}`}>
@@ -276,50 +278,32 @@ export const SalonApplicationPage: React.FC = () => {
                             </div>
                         </div>
                         {application.status === 1 && (
-                            <div className="px-6 pb-6">
-                                <Button 
-                                    onClick={() => navigate('/salon-panel')} 
+                            <div className="px-6 pb-6 space-y-3">
+                                <Button
+                                    onClick={() => navigate('/salon-panel')}
                                     className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-100 flex items-center justify-center gap-2"
                                 >
                                     <Store className="h-5 w-5" />
                                     Salonuma Git
                                 </Button>
-                            </div>
-                        )}
-                    </div>
-                ) : user?.role === 'SalonOwner' ? (
-                    /* Already a Salon Owner Card */
-                    <div className="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-hidden animate-in fade-in zoom-in-95 duration-500">
-                        <div className="p-8 text-center">
-                            <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-indigo-100 text-indigo-600 mb-6">
-                                <ShieldCheck className="h-12 w-12" />
-                            </div>
-                            <h2 className="text-2xl font-bold text-gray-900 mb-3">Zaten Salon Sahibisiniz</h2>
-                            <p className="text-gray-600 mb-8 max-w-md mx-auto">
-                                Sisteme kayıtlı aktif bir salonunuz bulunmaktadır. Yeni bir salon başvurusu yapmanıza gerek yoktur. Mevcut salonunuzu yönetmek için panele geçiş yapabilirsiniz.
-                            </p>
-                            
-                            <div className="space-y-3">
-                                <Button 
-                                    onClick={() => navigate('/salon-panel')} 
-                                    className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-100 flex items-center justify-center gap-2"
+                                <button
+                                    onClick={() => setShowNewApplicationForm(true)}
+                                    className="w-full py-3 text-sm text-indigo-600 hover:text-indigo-800 font-semibold transition-colors"
                                 >
-                                    <Store className="h-5 w-5" />
-                                    Salon Paneline Git
-                                </Button>
-                                <button 
-                                    onClick={() => navigate('/')}
-                                    className="text-sm text-gray-500 hover:text-indigo-600 font-medium transition-colors"
-                                >
-                                    Ana Sayfaya Dön
+                                    + Yeni Salon İçin Başvur
                                 </button>
                             </div>
-                        </div>
-                        <div className="bg-indigo-50 px-8 py-4 text-center">
-                            <p className="text-xs text-indigo-600 font-medium">
-                                Birden fazla salon yönetimi şu an için desteklenmemektedir.
-                            </p>
-                        </div>
+                        )}
+                        {application.status === 2 && (
+                            <div className="px-6 pb-6">
+                                <button
+                                    onClick={() => setShowNewApplicationForm(true)}
+                                    className="w-full py-3 text-sm text-indigo-600 hover:text-indigo-800 font-semibold transition-colors"
+                                >
+                                    + Yeni Başvuru Yap
+                                </button>
+                            </div>
+                        )}
                     </div>
                 ) : (
                     /* Application Form */
