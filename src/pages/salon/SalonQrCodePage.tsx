@@ -233,7 +233,14 @@ export const SalonQrCodePage: React.FC = () => {
                                         <div className="bg-white rounded-[1.25rem] overflow-hidden shadow-sm ring-1 ring-gray-200 flex flex-col relative pb-4">
                                             <div className="relative h-44 sm:h-52 shrink-0 w-full">
                                                 {coverUrl ? (
-                                                    <img src={coverUrl} alt="" className="w-full h-full object-cover block" crossOrigin="anonymous" />
+                                                    <div
+                                                        className="w-full h-full"
+                                                        style={{
+                                                            backgroundImage: `url(${coverUrl})`,
+                                                            backgroundSize: 'cover',
+                                                            backgroundPosition: 'center',
+                                                        }}
+                                                    />
                                                 ) : (
                                                     <div className="w-full h-full bg-gradient-to-br from-primary-800 to-primary-900 flex items-center justify-center">
                                                         <span className="text-6xl font-black text-white/10 tracking-widest">{shop.name.slice(0, 2).toUpperCase()}</span>
