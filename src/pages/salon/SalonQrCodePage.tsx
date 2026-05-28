@@ -1,9 +1,8 @@
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useSalon } from '../../context/SalonContext';
 import { QRCodeCanvas } from 'qrcode.react';
 import { QrCode, X, Loader2, Printer, Phone, LayoutTemplate, Sparkles, MapPin, Zap, ImageDown } from 'lucide-react';
 import { ShopCategoryLabels } from '../../types/shop';
-import type { Shop } from '../../types/shop';
 import { toast } from 'react-hot-toast';
 import html2canvas from 'html2canvas';
 import jsPDF from 'jspdf';
