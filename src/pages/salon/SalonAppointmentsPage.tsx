@@ -73,6 +73,22 @@ export const SalonAppointmentsPage: React.FC = () => {
         noShowCount: number;
     } | null>(null);
 
+    // ── Reset all per-shop state when shop changes ────────────────────────
+    useEffect(() => {
+        setCalendarEmployeeFilter('');
+        setFilterEmployeeId('');
+        setFilterServiceId('');
+        setStatusFilter(undefined);
+        setSearchTerm('');
+        setFilterDate('');
+        setPage(1);
+        setWeeklyAppointments([]);
+        setAppointments([]);
+        setExpandedRowId(null);
+        setConfirmAction(null);
+        setBlockOffer(null);
+    }, [shopId]);
+
     // ── Load employees + services when shop is available ──────────────────
     useEffect(() => {
         if (!currentShop) return;

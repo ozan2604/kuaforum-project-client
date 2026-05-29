@@ -413,6 +413,13 @@ export const MyShopPage: React.FC = () => {
             .catch(() => {});
     }, [shopId, reset, refreshImages]);
 
+    // Reset employee leave-date selections when shop changes
+    useEffect(() => {
+        setAllEmployees([]);
+        setSelectedLeaveEmployee(null);
+        setEmployeeLeaveDates([]);
+    }, [shopId]);
+
     // Computes the human-readable diff between current form values and the last saved snapshot
     const buildChanges = (section: 'info' | 'location' | 'hours', payload: ShopUpdatePayload): ChangeItem[] => {
         if (!savedSnapshot) return [];

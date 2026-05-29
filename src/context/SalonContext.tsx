@@ -36,10 +36,12 @@ export const SalonProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 return;
             }
 
-            // Multiple shops: try to restore selection from localStorage
+            // Multiple shops: try to restore selection from localStorage, fallback to first shop
             const savedId = localStorage.getItem(STORAGE_KEY);
             const saved = savedId ? shops.find(s => s.id === savedId) : null;
-            setCurrentShop(saved ?? null);
+            const selected = saved ?? shops[0];
+            setCurrentShop(selected);
+            localStorage.setItem(STORAGE_KEY, selected.id);
         } catch {
             setAllShops([]);
             setCurrentShop(null);
