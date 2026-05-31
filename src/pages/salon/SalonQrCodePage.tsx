@@ -224,7 +224,7 @@ export const SalonQrCodePage: React.FC = () => {
                                 {activeTab === 'classic' && (
                                     <div className="bg-[#eef0f3] p-2 rounded-3xl">
                                         <div className="bg-white rounded-[1.25rem] overflow-hidden shadow-sm ring-1 ring-gray-200 flex flex-col relative pb-4">
-                                            <div className="relative h-32 sm:h-36 shrink-0 w-full">
+                                            <div className="relative h-20 sm:h-24 shrink-0 w-full">
                                                 {coverUrl ? (
                                                     <div
                                                         className="w-full h-full"
@@ -239,7 +239,7 @@ export const SalonQrCodePage: React.FC = () => {
                                                         <span className="text-6xl font-black text-white/10 tracking-widest">{shop.name.slice(0, 2).toUpperCase()}</span>
                                                     </div>
                                                 )}
-                                                <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/40 to-transparent" />
+                                                <div className="absolute inset-x-0 bottom-0 h-12 bg-gradient-to-t from-black/40 to-transparent" />
                                             </div>
                                             <div className="relative -mt-10 px-4 sm:px-6 flex flex-col items-center flex-1">
                                                 <div className="bg-primary-900 px-6 py-4 rounded-[1rem] shadow-lg shadow-primary-900/30 border border-primary-800 w-[92%] text-center mb-5">
