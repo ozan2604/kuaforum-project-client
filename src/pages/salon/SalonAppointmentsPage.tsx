@@ -643,18 +643,24 @@ export const SalonAppointmentsPage: React.FC = () => {
                                                                     );
                                                                     const hasAptBtns = isMulti && (apt.status === AppointmentStatus.Pending || apt.status === AppointmentStatus.Confirmed || apt.status === AppointmentStatus.Completed);
                                                                     return (
-                                                                        <div key={apt.id} className="px-3 py-2">
-                                                                            {/* Tek satır: ikon | isim | [PC butonlar] | fiyat | badge */}
+                                                                        <div key={apt.id} className="px-3 py-2.5">
+                                                                            {/* Satır 1: ikon + hizmet adı */}
                                                                             <div className="flex items-center gap-2 min-w-0">
                                                                                 <Scissors className="w-3.5 h-3.5 text-gray-300 shrink-0" />
-                                                                                <span className="text-sm text-gray-700 flex-1 min-w-0 break-words whitespace-normal">{apt.serviceName}</span>
-                                                                                {hasAptBtns && (
-                                                                                    <div className="hidden sm:flex items-center gap-1 shrink-0">{aptBtns}</div>
-                                                                                )}
-                                                                                <span className="text-xs text-gray-400 shrink-0 whitespace-nowrap">{apt.duration}dk · ₺{apt.price}</span>
-                                                                                <div className="shrink-0">{getStatusBadge(apt.status)}</div>
+                                                                                <span className="text-sm text-gray-700 font-medium flex-1 min-w-0">{apt.serviceName}</span>
+                                                                                {/* PC: fiyat + badge + butonlar aynı satırda */}
+                                                                                <div className="hidden sm:flex items-center gap-2 shrink-0">
+                                                                                    {hasAptBtns && <div className="flex items-center gap-1">{aptBtns}</div>}
+                                                                                    <span className="text-xs text-gray-400 whitespace-nowrap">{apt.duration}dk · ₺{apt.price}</span>
+                                                                                    {getStatusBadge(apt.status)}
+                                                                                </div>
                                                                             </div>
-                                                                            {/* Mobil: butonlar alt satırda */}
+                                                                            {/* Mobil: fiyat + badge ikinci satırda */}
+                                                                            <div className="sm:hidden flex items-center gap-2 mt-1.5 ml-5">
+                                                                                <span className="text-xs text-gray-400 whitespace-nowrap">{apt.duration}dk · ₺{apt.price}</span>
+                                                                                <div className="ml-auto shrink-0">{getStatusBadge(apt.status)}</div>
+                                                                            </div>
+                                                                            {/* Mobil: butonlar üçüncü satırda */}
                                                                             {hasAptBtns && (
                                                                                 <div className="sm:hidden flex gap-1.5 mt-2 ml-5 flex-wrap">{aptBtns}</div>
                                                                             )}
