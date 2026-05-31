@@ -72,6 +72,7 @@ export const SalonAppointmentsPage: React.FC = () => {
         customerName: string;
         noShowCount: number;
     } | null>(null);
+    const [autoProcessInfoOpen, setAutoProcessInfoOpen] = useState(false);
 
     // ── Reset all per-shop state when shop changes ────────────────────────
     useEffect(() => {
@@ -284,34 +285,34 @@ export const SalonAppointmentsPage: React.FC = () => {
                     <p className="mt-1 text-sm text-gray-500">Salonunuzdaki tüm randevuları buradan yönetebilirsiniz.</p>
                 </div>
 
-                <div className="flex items-center gap-3">
-                <button
-                    onClick={() => setManualModalOpen(true)}
-                    disabled={!shopId}
-                    className="flex items-center gap-2 px-4 py-2.5 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm"
-                >
-                    <Plus className="w-4 h-4" />
-                    Manuel Randevu
-                </button>
-                <div className="flex items-center bg-white p-3 rounded-2xl shadow-sm border border-gray-100 gap-3">
-                    <div>
-                        <p className="text-sm font-medium text-gray-900 flex items-center gap-1">
-                            <Zap className={`w-4 h-4 ${isAutoProcessEnabled ? 'text-yellow-500' : 'text-gray-400'}`} />
-                            Otomatik Onayla & Tamamla
-                        </p>
-                        <p className="text-xs text-gray-500 mt-0.5">
-                            {isAutoProcessEnabled ? 'Aktif: Yeni randevular onaylanır, saati gelince tamamlanır' : 'Pasif: Manuel yönetim'}
-                        </p>
-                    </div>
+                <div className="flex items-center gap-2">
                     <button
-                        onClick={handleAutoProcessToggle}
-                        className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-600 focus:ring-offset-2 ${isAutoProcessEnabled ? 'bg-primary-600' : 'bg-gray-200'}`}
-                        role="switch"
-                        aria-checked={isAutoProcessEnabled}
+                        onClick={() => setManualModalOpen(true)}
+                        disabled={!shopId}
+                        className="flex items-center gap-2 px-4 py-2.5 h-11 bg-primary-600 hover:bg-primary-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors shadow-sm whitespace-nowrap"
                     >
-                        <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isAutoProcessEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                        <Plus className="w-4 h-4" />
+                        Manuel Randevu
                     </button>
-                </div>
+                    <div className="flex items-center bg-white px-3 sm:px-4 h-11 rounded-xl shadow-sm border border-gray-100 gap-2">
+                        <Zap className={`w-4 h-4 shrink-0 ${isAutoProcessEnabled ? 'text-yellow-500' : 'text-gray-400'}`} />
+                        <span className="hidden sm:block text-sm font-semibold text-gray-900 whitespace-nowrap">Otomatik Onayla & Tamamla</span>
+                        <button
+                            type="button"
+                            onClick={() => setAutoProcessInfoOpen(true)}
+                            className="w-5 h-5 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center text-[11px] font-bold hover:bg-amber-200 transition-colors shrink-0 leading-none"
+                        >
+                            !
+                        </button>
+                        <button
+                            onClick={handleAutoProcessToggle}
+                            className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary-600 focus:ring-offset-2 ${isAutoProcessEnabled ? 'bg-primary-600' : 'bg-gray-200'}`}
+                            role="switch"
+                            aria-checked={isAutoProcessEnabled}
+                        >
+                            <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isAutoProcessEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+                        </button>
+                    </div>
                 </div>
             </div>
 
@@ -836,6 +837,50 @@ export const SalonAppointmentsPage: React.FC = () => {
                         <button onClick={handleBlockFromOffer} className="px-4 py-2 text-sm font-semibold rounded-xl text-white bg-orange-500 hover:bg-orange-600 transition-colors flex items-center gap-2">
                             <UserX className="w-4 h-4" />
                             Evet, Engelle
+                        </button>
+                    </div>
+                </div>
+            </div>,
+            document.body
+        )}
+
+        {autoProcessInfoOpen && createPortal(
+            <div
+                className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+                onClick={() => setAutoProcessInfoOpen(false)}
+            >
+                <div
+                    className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4"
+                    onClick={e => e.stopPropagation()}
+                >
+                    <div className="flex items-start gap-3">
+                        <div className="w-7 h-7 bg-amber-100 text-amber-600 rounded-full flex items-center justify-center text-sm font-bold shrink-0 mt-0.5">!</div>
+                        <div className="space-y-3 text-sm text-gray-700 leading-relaxed">
+                            <p className="font-semibold text-gray-900">Otomatik Onayla & Tamamla</p>
+                            <div className="space-y-1.5">
+                                <p className="font-medium text-gray-800">Açıkken:</p>
+                                <ul className="list-disc list-inside space-y-1 text-gray-600 ml-1">
+                                    <li>Yeni randevular doğrudan <span className="font-medium text-blue-700">Onaylandı</span> olarak oluşturulur.</li>
+                                    <li>Randevunun bitiş saati gelince sistem otomatik <span className="font-medium text-green-700">Tamamlandı</span> yapar.</li>
+                                </ul>
+                            </div>
+                            <div className="space-y-1.5">
+                                <p className="font-medium text-gray-800">Kapalıyken:</p>
+                                <ul className="list-disc list-inside space-y-1 text-gray-600 ml-1">
+                                    <li>Randevular <span className="font-medium text-yellow-700">Onay Bekliyor</span> durumunda bekler, siz manuel onaylarsınız.</li>
+                                    <li>Tamamlama da siz yapana kadar bekler.</li>
+                                </ul>
+                            </div>
+                            <p className="text-xs text-gray-400 pt-1">Not: Süresi geçmiş "Onay Bekliyor" randevular bu ayardan bağımsız olarak her zaman otomatik reddedilir.</p>
+                        </div>
+                    </div>
+                    <div className="flex justify-end">
+                        <button
+                            type="button"
+                            onClick={() => setAutoProcessInfoOpen(false)}
+                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
+                        >
+                            Tamam
                         </button>
                     </div>
                 </div>
