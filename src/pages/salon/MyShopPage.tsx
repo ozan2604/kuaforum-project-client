@@ -1062,7 +1062,7 @@ export const MyShopPage: React.FC = () => {
                                         type="file"
                                         id="videoInput"
                                         className="hidden"
-                                        accept="video/mp4,video/x-m4v,video/*"
+                                        accept="video/mp4,video/quicktime,video/x-msvideo,video/x-matroska,video/webm"
                                         onChange={handleShopVideoUpload}
                                     />
                                     {watchedVideos.length === 0 && (
@@ -1099,7 +1099,11 @@ export const MyShopPage: React.FC = () => {
                                                 className={`w-full h-full object-cover ${videoError ? 'opacity-0' : 'opacity-100'}`}
                                                 preload="metadata"
                                                 playsInline
-                                                onError={() => setVideoError(true)}
+                                                onError={(e) => {
+                                                    const v = e.currentTarget;
+                                                    console.error('Video oynatma hatası:', v.error?.code, v.error?.message, v.src);
+                                                    setVideoError(true);
+                                                }}
                                                 onLoadStart={() => setVideoError(false)}
                                             >
                                                 Tarayıcınız video etiketini desteklemiyor.
