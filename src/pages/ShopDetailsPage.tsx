@@ -7,7 +7,7 @@ import type { Shop } from '../types/shop';
 import { ShopCategoryLabels, ShopCategory, TargetGenderLabels } from '../types/shop';
 import type { ServiceCategoryDto, ShopServiceDto } from '../types/service';
 import type { PublicEmployeeScheduleDto } from '../types/employee';
-import { MapPin, Star, Clock, Calendar, ChevronDown, Heart, Grid, Info, Image, MessageCircle, Users, Undo2, Phone, User, ExternalLink, CheckCircle, Map, Share2, Play } from 'lucide-react';
+import { MapPin, Star, Clock, Calendar, ChevronDown, Heart, Grid, Info, Image, MessageCircle, Users, Undo2, Phone, User, ExternalLink, CheckCircle, Map, Share2, Play, X } from 'lucide-react';
 import { Button } from '../components/Button';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { toast } from 'react-hot-toast';
@@ -46,6 +46,7 @@ export const ShopDetailsPage: React.FC = () => {
     const [reviewsRefreshTrigger, setReviewsRefreshTrigger] = useState(0);
 
     const [activeTab, setActiveTab] = useState<'services' | 'about' | 'gallery' | 'reviews' | 'hours'>('about');
+    const [showPromoVideo, setShowPromoVideo] = useState(false);
     const tabsRef = useRef<HTMLDivElement>(null);
 
 
@@ -274,117 +275,154 @@ export const ShopDetailsPage: React.FC = () => {
                     </div>
                 </div>
 
-                {/* ── Hero Kart (Fotoğraf) ── */}
-                <div className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl group" style={{ height: 'clamp(240px, 42vw, 500px)' }}>
-                    <div className="absolute inset-0">
-                        <img
-                            src={shop.coverImagePath ? getImageUrl(shop.coverImagePath) : DEFAULT_SALON_COVER}
-                            alt={shop.name}
-                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000 ease-in-out"
-                            onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_SALON_COVER; }}
-                        />
-                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
-                    </div>
+                {/* ── Hero Kart (Fotoğraf / Video) ── */}
+                {(() => {
+                    const promoVideoUrl = shop.videos?.[0]?.url ?? shop.promoVideoUrl;
+                    return (
+                        <div className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl group" style={{ height: 'clamp(240px, 42vw, 500px)' }}>
+                            <div className="absolute inset-0 bg-black">
+                                {showPromoVideo && promoVideoUrl ? (
+                                    <video
+                                        key={promoVideoUrl}
+                                        src={promoVideoUrl}
+                                        controls
+                                        autoPlay
+                                        className="w-full h-full object-contain"
+                                        playsInline
+                                    />
+                                ) : (
+                                    <>
+                                        <img
+                                            src={shop.coverImagePath ? getImageUrl(shop.coverImagePath) : DEFAULT_SALON_COVER}
+                                            alt={shop.name}
+                                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-1000 ease-in-out"
+                                            onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_SALON_COVER; }}
+                                        />
+                                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
+                                    </>
+                                )}
+                            </div>
 
-                    {/* Üst Bar: Geri + Paylaş + Favori */}
-                    <div className="absolute top-3 sm:top-6 left-3 sm:left-6 right-3 sm:right-6 z-20 flex items-center justify-between">
-                        {/* Geri Butonu */}
-                        <button
-                            onClick={() => navigate('/')}
-                            className="flex items-center justify-center p-2 sm:p-3.5 bg-white/95 hover:bg-white rounded-full shadow-xl backdrop-blur-md transition-all duration-200 hover:scale-110 active:scale-90 border border-white/60 group"
-                            title="Anasayfa"
-                        >
-                            <Undo2 className="h-5 w-5 sm:h-7 sm:w-7 text-rose-600 group-hover:rotate-[-10deg] transition-transform" />
-                        </button>
+                            {/* Üst Bar */}
+                            <div className="absolute top-3 sm:top-6 left-3 sm:left-6 right-3 sm:right-6 z-20 flex items-center justify-between">
+                                {/* Sol: Geri veya Kapat */}
+                                <button
+                                    onClick={() => showPromoVideo ? setShowPromoVideo(false) : navigate('/')}
+                                    className="flex items-center justify-center p-2 sm:p-3.5 bg-white/95 hover:bg-white rounded-full shadow-xl backdrop-blur-md transition-all duration-200 hover:scale-110 active:scale-90 border border-white/60 group"
+                                    title={showPromoVideo ? 'Fotoğrafa Dön' : 'Anasayfa'}
+                                >
+                                    {showPromoVideo
+                                        ? <X className="h-5 w-5 sm:h-7 sm:w-7 text-gray-700" />
+                                        : <Undo2 className="h-5 w-5 sm:h-7 sm:w-7 text-rose-600 group-hover:rotate-[-10deg] transition-transform" />
+                                    }
+                                </button>
 
-                        {/* Sağ grup: Paylaş + Favori */}
-                        <div className="flex items-center gap-2">
-                            {/* Paylaş butonu */}
-                            <button
-                                onClick={handleShare}
-                                title="Paylaş"
-                                className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-3 rounded-full border bg-white/95 text-gray-700 border-white/60 hover:bg-white text-sm sm:text-base font-bold shadow-xl backdrop-blur-md transition-all duration-200 hover:scale-105 active:scale-95"
-                            >
-                                <Share2 className="h-4 w-4 sm:h-5 sm:w-5 text-primary-600" />
-                                <span className="hidden sm:inline text-primary-600">Paylaş</span>
-                            </button>
+                                {/* Sağ grup — video modunda gizli */}
+                                {!showPromoVideo && (
+                                    <div className="flex items-center gap-2">
+                                        {/* Paylaş */}
+                                        <button
+                                            onClick={handleShare}
+                                            title="Paylaş"
+                                            className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-3 rounded-full border bg-white/95 text-gray-700 border-white/60 hover:bg-white text-sm sm:text-base font-bold shadow-xl backdrop-blur-md transition-all duration-200 hover:scale-105 active:scale-95"
+                                        >
+                                            <Share2 className="h-4 w-4 sm:h-5 sm:w-5 text-primary-600" />
+                                            <span className="hidden sm:inline text-primary-600">Paylaş</span>
+                                        </button>
 
-                            {/* Favori */}
-                            <button
-                                onClick={handleToggleFavorite}
-                                disabled={favLoading}
-                                title={isFavorite ? 'Favorilerden çıkar' : 'Favorilere ekle'}
-                                className={`flex items-center gap-2 px-3 sm:px-5 py-1.5 sm:py-3.5 rounded-full border text-sm sm:text-lg font-bold shadow-xl backdrop-blur-md transition-all duration-200 hover:scale-105 active:scale-95 ${isFavorite
-                                        ? 'bg-rose-50 text-rose-600 border-rose-200'
-                                        : 'bg-white/95 text-gray-700 border-white/60 hover:bg-white'
-                                    }`}
-                            >
-                                <Heart className={`h-4 w-4 sm:h-6 sm:w-6 text-rose-500 drop-shadow-[0_0_8px_rgba(244,63,94,0.4)] ${isFavorite ? 'fill-current' : ''}`} />
-                            </button>
-                        </div>
-                    </div>
+                                        {/* Video — sadece video varsa */}
+                                        {promoVideoUrl && (
+                                            <button
+                                                onClick={() => setShowPromoVideo(true)}
+                                                title="Tanıtım Videosu"
+                                                className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-3 rounded-full border bg-white/95 border-white/60 hover:bg-white text-sm sm:text-base font-bold shadow-xl backdrop-blur-md transition-all duration-200 hover:scale-105 active:scale-95"
+                                            >
+                                                <Play className="h-4 w-4 sm:h-5 sm:w-5 text-primary-600 fill-primary-600" />
+                                                <span className="hidden sm:inline text-primary-600">Video</span>
+                                            </button>
+                                        )}
 
-                    {/* Alt: Bilgiler + CTA */}
-                    <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-6 z-20">
-                        <div className="flex items-end justify-between gap-3">
-
-                            {/* Sol kolon: konum + puan + açık/kapalı */}
-                            <div className="flex flex-col gap-2 min-w-0">
-                                <div className="flex flex-wrap items-center gap-1.5">
-                                    <span className="flex items-center gap-1 text-white/95 text-[10px] sm:text-xs font-medium bg-black/40 px-2 sm:px-2.5 py-1 rounded-full backdrop-blur-md border border-white/10 whitespace-nowrap">
-                                        <MapPin className="h-3 w-3 text-rose-300 shrink-0" />
-                                        {shop.district}, {shop.city}
-                                    </span>
-                                    <span className="flex items-center gap-1 text-white/95 text-[10px] sm:text-xs font-medium bg-black/40 px-2 sm:px-2.5 py-1 rounded-full backdrop-blur-md border border-white/10 whitespace-nowrap">
-                                        <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 shrink-0" />
-                                        <span className="font-bold">{shop.averageRating?.toFixed(1) || 'Yeni'}</span>
-                                        <span className="text-white/75">({shop.reviewCount})</span>
-                                    </span>
-                                </div>
-                                {status && (
-                                    <div className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl backdrop-blur-md border shadow-lg whitespace-nowrap self-start ${status.isOpen
-                                            ? 'bg-green-700/35 text-white border-green-500/40'
-                                            : 'bg-black/50 text-white/95 border-white/20'
-                                        }`}>
-                                        <span className={`w-2 h-2 rounded-full shrink-0 ${status.isOpen ? 'bg-green-400 animate-pulse' : 'bg-red-500'}`} />
-                                        <span className="font-black">{status.isOpen ? 'AÇIK' : 'KAPALI'}</span>
-                                        <span className="opacity-75 font-semibold text-[11px]">{status.open}–{status.close}</span>
+                                        {/* Favori */}
+                                        <button
+                                            onClick={handleToggleFavorite}
+                                            disabled={favLoading}
+                                            title={isFavorite ? 'Favorilerden çıkar' : 'Favorilere ekle'}
+                                            className={`flex items-center gap-2 px-3 sm:px-5 py-1.5 sm:py-3.5 rounded-full border text-sm sm:text-lg font-bold shadow-xl backdrop-blur-md transition-all duration-200 hover:scale-105 active:scale-95 ${isFavorite
+                                                    ? 'bg-rose-50 text-rose-600 border-rose-200'
+                                                    : 'bg-white/95 text-gray-700 border-white/60 hover:bg-white'
+                                                }`}
+                                        >
+                                            <Heart className={`h-4 w-4 sm:h-6 sm:w-6 text-rose-500 drop-shadow-[0_0_8px_rgba(244,63,94,0.4)] ${isFavorite ? 'fill-current' : ''}`} />
+                                        </button>
                                     </div>
                                 )}
                             </div>
 
-                            {/* Sağ kolon: Haritada Gör + Randevu Al üst üste */}
-                            <div className="flex flex-col gap-2 shrink-0">
-                                {shop.latitude && shop.longitude && (
-                                    <button
-                                        onClick={() => navigate(`/?mapLat=${shop.latitude}&mapLng=${shop.longitude}&mapShopId=${shop.id}`)}
-                                        className="flex items-center justify-center gap-1 text-[10px] sm:text-xs font-bold px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white backdrop-blur-md border border-white/30 shadow-lg transition-all active:scale-95 whitespace-nowrap"
-                                    >
-                                        <Map className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
-                                        <span>Haritada Gör</span>
-                                    </button>
-                                )}
-                                <Button
-                                    variant="secondary"
-                                    className="shadow-lg text-white border-0 px-2 sm:px-4 py-0.5 sm:py-1.5 text-[10px] sm:text-xs font-bold rounded-full transition-transform active:scale-95 flex items-center justify-center whitespace-nowrap"
-                                    onClick={() => {
-                                        setSelectedService(null);
-                                        if (isAuthenticated) {
-                                            setIsGuestBooking(false);
-                                            setIsBookingModalOpen(true);
-                                        } else {
-                                            setIsPreBookingModalOpen(true);
-                                        }
-                                    }}
-                                >
-                                    <Calendar className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1 shrink-0" />
-                                    <span>Randevu Al</span>
-                                </Button>
-                            </div>
+                            {/* Alt: Bilgiler + CTA — video modunda gizli */}
+                            {!showPromoVideo && (
+                                <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-6 z-20">
+                                    <div className="flex items-end justify-between gap-3">
 
+                                        {/* Sol kolon: konum + puan + açık/kapalı */}
+                                        <div className="flex flex-col gap-2 min-w-0">
+                                            <div className="flex flex-wrap items-center gap-1.5">
+                                                <span className="flex items-center gap-1 text-white/95 text-[10px] sm:text-xs font-medium bg-black/40 px-2 sm:px-2.5 py-1 rounded-full backdrop-blur-md border border-white/10 whitespace-nowrap">
+                                                    <MapPin className="h-3 w-3 text-rose-300 shrink-0" />
+                                                    {shop.district}, {shop.city}
+                                                </span>
+                                                <span className="flex items-center gap-1 text-white/95 text-[10px] sm:text-xs font-medium bg-black/40 px-2 sm:px-2.5 py-1 rounded-full backdrop-blur-md border border-white/10 whitespace-nowrap">
+                                                    <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 shrink-0" />
+                                                    <span className="font-bold">{shop.averageRating?.toFixed(1) || 'Yeni'}</span>
+                                                    <span className="text-white/75">({shop.reviewCount})</span>
+                                                </span>
+                                            </div>
+                                            {status && (
+                                                <div className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl backdrop-blur-md border shadow-lg whitespace-nowrap self-start ${status.isOpen
+                                                        ? 'bg-green-700/35 text-white border-green-500/40'
+                                                        : 'bg-black/50 text-white/95 border-white/20'
+                                                    }`}>
+                                                    <span className={`w-2 h-2 rounded-full shrink-0 ${status.isOpen ? 'bg-green-400 animate-pulse' : 'bg-red-500'}`} />
+                                                    <span className="font-black">{status.isOpen ? 'AÇIK' : 'KAPALI'}</span>
+                                                    <span className="opacity-75 font-semibold text-[11px]">{status.open}–{status.close}</span>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        {/* Sağ kolon: Haritada Gör + Randevu Al üst üste */}
+                                        <div className="flex flex-col gap-2 shrink-0">
+                                            {shop.latitude && shop.longitude && (
+                                                <button
+                                                    onClick={() => navigate(`/?mapLat=${shop.latitude}&mapLng=${shop.longitude}&mapShopId=${shop.id}`)}
+                                                    className="flex items-center justify-center gap-1 text-[10px] sm:text-xs font-bold px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white backdrop-blur-md border border-white/30 shadow-lg transition-all active:scale-95 whitespace-nowrap"
+                                                >
+                                                    <Map className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
+                                                    <span>Haritada Gör</span>
+                                                </button>
+                                            )}
+                                            <Button
+                                                variant="secondary"
+                                                className="shadow-lg text-white border-0 px-2 sm:px-4 py-0.5 sm:py-1.5 text-[10px] sm:text-xs font-bold rounded-full transition-transform active:scale-95 flex items-center justify-center whitespace-nowrap"
+                                                onClick={() => {
+                                                    setSelectedService(null);
+                                                    if (isAuthenticated) {
+                                                        setIsGuestBooking(false);
+                                                        setIsBookingModalOpen(true);
+                                                    } else {
+                                                        setIsPreBookingModalOpen(true);
+                                                    }
+                                                }}
+                                            >
+                                                <Calendar className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-1 shrink-0" />
+                                                <span>Randevu Al</span>
+                                            </Button>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            )}
                         </div>
-                    </div>
-                </div>
+                    );
+                })()}
             </div>
 
             {/* ── Kart Altı: Kategoriler ── */}
