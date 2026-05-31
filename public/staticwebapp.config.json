@@ -6,6 +6,6 @@
   "globalHeaders": {
     "X-Frame-Options": "SAMEORIGIN",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=(self), payment=()",
-    "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob:; font-src 'self' data: https:; connect-src 'self' https://api.salonbir.com https://turkiyeapi.dev https://res.cloudinary.com; frame-src 'none'; object-src 'none'; base-uri 'self'"
+    "Content-Security-Policy": "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' https: data: blob:; media-src 'self' https://res.cloudinary.com blob:; font-src 'self' data: https:; connect-src 'self' https://api.salonbir.com https://turkiyeapi.dev https://res.cloudinary.com; frame-src 'none'; object-src 'none'; base-uri 'self'"
   }
 }
