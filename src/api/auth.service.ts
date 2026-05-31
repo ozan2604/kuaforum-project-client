@@ -1,5 +1,11 @@
 import api from './axios';
+import axios from 'axios';
 import type { AuthResponse, RegisterRequest, UpdateProfileRequest, ChangePasswordRequest } from '../types/auth';
+
+const publicApi = axios.create({
+    baseURL: import.meta.env.VITE_API_BASE_URL || 'https://localhost:7022/api',
+    headers: { 'Content-Type': 'application/json' },
+});
 
 export interface SendOtpResponse {
     message: string;
@@ -108,5 +114,16 @@ export const authService = {
 
     logout: async (): Promise<void> => {
         await api.post('/auth/logout');
-    }
+    },
+
+    // Misafir randevu — telefon OTP ile (yeni veya mevcut hesap, token döndürür)
+    sendGuestOtp: async (phoneNumber: string): Promise<SendOtpResponse> => {
+        const response = await publicApi.post<SendOtpResponse>('/auth/guest/send-otp', { phoneNumber });
+        return response.data;
+    },
+
+    verifyGuestOtp: async (data: { phoneNumber: string; name: string; otpCode: string }): Promise<AuthResponse> => {
+        const response = await publicApi.post<AuthResponse>('/auth/guest/verify-otp', data);
+        return response.data;
+    },
 };

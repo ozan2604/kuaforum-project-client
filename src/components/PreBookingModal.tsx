@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, LogIn, UserPlus, ArrowRight } from 'lucide-react';
+import { X, LogIn, UserPlus, ArrowRight, UserCheck } from 'lucide-react';
 
 interface PreBookingModalProps {
     isOpen: boolean;
@@ -36,19 +36,41 @@ export const PreBookingModal: React.FC<PreBookingModalProps> = ({
                 {/* Content */}
                 <div className="p-5 space-y-3">
 
-                    {/* Giriş Yap */}
+                    {/* Misafir — üstte */}
                     <button
-                        onClick={onLogin}
+                        onClick={onGuestContinue}
                         className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl border-2 border-primary-500 bg-primary-50 hover:bg-primary-100 transition-colors text-left"
                     >
                         <div className="w-10 h-10 rounded-full bg-primary-500 flex items-center justify-center shrink-0">
-                            <LogIn className="w-5 h-5 text-white" />
+                            <UserCheck className="w-5 h-5 text-white" />
                         </div>
                         <div className="flex-1 min-w-0">
-                            <p className="font-bold text-primary-900 text-sm">Giriş Yap</p>
-                            <p className="text-xs text-primary-600 mt-0.5">Mevcut hesabınla devam et</p>
+                            <p className="font-bold text-primary-900 text-sm">Hızlı Devam Et</p>
+                            <p className="text-xs text-primary-600 mt-0.5">Ad ve telefon numaranla SMS ile doğrula</p>
                         </div>
                         <ArrowRight className="w-4 h-4 text-primary-500 shrink-0" />
+                    </button>
+
+                    {/* Ayırıcı */}
+                    <div className="flex items-center gap-3 py-1">
+                        <div className="flex-1 h-px bg-gray-200" />
+                        <span className="text-xs text-gray-400 font-medium">veya hesabınla giriş yap</span>
+                        <div className="flex-1 h-px bg-gray-200" />
+                    </div>
+
+                    {/* Giriş Yap */}
+                    <button
+                        onClick={onLogin}
+                        className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl border-2 border-gray-200 bg-white hover:border-gray-300 hover:bg-gray-50 transition-colors text-left"
+                    >
+                        <div className="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center shrink-0">
+                            <LogIn className="w-5 h-5 text-gray-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="font-bold text-gray-900 text-sm">Giriş Yap</p>
+                            <p className="text-xs text-gray-500 mt-0.5">Mevcut hesabınla devam et</p>
+                        </div>
+                        <ArrowRight className="w-4 h-4 text-gray-400 shrink-0" />
                     </button>
 
                     {/* Kayıt Ol */}
@@ -62,25 +84,6 @@ export const PreBookingModal: React.FC<PreBookingModalProps> = ({
                         <div className="flex-1 min-w-0">
                             <p className="font-bold text-gray-900 text-sm">Kayıt Ol</p>
                             <p className="text-xs text-gray-500 mt-0.5">Yeni hesap oluştur</p>
-                        </div>
-                        <ArrowRight className="w-4 h-4 text-gray-400 shrink-0" />
-                    </button>
-
-                    {/* Ayırıcı */}
-                    <div className="flex items-center gap-3 py-1">
-                        <div className="flex-1 h-px bg-gray-200" />
-                        <span className="text-xs text-gray-400 font-medium">veya</span>
-                        <div className="flex-1 h-px bg-gray-200" />
-                    </div>
-
-                    {/* Misafir */}
-                    <button
-                        onClick={onGuestContinue}
-                        className="w-full flex items-center gap-4 px-4 py-3.5 rounded-xl border-2 border-dashed border-gray-300 bg-gray-50 hover:border-gray-400 hover:bg-gray-100 transition-colors text-left"
-                    >
-                        <div className="flex-1 min-w-0">
-                            <p className="font-bold text-gray-700 text-sm">Misafir olarak devam et</p>
-                            <p className="text-xs text-gray-500 mt-0.5">Ad ve telefon numaranla hızlıca randevu al — hesabın otomatik oluşturulur</p>
                         </div>
                         <ArrowRight className="w-4 h-4 text-gray-400 shrink-0" />
                     </button>

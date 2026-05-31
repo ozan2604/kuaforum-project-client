@@ -3,7 +3,9 @@ import { X, User, Clock, Check, ChevronRight, ChevronLeft, Scissors, Star, Plus,
 import { Button } from './Button';
 import { employeeService } from '../api/employee.service';
 import { appointmentService } from '../api/appointment.service';
+import { authService } from '../api/auth.service';
 import { serviceManagementService } from '../api/service.service';
+import { useAuth } from '../context/AuthContext';
 import type { Employee } from '../types/employee';
 import type { ServiceCategoryDto, ShopServiceDto } from '../types/service';
 import { toast } from 'react-hot-toast';
@@ -28,7 +30,6 @@ interface BookingModalProps {
     initialServiceDuration?: number;
     initialServicePrice?: number;
     isGuest?: boolean;
-    onOpenLogin?: () => void;
 }
 
 type Step = 'info' | 'personnel' | 'service' | 'datetime' | 'confirm';
@@ -124,8 +125,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     initialServiceDuration,
     initialServicePrice,
     isGuest = false,
-    onOpenLogin,
 }) => {
+    const { completeAuth } = useAuth();
     const STEPS = isGuest ? GUEST_STEPS : NORMAL_STEPS;
     const [employees, setEmployees]   = useState<Employee[]>([]);
     const [categories, setCategories] = useState<ServiceCategoryDto[]>([]);
@@ -145,7 +146,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         employeeName: string; date: string; time: string; totalPrice: number; isNewAccount?: boolean;
     } | null>(null);
     const [bookingError, setBookingError] = useState<string | null>(null);
-    const [phoneExists, setPhoneExists] = useState(false);
 
     // Misafir akışı state
     const [guestName, setGuestName]   = useState('');
@@ -153,7 +153,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     const [guestErrors, setGuestErrors] = useState<{ name?: string; phone?: string }>({});
     const [infoSubStep, setInfoSubStep] = useState<'form' | 'otp'>('form');
     const [sendingOtp, setSendingOtp]   = useState(false);
-    const [phoneExistsInline, setPhoneExistsInline] = useState(false);
     const [guestOtp, setGuestOtp]       = useState('');
     const [otpError, setOtpError]       = useState<string | null>(null);
 
@@ -215,13 +214,11 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         setEmployeeLeaveDates([]);
         setBookingSuccess(null);
         setBookingError(null);
-        setPhoneExists(false);
         setGuestName('');
         setGuestPhone('');
         setGuestErrors({});
         setInfoSubStep('form');
         setSendingOtp(false);
-        setPhoneExistsInline(false);
         setGuestOtp('');
         setOtpError(null);
         setSelectedServices(
@@ -369,39 +366,19 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             const startTimeIso = new Date(`${selectedDate}T${selectedTime}:00`).toISOString();
             const endTimeStr   = minutesToHHMM(hhmmToMinutes(selectedTime) + totalDuration);
 
-            if (isGuest) {
-                await appointmentService.createGuestAppointment({
-                    customerName: guestName.trim(),
-                    customerPhone: guestPhone.trim(),
-                    otp: guestOtp.trim(),
-                    shopId,
-                    serviceIds: selectedServices.map(s => s.id),
-                    shopEmployeeId: selectedEmployeeId,
-                    startTime: startTimeIso,
-                    note,
-                });
-                setBookingSuccess({
-                    employeeName: selectedEmployee ? `${selectedEmployee.firstName} ${selectedEmployee.lastName}` : '',
-                    date: format(new Date(`${selectedDate}T12:00:00`), 'd MMMM yyyy, EEEE', { locale: tr }),
-                    time: `${selectedTime} – ${endTimeStr}`,
-                    totalPrice,
-                    isNewAccount: true,
-                });
-            } else {
-                await appointmentService.createAppointment({
-                    shopId,
-                    serviceIds: selectedServices.map(s => s.id),
-                    shopEmployeeId: selectedEmployeeId,
-                    startTime: startTimeIso,
-                    note,
-                });
-                setBookingSuccess({
-                    employeeName: selectedEmployee ? `${selectedEmployee.firstName} ${selectedEmployee.lastName}` : '',
-                    date: format(new Date(`${selectedDate}T12:00:00`), 'd MMMM yyyy, EEEE', { locale: tr }),
-                    time: `${selectedTime} – ${endTimeStr}`,
-                    totalPrice,
-                });
-            }
+            await appointmentService.createAppointment({
+                shopId,
+                serviceIds: selectedServices.map(s => s.id),
+                shopEmployeeId: selectedEmployeeId,
+                startTime: startTimeIso,
+                note,
+            });
+            setBookingSuccess({
+                employeeName: selectedEmployee ? `${selectedEmployee.firstName} ${selectedEmployee.lastName}` : '',
+                date: format(new Date(`${selectedDate}T12:00:00`), 'd MMMM yyyy, EEEE', { locale: tr }),
+                time: `${selectedTime} – ${endTimeStr}`,
+                totalPrice,
+            });
         } catch (error: any) {
             const msg =
                 error.response?.data?.Message ||
@@ -409,11 +386,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 (typeof error.response?.data === 'string' ? error.response.data : null) ||
                 error.message ||
                 'Randevu oluşturulamadı. Lütfen tekrar deneyin.';
-
-            if (msg === 'PHONE_EXISTS') {
-                setPhoneExists(true);
-                return;
-            }
             setBookingError(msg);
         } finally {
             setSubmitting(false);
@@ -473,32 +445,42 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 else if (!/^05[0-9]{9}$/.test(guestPhone.trim())) errs.phone = 'Telefon 05XXXXXXXXX formatında olmalıdır.';
                 if (Object.keys(errs).length) { setGuestErrors(errs); return; }
                 setGuestErrors({});
-                setPhoneExistsInline(false);
 
-                // — SMS kodu gönder
+                // — SMS kodu gönder (hem yeni hem mevcut numaraya)
                 setSendingOtp(true);
                 try {
-                    const status = await appointmentService.sendGuestOtp(guestPhone.trim());
-                    if (status === 'PHONE_EXISTS') {
-                        setPhoneExistsInline(true);
-                        return;
-                    }
+                    await authService.sendGuestOtp(guestPhone.trim());
                     setInfoSubStep('otp');
-                } catch {
-                    toast.error('SMS gönderilemedi. Lütfen tekrar deneyin.');
+                } catch (err: any) {
+                    const msg = err?.response?.data?.Message || err?.response?.data?.message || 'SMS gönderilemedi. Lütfen tekrar deneyin.';
+                    toast.error(msg);
                 } finally {
                     setSendingOtp(false);
                 }
                 return;
             }
 
-            // — OTP doğrulaması (format kontrolü; gerçek doğrulama randevu oluşturmada)
+            // — OTP'yi backend'de doğrula → token al → auth context'e kaydet
             if (!guestOtp.trim() || !/^\d{6}$/.test(guestOtp.trim())) {
                 setOtpError('6 haneli kodu eksiksiz girin.');
                 return;
             }
-            setOtpError(null);
-            setCurrentStep('personnel');
+            setSendingOtp(true);
+            try {
+                const authResponse = await authService.verifyGuestOtp({
+                    phoneNumber: guestPhone.trim(),
+                    name: guestName.trim(),
+                    otpCode: guestOtp.trim(),
+                });
+                completeAuth(authResponse);
+                setOtpError(null);
+                setCurrentStep('personnel');
+            } catch (err: any) {
+                const msg = err?.response?.data?.Message || err?.response?.data?.message || 'Doğrulama kodu hatalı veya süresi dolmuş.';
+                setOtpError(msg);
+            } finally {
+                setSendingOtp(false);
+            }
             return;
         } else if (currentStep === 'personnel') {
             if (!selectedEmployeeId) { toast.error('Lütfen bir personel seçin.'); return; }
@@ -607,37 +589,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 {/* Content */}
                 <div className="flex-1 overflow-y-auto">
 
-                    {/* ── PHONE EXISTS ── */}
-                    {phoneExists && (
-                        <div className="flex flex-col items-center justify-center py-12 px-6 text-center space-y-6">
-                            <div className="w-24 h-24 bg-amber-100 rounded-full flex items-center justify-center shadow-inner">
-                                <div className="w-16 h-16 bg-amber-400 rounded-full flex items-center justify-center shadow-md">
-                                    <Phone className="w-9 h-9 text-white" />
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <h3 className="text-xl font-black text-gray-900">Bu Numara Kayıtlı</h3>
-                                <p className="text-gray-500 text-sm leading-relaxed">
-                                    <span className="font-semibold text-gray-700">{guestPhone}</span> numarasına kayıtlı bir hesap var. Randevu almak için giriş yapmanız gerekiyor.
-                                </p>
-                            </div>
-                            <div className="w-full flex flex-col gap-3">
-                                <button
-                                    onClick={() => { onOpenLogin?.(); onClose(); }}
-                                    className="w-full py-3 bg-primary-600 hover:bg-primary-700 text-white font-bold rounded-xl transition-colors"
-                                >
-                                    Giriş Yap
-                                </button>
-                                <button
-                                    onClick={() => setPhoneExists(false)}
-                                    className="w-full py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 font-semibold rounded-xl transition-colors"
-                                >
-                                    Farklı Numara Dene
-                                </button>
-                            </div>
-                        </div>
-                    )}
-
                     {/* ── BAŞARI ── */}
                     {bookingSuccess && (
                         <div className="flex flex-col items-center justify-center py-12 px-6 text-center space-y-6">
@@ -702,7 +653,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                         </div>
                     )}
 
-                    {!bookingSuccess && !bookingError && !phoneExists && (<>
+                    {!bookingSuccess && !bookingError && (<>
 
                     {/* ── BİLGİLER (Misafir) ── */}
                     {currentStep === 'info' && infoSubStep === 'form' && (
@@ -732,24 +683,12 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                         onChange={e => {
                                             setGuestPhone(e.target.value);
                                             setGuestErrors(prev => ({ ...prev, phone: undefined }));
-                                            setPhoneExistsInline(false);
                                         }}
                                         placeholder="05XXXXXXXXX"
                                         maxLength={11}
-                                        className={`w-full px-4 py-3 rounded-xl border-2 text-sm transition-colors outline-none focus:border-primary-400 ${guestErrors.phone || phoneExistsInline ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-white'}`}
+                                        className={`w-full px-4 py-3 rounded-xl border-2 text-sm transition-colors outline-none focus:border-primary-400 ${guestErrors.phone ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-white'}`}
                                     />
                                     {guestErrors.phone && <p className="text-xs text-red-500 mt-1">{guestErrors.phone}</p>}
-                                    {phoneExistsInline && (
-                                        <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-700 leading-relaxed">
-                                            Bu telefon numarasına kayıtlı bir hesap var.{' '}
-                                            <button
-                                                onClick={() => { onOpenLogin?.(); onClose(); }}
-                                                className="font-bold underline text-amber-800 hover:text-amber-900"
-                                            >
-                                                Giriş yap
-                                            </button>
-                                        </div>
-                                    )}
                                 </div>
                             </div>
                             <div className="p-3 bg-blue-50 rounded-xl border border-blue-100 text-xs text-blue-600 leading-relaxed">
@@ -792,12 +731,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                     onClick={async () => {
                                         setSendingOtp(true);
                                         try {
-                                            const status = await appointmentService.sendGuestOtp(guestPhone.trim());
-                                            if (status === 'PHONE_EXISTS') {
-                                                setInfoSubStep('form');
-                                                setPhoneExistsInline(true);
-                                                return;
-                                            }
+                                            await authService.sendGuestOtp(guestPhone.trim());
                                             setGuestOtp('');
                                             setOtpError(null);
                                             toast.success('Yeni kod gönderildi.');
@@ -1218,7 +1152,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </div>
 
                 {/* Footer */}
-                {!bookingSuccess && !bookingError && !phoneExists && (
+                {!bookingSuccess && !bookingError && (
                     <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between gap-3 shrink-0 bg-white rounded-b-2xl">
                         {currentStep !== 'personnel' && currentStep !== 'info' ? (
                             <Button variant="secondary" onClick={prevStep} className="flex items-center gap-1 px-4">
@@ -1244,7 +1178,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                 {currentStep === 'info' && infoSubStep === 'form' ? (
                                     sendingOtp ? 'Gönderiliyor...' : 'SMS Kodu Gönder'
                                 ) : currentStep === 'info' && infoSubStep === 'otp' ? (
-                                    'Doğrula ve Devam Et'
+                                    sendingOtp ? 'Doğrulanıyor...' : 'Doğrula ve Devam Et'
                                 ) : (
                                     <>Devam Et <ChevronRight className="h-4 w-4" /></>
                                 )}

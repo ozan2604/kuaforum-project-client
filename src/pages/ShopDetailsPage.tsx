@@ -999,7 +999,6 @@ export const ShopDetailsPage: React.FC = () => {
                     initialServiceDuration={selectedService?.duration}
                     initialServicePrice={selectedService?.price}
                     isGuest={isGuestBooking}
-                    onOpenLogin={() => navigate('/login')}
                 />
             )}
 
