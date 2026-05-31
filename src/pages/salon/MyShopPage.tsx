@@ -183,6 +183,7 @@ export const MyShopPage: React.FC = () => {
 
     const [uploadingVideo, setUploadingVideo] = useState(false);
     const [videoError, setVideoError] = useState(false);
+    const [deleteVideoConfirm, setDeleteVideoConfirm] = useState(false);
 
     const [weeklyOffDays, setWeeklyOffDays] = useState<number[]>([]);
 
@@ -1115,11 +1116,7 @@ export const MyShopPage: React.FC = () => {
                                                 variant="outline"
                                                 size="sm"
                                                 disabled={uploadingVideo}
-                                                onClick={() => {
-                                                    if (confirm('Mevcut videoyu değiştirmek istediğinize emin misiniz?')) {
-                                                        handleDeleteShopVideo(watchedVideos[0].id);
-                                                    }
-                                                }}
+                                                onClick={() => setDeleteVideoConfirm(true)}
                                                 className="text-red-600 border-red-200 hover:bg-red-50"
                                             >
                                                 <Trash2 className="w-4 h-4 mr-1.5" />
@@ -1970,6 +1967,46 @@ export const MyShopPage: React.FC = () => {
                             </button>
                             <button
                                 onClick={confirmDeleteGalleryImage}
+                                className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors"
+                            >
+                                Evet, Sil
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* ── Tanıtım Videosu Silme Onay Modalı ── */}
+            {deleteVideoConfirm && createPortal(
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+                        <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-100">
+                            <div className="p-2.5 bg-red-50 text-red-600 rounded-xl shrink-0">
+                                <Trash2 className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h3 className="text-base font-bold text-gray-900">Tanıtım Videosu Silinecek</h3>
+                                <p className="text-xs text-gray-500 mt-0.5">Bu işlem geri alınamaz</p>
+                            </div>
+                        </div>
+                        <div className="px-6 py-5">
+                            <p className="text-sm text-gray-600">
+                                Tanıtım videosunu silmek istediğinizden emin misiniz?
+                            </p>
+                        </div>
+                        <div className="flex gap-3 px-6 pb-5">
+                            <button
+                                onClick={() => setDeleteVideoConfirm(false)}
+                                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 rounded-xl transition-colors"
+                            >
+                                Vazgeç
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    setDeleteVideoConfirm(false);
+                                    await handleDeleteShopVideo(watchedVideos[0].id);
+                                }}
                                 className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors"
                             >
                                 Evet, Sil

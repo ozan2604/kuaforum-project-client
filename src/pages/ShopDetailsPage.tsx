@@ -7,7 +7,7 @@ import type { Shop } from '../types/shop';
 import { ShopCategoryLabels, ShopCategory, TargetGenderLabels } from '../types/shop';
 import type { ServiceCategoryDto, ShopServiceDto } from '../types/service';
 import type { PublicEmployeeScheduleDto } from '../types/employee';
-import { MapPin, Star, Clock, Calendar, ChevronDown, Heart, Grid, Info, Image, MessageCircle, Users, Undo2, Phone, User, ExternalLink, CheckCircle, Map, Share2 } from 'lucide-react';
+import { MapPin, Star, Clock, Calendar, ChevronDown, Heart, Grid, Info, Image, MessageCircle, Users, Undo2, Phone, User, ExternalLink, CheckCircle, Map, Share2, Play } from 'lucide-react';
 import { Button } from '../components/Button';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { toast } from 'react-hot-toast';
@@ -767,7 +767,40 @@ export const ShopDetailsPage: React.FC = () => {
 
                             {activeTab === 'gallery' && (
                                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8 animate-fadeIn">
-                                    <h2 className="text-2xl font-bold text-gray-900 mb-6">Galeri</h2>
+                                    {/* Tanıtım Videosu */}
+                                    {(() => {
+                                        const videoUrl = shop.videos?.[0]?.url ?? shop.promoVideoUrl;
+                                        if (!videoUrl) return null;
+                                        return (
+                                            <div className="mb-8">
+                                                <div className="flex items-center gap-2.5 mb-4">
+                                                    <div className="w-9 h-9 rounded-xl bg-primary-50 flex items-center justify-center shrink-0">
+                                                        <Play className="w-4 h-4 text-primary-600 fill-primary-600" />
+                                                    </div>
+                                                    <h2 className="text-lg font-bold text-gray-900">Tanıtım Videosu</h2>
+                                                </div>
+                                                <div className="rounded-2xl overflow-hidden bg-black shadow-lg max-w-2xl mx-auto" style={{ aspectRatio: '16/9' }}>
+                                                    <video
+                                                        src={videoUrl}
+                                                        controls
+                                                        className="w-full h-full object-contain"
+                                                        preload="metadata"
+                                                        playsInline
+                                                    />
+                                                </div>
+                                            </div>
+                                        );
+                                    })()}
+
+                                    {/* Fotoğraf Galerisi */}
+                                    {(shop.images && shop.images.length > 0) && (
+                                        <div className="flex items-center gap-2.5 mb-4">
+                                            <div className="w-9 h-9 rounded-xl bg-violet-50 flex items-center justify-center shrink-0">
+                                                <Image className="w-4 h-4 text-violet-600" />
+                                            </div>
+                                            <h2 className="text-lg font-bold text-gray-900">Fotoğraflar</h2>
+                                        </div>
+                                    )}
                                     {shop.images && shop.images.length > 0 ? (
                                         <div className="columns-2 md:columns-3 gap-4">
                                             {shop.images.map((image, index) => (
@@ -796,9 +829,11 @@ export const ShopDetailsPage: React.FC = () => {
                                             ))}
                                         </div>
                                     ) : (
-                                        <div className="text-center py-12 bg-white rounded-xl border border-dashed border-gray-200">
-                                            <p className="text-gray-500 italic">Henüz görsel yüklenmemiş.</p>
-                                        </div>
+                                        !(shop.videos?.[0]?.url ?? shop.promoVideoUrl) && (
+                                            <div className="text-center py-12 bg-white rounded-xl border border-dashed border-gray-200">
+                                                <p className="text-gray-500 italic">Henüz görsel yüklenmemiş.</p>
+                                            </div>
+                                        )
                                     )}
                                 </div>
                             )}
