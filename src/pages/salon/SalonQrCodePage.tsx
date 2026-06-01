@@ -93,11 +93,20 @@ export const SalonQrCodePage: React.FC = () => {
         const label = format === 'pdf' ? 'PDF' : 'PNG';
         const toastId = toast.loading(`${label} oluşturuluyor...`);
         try {
+            // Scroll container sıfırlanmazsa html2canvas offset'li yakalar → yazılar kayık çıkar
+            const scrollContainer = previewRef.current.closest('.overflow-y-auto') as HTMLElement | null;
+            if (scrollContainer) scrollContainer.scrollTop = 0;
+            await new Promise(r => setTimeout(r, 80));
+
             const canvas = await html2canvas(previewRef.current, {
                 scale: 3,
                 useCORS: true,
                 allowTaint: true,
                 logging: false,
+                scrollX: 0,
+                scrollY: 0,
+                x: 0,
+                y: 0,
             });
 
             const fileName = `${shop.name}-qr-afis`;
