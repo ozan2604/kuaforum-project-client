@@ -92,21 +92,35 @@ export const SalonQrCodePage: React.FC = () => {
         setDownloading(true);
         const label = format === 'pdf' ? 'PDF' : 'PNG';
         const toastId = toast.loading(`${label} oluşturuluyor...`);
-        try {
-            // Scroll container sıfırlanmazsa html2canvas offset'li yakalar → yazılar kayık çıkar
-            const scrollContainer = previewRef.current.closest('.overflow-y-auto') as HTMLElement | null;
-            if (scrollContainer) scrollContainer.scrollTop = 0;
-            await new Promise(r => setTimeout(r, 80));
 
-            const canvas = await html2canvas(previewRef.current, {
+        // body'ye sabit konumlu geçici wrapper — scroll bağlamı yok, modal arkasında kalır
+        const tempWrap = document.createElement('div');
+        Object.assign(tempWrap.style, {
+            position: 'fixed', top: '0', left: '0',
+            width: `${previewRef.current.getBoundingClientRect().width || 360}px`,
+            zIndex: '-9999', pointerEvents: 'none',
+        });
+        document.body.appendChild(tempWrap);
+
+        try {
+            const clone = previewRef.current.cloneNode(true) as HTMLElement;
+            tempWrap.appendChild(clone);
+
+            // QR canvas pixel verilerini klona kopyala
+            const origCanvases = Array.from(previewRef.current.querySelectorAll('canvas'));
+            Array.from(clone.querySelectorAll('canvas')).forEach((dest, i) => {
+                const orig = origCanvases[i];
+                if (!orig) return;
+                (dest as HTMLCanvasElement).width = orig.width;
+                (dest as HTMLCanvasElement).height = orig.height;
+                (dest as HTMLCanvasElement).getContext('2d')?.drawImage(orig, 0, 0);
+            });
+
+            const canvas = await html2canvas(clone, {
                 scale: 3,
                 useCORS: true,
                 allowTaint: true,
                 logging: false,
-                scrollX: 0,
-                scrollY: 0,
-                x: 0,
-                y: 0,
             });
 
             const fileName = `${shop.name}-qr-afis`;
@@ -146,6 +160,7 @@ export const SalonQrCodePage: React.FC = () => {
                 toast.dismiss(toastId);
             }
         } finally {
+            document.body.contains(tempWrap) && document.body.removeChild(tempWrap);
             setDownloading(false);
         }
     };
