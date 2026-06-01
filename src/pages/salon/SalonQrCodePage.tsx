@@ -223,53 +223,49 @@ export const SalonQrCodePage: React.FC = () => {
                                 {/* CLASSIC */}
                                 {activeTab === 'classic' && (
                                     <div className="bg-[#eef0f3] p-2 rounded-3xl">
-                                        <div className="bg-white rounded-[1.25rem] overflow-hidden shadow-sm ring-1 ring-gray-200 flex flex-col relative pb-4">
-                                            {/* Cover + salon adı overlay */}
-                                            <div className="relative h-32 shrink-0 w-full">
+                                        <div className="bg-white rounded-[1.25rem] overflow-hidden shadow-sm ring-1 ring-gray-200 flex flex-col">
+
+                                            {/* ── Üst koyu bölüm: kapak + isim + kategoriler + telefon ── */}
+                                            <div className="relative" style={{ minHeight: '210px' }}>
+                                                {/* Arka plan */}
                                                 {coverUrl ? (
-                                                    <div
-                                                        className="w-full h-full"
-                                                        style={{
-                                                            backgroundImage: `url(${coverUrl})`,
-                                                            backgroundSize: 'cover',
-                                                            backgroundPosition: 'center',
-                                                        }}
-                                                    />
+                                                    <div className="absolute inset-0" style={{ backgroundImage: `url(${coverUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
                                                 ) : (
-                                                    <div className="w-full h-full bg-gradient-to-br from-primary-800 to-primary-900 flex items-center justify-center">
-                                                        <span className="text-6xl font-black text-white/10 tracking-widest">{shop.name.slice(0, 2).toUpperCase()}</span>
+                                                    <div className="absolute inset-0" style={{ background: 'linear-gradient(135deg, #1e3a5f 0%, #0f172a 100%)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                                        <span style={{ fontSize: '90px', fontWeight: 900, color: 'rgba(255,255,255,0.07)', letterSpacing: '8px', userSelect: 'none' }}>{shop.name.slice(0, 2).toUpperCase()}</span>
                                                     </div>
                                                 )}
-                                                {/* İsim, cover alanının altında overlay olarak */}
-                                                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-primary-900 via-primary-900/80 to-transparent pt-8 pb-4 px-4 text-center">
-                                                    <h3 className="text-xl sm:text-2xl font-black text-white truncate">{shop.name}</h3>
-                                                </div>
-                                            </div>
-                                            {/* İçerik — üstten başlıyor, negatif margin yok */}
-                                            <div className="px-4 sm:px-6 flex flex-col items-center flex-1 pt-5">
-                                                <div className="flex flex-col gap-3 w-full items-center mb-6">
-                                                    {shop.phoneNumber && (
-                                                        <div className="bg-primary-900 text-white px-6 py-2.5 rounded-full flex items-center gap-2.5 shadow-lg shadow-primary-900/25">
-                                                            <Phone className="w-4 h-4" />
-                                                            <span className="text-[15px] font-bold tracking-wide">{shop.phoneNumber}</span>
-                                                        </div>
-                                                    )}
+                                                {/* Karartma gradient */}
+                                                <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, #0f172a 0%, rgba(15,23,42,0.75) 50%, transparent 100%)' }} />
+                                                {/* İsim + kategoriler + telefon — altta hizalı */}
+                                                <div className="absolute inset-0 flex flex-col items-center justify-end gap-3 px-5 pb-6">
+                                                    <h3 className="text-2xl font-black text-white text-center leading-tight">{shop.name}</h3>
                                                     {categoryNames.length > 0 && (
                                                         <div className="flex flex-wrap items-center justify-center gap-2">
                                                             {categoryNames.map(cat => (
-                                                                <span key={cat} className="px-4 py-1.5 bg-primary-50 text-primary-950 ring-[1.5px] ring-primary-900 rounded-full text-xs font-bold">{cat}</span>
+                                                                <span key={cat} style={{ padding: '4px 14px', borderRadius: '999px', fontSize: '11px', fontWeight: 700, color: '#ffffff', background: 'rgba(255,255,255,0.14)', border: '1px solid rgba(255,255,255,0.22)' }}>{cat}</span>
                                                             ))}
                                                         </div>
                                                     )}
-                                                </div>
-                                                <div className="w-full bg-gradient-to-b from-gray-50 to-white rounded-2xl p-5 border border-gray-100 shadow-sm flex flex-col items-center mb-6">
-                                                    <p className="text-[10px] font-black tracking-[3px] uppercase text-gray-500 text-center mb-4">Rezervasyon İçin QR Kodu Okutun</p>
-                                                    <div className="bg-white p-3.5 rounded-[1rem] shadow-[0_4px_20px_rgb(0,0,0,0.06)] ring-1 ring-gray-100 mb-3">
-                                                        <QRCodeCanvas value={shopUrl} size={160} fgColor="#0f172a" bgColor="#ffffff" level="H" marginSize={1} />
-                                                    </div>
-                                                    <p className="text-[9px] text-gray-400 font-mono break-all text-center max-w-[260px]">{shopUrl}</p>
+                                                    {shop.phoneNumber && (
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 20px', borderRadius: '999px', background: 'rgba(255,255,255,0.12)', border: '1px solid rgba(255,255,255,0.2)', color: '#ffffff' }}>
+                                                            <Phone style={{ width: '14px', height: '14px', flexShrink: 0 }} />
+                                                            <span style={{ fontSize: '14px', fontWeight: 700, letterSpacing: '0.5px' }}>{shop.phoneNumber}</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
+
+                                            {/* ── Alt beyaz bölüm: QR ── */}
+                                            <div className="flex flex-col items-center px-5 py-6">
+                                                <p className="text-[10px] font-black tracking-[3px] uppercase text-gray-500 text-center mb-4">Rezervasyon İçin QR Kodu Okutun</p>
+                                                <div className="bg-white p-3.5 rounded-[1rem] shadow-[0_4px_20px_rgb(0,0,0,0.06)] ring-1 ring-gray-100 mb-3">
+                                                    <QRCodeCanvas value={shopUrl} size={160} fgColor="#0f172a" bgColor="#ffffff" level="H" marginSize={1} />
+                                                </div>
+                                                <p className="text-[9px] text-gray-400 font-mono break-all text-center max-w-[260px]">{shopUrl}</p>
+                                            </div>
+
+                                            {/* Footer */}
                                             <div className="bg-[#0f172a] py-4 text-center w-full shrink-0">
                                                 <span className="text-[10px] font-bold tracking-[4px] uppercase text-white/90">www.salonbir.com</span>
                                             </div>
