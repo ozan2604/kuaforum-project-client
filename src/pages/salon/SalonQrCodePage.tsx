@@ -93,12 +93,14 @@ export const SalonQrCodePage: React.FC = () => {
         const label = format === 'pdf' ? 'PDF' : 'PNG';
         const toastId = toast.loading(`${label} oluşturuluyor...`);
 
-        // body'ye sabit konumlu geçici wrapper — scroll bağlamı yok, modal arkasında kalır
+        // body'ye sabit konumlu geçici wrapper — scroll bağlamı yok
+        // z-index: 49 → modal backdrop (z-50) arkasında kalır, kullanıcı görmez
+        const srcRect = previewRef.current.getBoundingClientRect();
         const tempWrap = document.createElement('div');
         Object.assign(tempWrap.style, {
             position: 'fixed', top: '0', left: '0',
-            width: `${previewRef.current.getBoundingClientRect().width || 360}px`,
-            zIndex: '-9999', pointerEvents: 'none',
+            width: `${srcRect.width || 360}px`,
+            zIndex: '49', pointerEvents: 'none',
         });
         document.body.appendChild(tempWrap);
 
@@ -116,11 +118,17 @@ export const SalonQrCodePage: React.FC = () => {
                 (dest as HTMLCanvasElement).getContext('2d')?.drawImage(orig, 0, 0);
             });
 
+            // scrollX/Y: 0 — window scroll offset'ini yok say (modal açıkken body overflow:hidden
+            // olsa da window.scrollY hâlâ eski değeri tutabilir ve html2canvas bunu capture'a ekler)
             const canvas = await html2canvas(clone, {
                 scale: 3,
                 useCORS: true,
                 allowTaint: true,
                 logging: false,
+                scrollX: 0,
+                scrollY: 0,
+                x: 0,
+                y: 0,
             });
 
             const fileName = `${shop.name}-qr-afis`;
