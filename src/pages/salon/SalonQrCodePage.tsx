@@ -103,8 +103,12 @@ export const SalonQrCodePage: React.FC = () => {
             const fileName = `${shop.name}-qr-afis`;
 
             if (format === 'png') {
-                const res = await fetch(dataUrl);
-                const blob = await res.blob();
+                const arr = dataUrl.split(',');
+                const mime = arr[0].match(/:(.*?);/)![1];
+                const bstr = atob(arr[1]);
+                const u8arr = new Uint8Array(bstr.length);
+                for (let i = 0; i < bstr.length; i++) u8arr[i] = bstr.charCodeAt(i);
+                const blob = new Blob([u8arr], { type: mime });
                 await saveWithPicker(blob, `${fileName}.png`, 'png');
                 toast.success('PNG kaydedildi!', { id: toastId });
             } else {
