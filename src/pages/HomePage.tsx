@@ -792,7 +792,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                                         <img
                                             src={cat.image}
                                             alt={cat.label}
-                                            className={`w-full h-full object-cover`}
+                                            className={`w-full h-full object-cover ${cat.id === ShopCategory.ErkekKuafor ? 'scale-[1.4]' : ''}`}
                                         />
                                     </div>
                                     <span className={`text-[11px] sm:text-sm font-semibold text-center leading-[1.15] sm:leading-tight transition-colors whitespace-pre-line sm:whitespace-normal mt-1 sm:mt-0 ${selectedCategory === cat.id ? 'text-primary-700' : 'text-gray-700 group-hover:text-primary-600'
