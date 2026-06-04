@@ -59,7 +59,7 @@ export const LoginPage: React.FC = () => {
             const role = completeAuth(response);
             const roles = Array.isArray(role) ? role : [role];
             if (roles.includes('Admin')) navigate('/admin');
-            else if (roles.includes('SalonOwner')) navigate('/salon-panel');
+            else if (roles.includes('SalonOwner')) navigate('/salon-panel/appointments');
             else if (roles.includes('Employee')) navigate('/employee-panel/appointments');
             else navigate('/');
         } catch (err) {

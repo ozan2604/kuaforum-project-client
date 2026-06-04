@@ -108,7 +108,7 @@ export const ProfilePage: React.FC = () => {
 
     const panels = [];
     if (hasRole('Admin')) panels.push({ label: 'Admin Panele Git', path: '/admin', icon: <Store className="h-3 w-3" /> });
-    if (hasRole('SalonOwner')) panels.push({ label: 'Salonuma Git', path: '/salon-panel', icon: <Store className="h-3 w-3" /> });
+    if (hasRole('SalonOwner')) panels.push({ label: 'Salonuma Git', path: '/salon-panel/appointments', icon: <Store className="h-3 w-3" /> });
     if (hasRole('Employee')) panels.push({ label: 'Uzman Paneline Git', path: '/employee-panel', icon: <User className="h-3 w-3" /> });
 
     const roleLabel = hasRole('Admin') ? 'Sistem Yöneticisi' : hasRole('SalonOwner') ? 'İşletme Sahibi' : hasRole('Employee') ? 'Personel' : 'Müşteri';

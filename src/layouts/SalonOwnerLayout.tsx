@@ -138,10 +138,10 @@ const SalonOwnerLayoutInner: React.FC = () => {
     }
 
     const navigation = [
-        { name: 'Dashboard',  href: '/salon-panel',                        icon: LayoutDashboard },
-        { name: 'Randevular', href: '/salon-panel/appointments',            icon: Calendar },
         { name: 'Salonum',    href: '/salon-panel/shop',                    icon: Store },
+        { name: 'Randevular', href: '/salon-panel/appointments',            icon: Calendar },
         { name: 'QR Kod',     href: '/salon-panel/qr-kod',                  icon: QrCode },
+        { name: 'Dashboard',  href: '/salon-panel',                        icon: LayoutDashboard },
         { name: 'Müşteriler', href: '/salon-panel/blocked-customers',       icon: Users },
         { name: 'Ayarlar',    href: '/salon-panel/settings',                icon: Settings },
     ];
