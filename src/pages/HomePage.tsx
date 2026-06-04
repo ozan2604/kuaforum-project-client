@@ -777,7 +777,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                                 { id: ShopCategory.CiltBakimMerkezi, label: ShopCategoryLabels[ShopCategory.CiltBakimMerkezi], image: '/images/categories/ciltbakim.png' },
                                 { id: ShopCategory.LazerEpilasyon, label: ShopCategoryLabels[ShopCategory.LazerEpilasyon], image: '/images/categories/lazer.png' },
                                 { id: ShopCategory.MasajSalonu, label: ShopCategoryLabels[ShopCategory.MasajSalonu], image: '/images/categories/masaj.png' },
-                                { id: ShopCategory.Solaryum, label: ShopCategoryLabels[ShopCategory.Solaryum], image: '/images/categories/solaryum.png' },
+                                { id: ShopCategory.SacKaynakProtez, label: ShopCategoryLabels[ShopCategory.SacKaynakProtez], image: '/images/categories/sackaynak.png' },
                                 { id: ShopCategory.MakyajKasKirpikStudyosu, label: ShopCategoryLabels[ShopCategory.MakyajKasKirpikStudyosu], image: '/images/categories/makyaj.png' },
                             ].map((cat) => (
                                 <button
@@ -792,7 +792,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                                         <img
                                             src={cat.image}
                                             alt={cat.label}
-                                            className={`w-full h-full object-cover ${cat.id === ShopCategory.Solaryum ? 'scale-[1.35] -translate-y-2' : ''}`}
+                                            className={`w-full h-full object-cover`}
                                         />
                                     </div>
                                     <span className={`text-[11px] sm:text-sm font-semibold text-center leading-[1.15] sm:leading-tight transition-colors whitespace-pre-line sm:whitespace-normal mt-1 sm:mt-0 ${selectedCategory === cat.id ? 'text-primary-700' : 'text-gray-700 group-hover:text-primary-600'

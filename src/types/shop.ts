@@ -22,7 +22,7 @@ export const ShopCategory = {
     CiltBakimMerkezi: 8,
     LazerEpilasyon: 9,
     MasajSalonu: 10,
-    Solaryum: 11,
+    SacKaynakProtez: 11,
     MakyajKasKirpikStudyosu: 12,
     Diger: 99
 } as const;
@@ -39,7 +39,7 @@ export const ShopCategoryLabels: { [key in ShopCategory]: string } = {
     [ShopCategory.CiltBakimMerkezi]: "Cilt Bakım Merkezi",
     [ShopCategory.LazerEpilasyon]: "Lazer Epilasyon",
     [ShopCategory.MasajSalonu]: "Masaj Salonu",
-    [ShopCategory.Solaryum]: "Solaryum",
+    [ShopCategory.SacKaynakProtez]: "Saç Kaynak & Protez",
     [ShopCategory.MakyajKasKirpikStudyosu]: "Makyaj & Kaş/Kirpik",
     [ShopCategory.Diger]: "Diğer"
 };
