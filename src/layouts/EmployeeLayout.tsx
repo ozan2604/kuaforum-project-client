@@ -99,6 +99,16 @@ const EmployeeLayoutInner: React.FC = () => {
                                 {item.name}
                             </NavLink>
                         ))}
+                        {/* Anasayfa — nav'ın en altında */}
+                        <div className="pt-2 mt-2 border-t border-gray-100">
+                            <button
+                                onClick={() => { setSidebarOpen(false); guardedNavigate(() => setShowHomeModal(true)); }}
+                                className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                            >
+                                <Home className="h-5 w-5" />
+                                Anasayfa
+                            </button>
+                        </div>
                     </nav>
 
                     <div className="p-4 border-t border-gray-200">
@@ -115,13 +125,6 @@ const EmployeeLayoutInner: React.FC = () => {
                                 </div>
                             </div>
                         )}
-                        <button
-                            onClick={() => guardedNavigate(() => setShowHomeModal(true))}
-                            className="w-full flex items-center gap-3 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors mb-1"
-                        >
-                            <Home className="h-5 w-5 text-gray-400" />
-                            Anasayfa
-                        </button>
                         <button
                             onClick={() => guardedNavigate(() => setShowLogoutModal(true))}
                             className="w-full flex items-center gap-3 px-4 py-2 text-sm font-medium text-red-600 hover:bg-red-50 rounded-lg transition-colors"

@@ -93,17 +93,20 @@ export const AdminLayout: React.FC = () => {
                             </Link>
                         );
                     })}
+                    {/* Anasayfa — nav'ın en altında */}
+                    <div className="pt-2 mt-2 border-t border-gray-100">
+                        <button
+                            onClick={() => { setSidebarOpen(false); setShowHomeModal(true); }}
+                            className="w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+                        >
+                            <Home className="h-5 w-5 mr-3 text-gray-400" />
+                            Anasayfa
+                        </button>
+                    </div>
                 </nav>
 
-                {/* Bottom: Anasayfa + Çıkış */}
+                {/* Bottom: Sadece Çıkış */}
                 <div className="p-4 border-t border-gray-100 space-y-1 shrink-0">
-                    <button
-                        onClick={() => setShowHomeModal(true)}
-                        className="w-full flex items-center px-4 py-3 text-sm font-medium rounded-lg text-gray-600 hover:bg-gray-50 hover:text-gray-900 transition-colors"
-                    >
-                        <Home className="h-5 w-5 mr-3 text-gray-400" />
-                        Anasayfa
-                    </button>
                     <button
                         onClick={() => setShowLogoutConfirm(true)}
                         className="flex items-center w-full px-4 py-3 text-sm font-medium text-red-600 rounded-lg hover:bg-red-50 transition-colors"
