@@ -702,7 +702,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
 
             {/* Kategori Yuvarlakları */}
             <div className="bg-white border-b border-gray-100">
-                <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-6">
+                <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-3">
                     <div className="relative group/scroll">
                         {/* Sol Ok Butonu */}
                         <button
@@ -765,37 +765,41 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                                     right: el.scrollLeft < el.scrollWidth - el.clientWidth - 5
                                 });
                             }}
-                            className="flex items-center gap-5 sm:gap-8 md:gap-10 lg:gap-12 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] py-3 px-2 relative"
+                            className="flex items-center gap-4 sm:gap-7 md:gap-9 lg:gap-11 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] py-2 px-2 relative"
                         >
                             {[
-                                { id: ShopCategory.ErkekKuafor, label: ShopCategoryLabels[ShopCategory.ErkekKuafor], image: '/images/categories/berber.png' },
-                                { id: ShopCategory.Kuafor, label: ShopCategoryLabels[ShopCategory.Kuafor], image: '/images/categories/kuafor.png' },
-                                { id: ShopCategory.GuzellikMerkezi, label: ShopCategoryLabels[ShopCategory.GuzellikMerkezi], image: '/images/categories/guzellik.png' },
-                                { id: ShopCategory.SpaMerkezi, label: ShopCategoryLabels[ShopCategory.SpaMerkezi], image: '/images/categories/spa.png' },
-                                { id: ShopCategory.DovmePiercingStudyosu, label: ShopCategoryLabels[ShopCategory.DovmePiercingStudyosu], image: '/images/categories/dovme.png' },
-                                { id: ShopCategory.TirnakSalonu, label: ShopCategoryLabels[ShopCategory.TirnakSalonu], image: '/images/categories/nailart.png' },
-                                { id: ShopCategory.CiltBakimMerkezi, label: ShopCategoryLabels[ShopCategory.CiltBakimMerkezi], image: '/images/categories/ciltbakim.png' },
-                                { id: ShopCategory.LazerEpilasyon, label: ShopCategoryLabels[ShopCategory.LazerEpilasyon], image: '/images/categories/lazer.png' },
-                                { id: ShopCategory.MasajSalonu, label: ShopCategoryLabels[ShopCategory.MasajSalonu], image: '/images/categories/masaj.png' },
-                                { id: ShopCategory.SacKaynakProtez, label: ShopCategoryLabels[ShopCategory.SacKaynakProtez], image: '/images/categories/sackaynak.png' },
+                                { id: ShopCategory.ErkekKuafor,              label: ShopCategoryLabels[ShopCategory.ErkekKuafor],              image: '/images/categories/berber.png' },
+                                { id: ShopCategory.Kuafor,                   label: ShopCategoryLabels[ShopCategory.Kuafor],                   image: '/images/categories/kuafor.png' },
+                                { id: ShopCategory.GuzellikMerkezi,          label: ShopCategoryLabels[ShopCategory.GuzellikMerkezi],          image: '/images/categories/guzellik.png' },
+                                { id: ShopCategory.DovmePiercingStudyosu,   label: ShopCategoryLabels[ShopCategory.DovmePiercingStudyosu],   image: '/images/categories/dovme.png' },
                                 { id: ShopCategory.MakyajKasKirpikStudyosu, label: ShopCategoryLabels[ShopCategory.MakyajKasKirpikStudyosu], image: '/images/categories/makyaj.png' },
+                                { id: ShopCategory.SacKaynakProtez,         label: ShopCategoryLabels[ShopCategory.SacKaynakProtez],         image: '/images/categories/sackaynak.png' },
+                                { id: ShopCategory.CiltBakimMerkezi,        label: ShopCategoryLabels[ShopCategory.CiltBakimMerkezi],        image: '/images/categories/ciltbakim.png' },
+                                { id: ShopCategory.TirnakSalonu,            label: ShopCategoryLabels[ShopCategory.TirnakSalonu],            image: '/images/categories/nailart.png' },
+                                { id: ShopCategory.LazerEpilasyon,          label: ShopCategoryLabels[ShopCategory.LazerEpilasyon],          image: '/images/categories/lazer.png' },
+                                { id: ShopCategory.MasajSalonu,             label: ShopCategoryLabels[ShopCategory.MasajSalonu],             image: '/images/categories/masaj.png' },
+                                { id: ShopCategory.SpaMerkezi,              label: ShopCategoryLabels[ShopCategory.SpaMerkezi],              image: '/images/categories/spa.png' },
                             ].map((cat) => (
                                 <button
                                     key={cat.id}
                                     onClick={() => setSelectedCategory(selectedCategory === cat.id ? null : cat.id)}
-                                    className="flex flex-col items-center gap-2 group shrink-0 transition-all"
+                                    className="flex flex-col items-center gap-1.5 group shrink-0 transition-all"
                                 >
-                                    <div className={`w-14 h-14 sm:w-20 sm:h-20 rounded-full overflow-hidden border-[3px] transition-all duration-300 shadow-md ${selectedCategory === cat.id
+                                    <div className={`w-16 h-16 sm:w-[88px] sm:h-[88px] rounded-full overflow-hidden border-[3px] transition-all duration-300 shadow-md ${selectedCategory === cat.id
                                         ? 'border-primary-500 shadow-primary-200/50 shadow-lg ring-4 ring-primary-100'
                                         : 'border-gray-200 group-hover:border-primary-300 group-hover:shadow-lg'
                                         }`}>
                                         <img
                                             src={cat.image}
                                             alt={cat.label}
-                                            className={`w-full h-full object-cover ${cat.id === ShopCategory.ErkekKuafor ? 'scale-[1.4]' : ''}`}
+                                            className={`w-full h-full object-cover transition-transform duration-300 ${
+                                                cat.id === ShopCategory.ErkekKuafor
+                                                    ? 'scale-[1.4]'
+                                                    : 'scale-[1.15]'
+                                            }`}
                                         />
                                     </div>
-                                    <span className={`text-[11px] sm:text-sm font-semibold text-center leading-[1.15] sm:leading-tight transition-colors whitespace-pre-line sm:whitespace-normal mt-1 sm:mt-0 ${selectedCategory === cat.id ? 'text-primary-700' : 'text-gray-700 group-hover:text-primary-600'
+                                    <span className={`text-[11px] sm:text-sm font-semibold text-center leading-[1.15] sm:leading-tight transition-colors whitespace-pre-line sm:whitespace-normal ${selectedCategory === cat.id ? 'text-primary-700' : 'text-gray-700 group-hover:text-primary-600'
                                         }`}>
                                         {cat.label.replace(' ', '\n')}
                                     </span>
