@@ -7,7 +7,7 @@ import type { Shop } from '../types/shop';
 import { ShopCategoryLabels, ShopCategory, TargetGenderLabels } from '../types/shop';
 import type { ServiceCategoryDto, ShopServiceDto } from '../types/service';
 import type { PublicEmployeeScheduleDto } from '../types/employee';
-import { MapPin, Star, Clock, Calendar, ChevronDown, Heart, Grid, Info, Image, MessageCircle, Users, Undo2, Phone, User, ExternalLink, CheckCircle, Map, Share2, Play, X } from 'lucide-react';
+import { MapPin, Star, Clock, Calendar, ChevronDown, Heart, Grid, Info, Image, MessageCircle, Users, ArrowLeft, Phone, User, ExternalLink, CheckCircle, Map, Share2, Play, X } from 'lucide-react';
 import { Button } from '../components/Button';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { toast } from 'react-hot-toast';
@@ -47,19 +47,26 @@ export const ShopDetailsPage: React.FC = () => {
 
     const [activeTab, setActiveTab] = useState<'services' | 'about' | 'gallery' | 'reviews' | 'hours'>('about');
     const [showPromoVideo, setShowPromoVideo] = useState(false);
+    const [showStickyHeader, setShowStickyHeader] = useState(false);
     const tabsRef = useRef<HTMLDivElement>(null);
 
 
     useEffect(() => {
         if (tabsRef.current) {
             const rect = tabsRef.current.getBoundingClientRect();
-            // If tab bar is above the header threshold, scroll back to it
             if (rect.top < 96) {
                 const y = rect.top + window.scrollY - 100;
                 window.scrollTo({ top: y, behavior: 'smooth' });
             }
         }
     }, [activeTab]);
+
+    // Sticky header scroll listener
+    useEffect(() => {
+        const onScroll = () => setShowStickyHeader(window.scrollY > 220);
+        window.addEventListener('scroll', onScroll, { passive: true });
+        return () => window.removeEventListener('scroll', onScroll);
+    }, []);
 
     const [employeeSchedules, setEmployeeSchedules] = useState<PublicEmployeeScheduleDto[]>([]);
     const [selectedScheduleEmployeeId, setSelectedScheduleEmployeeId] = useState<string>('');
@@ -244,8 +251,32 @@ export const ShopDetailsPage: React.FC = () => {
 
     const status = getTodayStatus();
 
+    const handleBack = () => {
+        if (window.history.length > 1) navigate(-1);
+        else navigate('/');
+    };
+
     return (
         <div className="min-h-screen bg-gray-50 pb-16 font-sans">
+            {/* ── Sticky Geri Tuşu ── */}
+            <div className={`fixed top-0 left-0 right-0 z-[60] transition-all duration-300 ease-in-out ${
+                showStickyHeader
+                    ? 'opacity-100 translate-y-0 pointer-events-auto'
+                    : 'opacity-0 -translate-y-full pointer-events-none'
+            }`}>
+                <div className="bg-white/95 backdrop-blur-md border-b border-gray-100 shadow-sm">
+                    <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-14 flex items-center gap-3">
+                        <button
+                            onClick={handleBack}
+                            className="flex items-center justify-center w-9 h-9 rounded-full hover:bg-gray-100 transition-colors"
+                            aria-label="Geri"
+                        >
+                            <ArrowLeft className="w-5 h-5 text-gray-700" />
+                        </button>
+                        <span className="font-semibold text-gray-900 text-sm truncate">{shop?.name}</span>
+                    </div>
+                </div>
+            </div>
             {/* Hero Section */}
             <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 mt-4 sm:mt-6">
 
@@ -305,17 +336,16 @@ export const ShopDetailsPage: React.FC = () => {
 
                             {/* Üst Bar */}
                             <div className="absolute top-3 sm:top-6 left-3 sm:left-6 right-3 sm:right-6 z-20 flex items-center justify-between">
-                                {/* Sol: Geri veya Kapat */}
-                                <button
-                                    onClick={() => showPromoVideo ? setShowPromoVideo(false) : navigate('/')}
-                                    className="flex items-center justify-center p-2 sm:p-3.5 bg-white/95 hover:bg-white rounded-full shadow-xl backdrop-blur-md transition-all duration-200 hover:scale-110 active:scale-90 border border-white/60 group"
-                                    title={showPromoVideo ? 'Fotoğrafa Dön' : 'Anasayfa'}
-                                >
-                                    {showPromoVideo
-                                        ? <X className="h-5 w-5 sm:h-7 sm:w-7 text-gray-700" />
-                                        : <Undo2 className="h-5 w-5 sm:h-7 sm:w-7 text-rose-600 group-hover:rotate-[-10deg] transition-transform" />
-                                    }
-                                </button>
+                                {/* Sol: sadece video modunda kapat butonu */}
+                                {showPromoVideo ? (
+                                    <button
+                                        onClick={() => setShowPromoVideo(false)}
+                                        className="flex items-center justify-center p-2 sm:p-3.5 bg-white/95 hover:bg-white rounded-full shadow-xl backdrop-blur-md transition-all duration-200 hover:scale-110 active:scale-90 border border-white/60"
+                                        title="Fotoğrafa Dön"
+                                    >
+                                        <X className="h-5 w-5 sm:h-7 sm:w-7 text-gray-700" />
+                                    </button>
+                                ) : <div />}
 
                                 {/* Sağ grup — video modunda gizli */}
                                 {!showPromoVideo && (

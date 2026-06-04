@@ -795,6 +795,8 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                                             className={`w-full h-full object-cover transition-transform duration-300 ${
                                                 cat.id === ShopCategory.ErkekKuafor
                                                     ? 'scale-[1.4]'
+                                                    : cat.id === ShopCategory.GuzellikMerkezi
+                                                    ? 'scale-[1.35]'
                                                     : 'scale-[1.15]'
                                             }`}
                                         />
