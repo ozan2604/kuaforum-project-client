@@ -153,7 +153,6 @@ export const AdminCreateSalonPage: React.FC = () => {
             });
             setSelectedProvinceId(null);
             setSelectedDistrictId(null);
-            setSelectedNeighborhoodId(null);
             setDistricts([]);
             setNeighborhoods([]);
         } catch (err) {
