@@ -30,7 +30,7 @@ L.Icon.Default.mergeOptions({
 
 
 
-const TURKIYE_API = 'https://turkiyeapi.dev/api/v1';
+const TURKIYE_API = 'https://api.turkiyeapi.dev/v1';
 
 const MapFocuser: React.FC<{ center: [number, number] | null; shopId: string | null }> = ({ center, shopId }) => {
     const map = useMap();

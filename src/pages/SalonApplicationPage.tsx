@@ -13,7 +13,7 @@ import { TargetGender, TargetGenderLabels, ShopCategory, ShopCategoryLabels } fr
 import { LegalModal } from '../components/LegalModal';
 import { LEGAL_TEXTS } from '../constants/legal';
 
-const TURKIYE_API = 'https://turkiyeapi.dev/api/v1';
+const TURKIYE_API = 'https://api.turkiyeapi.dev/v1';
 
 interface Province { id: number; name: string; districts: { id: number; name: string }[] }
 interface Neighborhood { id: number; name: string }

@@ -22,7 +22,7 @@ import { employeeService } from '../../api/employee.service';
 import type { Employee, EmployeeLeaveDate } from '../../types/employee';
 import { DEFAULT_SALON_COVER } from '../../constants/images';
 
-const TURKIYE_API = 'https://turkiyeapi.dev/api/v1';
+const TURKIYE_API = 'https://api.turkiyeapi.dev/v1';
 
 interface Province { id: number; name: string; districts: { id: number; name: string }[] }
 interface Neighborhood { id: number; name: string }

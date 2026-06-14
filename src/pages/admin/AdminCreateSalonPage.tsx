@@ -6,7 +6,7 @@ import { getApiError } from '../../utils/storage';
 import { TargetGender, TargetGenderLabels, ShopCategoryLabels } from '../../types/shop';
 import { SearchableSelect } from '../../components/SearchableSelect';
 
-const TURKIYE_API = 'https://turkiyeapi.dev/api/v1';
+const TURKIYE_API = 'https://api.turkiyeapi.dev/v1';
 
 interface Province { id: number; name: string; districts: { id: number; name: string }[] }
 interface Neighborhood { id: number; name: string }
