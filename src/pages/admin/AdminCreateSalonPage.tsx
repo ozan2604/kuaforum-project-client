@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
-import { Loader2, Phone, Store, MapPin, ChevronDown, Plus } from 'lucide-react';
+import { Loader2, Phone, Store, MapPin, Plus } from 'lucide-react';
 import { adminService } from '../../api/admin.service';
 import { getApiError } from '../../utils/storage';
 import { TargetGender, TargetGenderLabels, ShopCategoryLabels } from '../../types/shop';
+import { SearchableSelect } from '../../components/SearchableSelect';
 
 const TURKIYE_API = 'https://turkiyeapi.dev/api/v1';
 
@@ -33,7 +34,6 @@ export const AdminCreateSalonPage: React.FC = () => {
     const [loadingNeighborhoods, setLoadingNeighborhoods] = useState(false);
     const [selectedProvinceId, setSelectedProvinceId] = useState<number | null>(null);
     const [selectedDistrictId, setSelectedDistrictId] = useState<number | null>(null);
-    const [selectedNeighborhoodId, setSelectedNeighborhoodId] = useState<number | null>(null);
 
     const [form, setForm] = useState({
         phoneNumber: '',
@@ -67,22 +67,18 @@ export const AdminCreateSalonPage: React.FC = () => {
         load();
     }, []);
 
-    const handleProvinceChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const id = Number(e.target.value);
+    const handleProvinceChange = (id: number) => {
         const prov = provinces.find(p => p.id === id);
-        setSelectedProvinceId(id || null);
+        setSelectedProvinceId(id);
         setSelectedDistrictId(null);
-        setSelectedNeighborhoodId(null);
         setDistricts(prov?.districts || []);
         setNeighborhoods([]);
         setForm(f => ({ ...f, city: prov?.name ?? '', district: '', neighborhood: '' }));
     };
 
-    const handleDistrictChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const id = Number(e.target.value);
+    const handleDistrictChange = async (id: number) => {
         const dist = districts.find(d => d.id === id);
-        setSelectedDistrictId(id || null);
-        setSelectedNeighborhoodId(null);
+        setSelectedDistrictId(id);
         setNeighborhoods([]);
         setForm(f => ({ ...f, district: dist?.name ?? '', neighborhood: '' }));
         if (!dist) return;
@@ -99,10 +95,8 @@ export const AdminCreateSalonPage: React.FC = () => {
         }
     };
 
-    const handleNeighborhoodChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-        const id = Number(e.target.value);
+    const handleNeighborhoodChange = (id: number) => {
         const n = neighborhoods.find(x => x.id === id);
-        setSelectedNeighborhoodId(id || null);
         setForm(f => ({ ...f, neighborhood: n?.name ?? '' }));
     };
 
@@ -280,62 +274,31 @@ export const AdminCreateSalonPage: React.FC = () => {
                     </div>
 
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                        {/* İl */}
-                        <div>
-                            <label className={labelCls}>İl</label>
-                            <div className="relative">
-                                <select
-                                    value={selectedProvinceId ?? ''}
-                                    onChange={handleProvinceChange}
-                                    disabled={loadingProvinces}
-                                    className={inputCls + " appearance-none pr-8"}
-                                >
-                                    <option value="">{loadingProvinces ? 'Yükleniyor...' : 'Seçiniz'}</option>
-                                    {provinces.map(p => (
-                                        <option key={p.id} value={p.id}>{p.name}</option>
-                                    ))}
-                                </select>
-                                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                            </div>
-                        </div>
-
-                        {/* İlçe */}
-                        <div>
-                            <label className={labelCls}>İlçe</label>
-                            <div className="relative">
-                                <select
-                                    value={selectedDistrictId ?? ''}
-                                    onChange={handleDistrictChange}
-                                    disabled={!selectedProvinceId || districts.length === 0}
-                                    className={inputCls + " appearance-none pr-8"}
-                                >
-                                    <option value="">Seçiniz</option>
-                                    {districts.map(d => (
-                                        <option key={d.id} value={d.id}>{d.name}</option>
-                                    ))}
-                                </select>
-                                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                            </div>
-                        </div>
-
-                        {/* Mahalle */}
-                        <div>
-                            <label className={labelCls}>Mahalle</label>
-                            <div className="relative">
-                                <select
-                                    value={selectedNeighborhoodId ?? ''}
-                                    onChange={handleNeighborhoodChange}
-                                    disabled={!selectedDistrictId || loadingNeighborhoods}
-                                    className={inputCls + " appearance-none pr-8"}
-                                >
-                                    <option value="">{loadingNeighborhoods ? 'Yükleniyor...' : 'Seçiniz'}</option>
-                                    {neighborhoods.map(n => (
-                                        <option key={n.id} value={n.id}>{n.name}</option>
-                                    ))}
-                                </select>
-                                <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-                            </div>
-                        </div>
+                        <SearchableSelect
+                            label="İl"
+                            options={provinces}
+                            value={selectedProvinceId}
+                            onChange={handleProvinceChange}
+                            placeholder="İl Seçin"
+                            loading={loadingProvinces}
+                        />
+                        <SearchableSelect
+                            label="İlçe"
+                            options={districts}
+                            value={selectedDistrictId}
+                            onChange={handleDistrictChange}
+                            placeholder="İlçe Seçin"
+                            disabled={!selectedProvinceId}
+                        />
+                        <SearchableSelect
+                            label="Mahalle"
+                            options={neighborhoods}
+                            value={neighborhoods.find(n => n.name === form.neighborhood)?.id ?? null}
+                            onChange={handleNeighborhoodChange}
+                            placeholder="Mahalle Seçin"
+                            disabled={!selectedDistrictId}
+                            loading={loadingNeighborhoods}
+                        />
                     </div>
 
                     <div className="grid grid-cols-2 gap-3">
