@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, Store, Users, LogOut, Scissors, Menu, X, MessageSquare, Home, AlertTriangle } from 'lucide-react';
+import { LayoutDashboard, Store, Users, LogOut, Scissors, Menu, X, MessageSquare, Home, AlertTriangle, Plus } from 'lucide-react';
 
 const LogoutConfirmModal: React.FC<{ onConfirm: () => void; onCancel: () => void }> = ({ onConfirm, onCancel }) =>
     createPortal(
@@ -51,6 +51,7 @@ export const AdminLayout: React.FC = () => {
         { path: '/admin',              label: 'Panel',        icon: LayoutDashboard },
         { path: '/admin/applications', label: 'Başvurular',   icon: Users },
         { path: '/admin/shops',        label: 'Salonlar',     icon: Store },
+        { path: '/admin/shops/create', label: 'Salon Ekle',   icon: Plus },
         { path: '/admin/users',        label: 'Kullanıcılar', icon: Users },
         { path: '/admin/sms-test',     label: 'SMS Test',     icon: MessageSquare },
     ];
