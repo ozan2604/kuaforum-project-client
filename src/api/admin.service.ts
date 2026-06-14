@@ -14,6 +14,8 @@ export interface AdminCreateSalonDto {
     address?: string;
     latitude?: number | null;
     longitude?: number | null;
+    firstName?: string;
+    lastName?: string;
 }
 
 export const adminService = {

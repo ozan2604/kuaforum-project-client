@@ -36,6 +36,8 @@ export const AdminCreateSalonPage: React.FC = () => {
 
     const [form, setForm] = useState({
         phoneNumber: '',
+        firstName: '',
+        lastName: '',
         shopName: '',
         categoryIds: [] as number[],
         genderPreference: TargetGender.Unisex as TargetGender,
@@ -126,6 +128,8 @@ export const AdminCreateSalonPage: React.FC = () => {
         try {
             await adminService.createSalon({
                 ...form,
+                firstName: form.firstName.trim() || undefined,
+                lastName: form.lastName.trim() || undefined,
                 city: form.city || undefined,
                 district: form.district || undefined,
                 neighborhood: form.neighborhood || undefined,
@@ -136,6 +140,8 @@ export const AdminCreateSalonPage: React.FC = () => {
             toast.success('Salon başarıyla oluşturuldu! Salon sahibine SMS gönderildi.');
             setForm({
                 phoneNumber: '',
+                firstName: '',
+                lastName: '',
                 shopName: '',
                 categoryIds: [],
                 genderPreference: TargetGender.Unisex,
@@ -194,6 +200,31 @@ export const AdminCreateSalonPage: React.FC = () => {
                         <p className="text-xs text-gray-400 mt-1">
                             Bu numara hem salon iletişim numarası hem de salon sahibi hesabı için kullanılacak.
                         </p>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                        <div>
+                            <label className={labelCls}>Ad <span className="text-xs text-gray-400">(isteğe bağlı)</span></label>
+                            <input
+                                type="text"
+                                placeholder="Ahmet"
+                                value={form.firstName}
+                                onChange={e => setForm(f => ({ ...f, firstName: e.target.value }))}
+                                className={inputCls}
+                                maxLength={50}
+                            />
+                        </div>
+                        <div>
+                            <label className={labelCls}>Soyad <span className="text-xs text-gray-400">(isteğe bağlı)</span></label>
+                            <input
+                                type="text"
+                                placeholder="Yılmaz"
+                                value={form.lastName}
+                                onChange={e => setForm(f => ({ ...f, lastName: e.target.value }))}
+                                className={inputCls}
+                                maxLength={50}
+                            />
+                        </div>
                     </div>
 
                     <div>
