@@ -112,6 +112,11 @@ export const authService = {
         await api.delete('/auth/profile-image');
     },
 
+    refresh: async (refreshToken: string): Promise<AuthResponse> => {
+        const response = await api.post<AuthResponse>('/auth/refresh', { refreshToken });
+        return response.data;
+    },
+
     logout: async (): Promise<void> => {
         await api.post('/auth/logout');
     },

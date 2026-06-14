@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { salonApplicationService } from '../api/salon-application.service';
+import { authService } from '../api/auth.service';
 import { Button } from '../components/Button';
 import { Clock, CheckCircle, XCircle, MapPin, Phone, Mail, Store, ChevronRight, Loader2, ShieldCheck } from 'lucide-react';
 import { SearchableSelect } from '../components/SearchableSelect';
 import MapPicker from '../components/MapPicker';
 import { toast } from 'react-hot-toast';
-import { getApiError } from '../utils/storage';
+import { getApiError, getRefreshToken } from '../utils/storage';
 import { useNavigate } from 'react-router-dom';
 import { TargetGender, TargetGenderLabels, ShopCategory, ShopCategoryLabels } from '../types/shop';
 import { LegalModal } from '../components/LegalModal';
@@ -20,7 +21,7 @@ interface Neighborhood { id: number; name: string }
 const steps = ['Genel Bilgiler', 'İletişim', 'Adres'];
 
 export const SalonApplicationPage: React.FC = () => {
-    const { user, isAuthenticated } = useAuth();
+    const { user, isAuthenticated, completeAuth } = useAuth();
     const navigate = useNavigate();
 
     const [application, setApplication] = useState<any>(null);
@@ -62,6 +63,23 @@ export const SalonApplicationPage: React.FC = () => {
     const [kvkkModalOpen, setKvkkModalOpen] = useState(false);
     const [submitting, setSubmitting] = useState(false);
     const [showNewApplicationForm, setShowNewApplicationForm] = useState(false);
+    const [refreshing, setRefreshing] = useState(false);
+
+    const handleGoToSalon = async () => {
+        const storedRefreshToken = getRefreshToken();
+        if (storedRefreshToken) {
+            setRefreshing(true);
+            try {
+                const response = await authService.refresh(storedRefreshToken);
+                completeAuth(response);
+            } catch {
+                // Token refresh başarısız olsa bile yönlendir; korumalı route tekrar kontrol eder
+            } finally {
+                setRefreshing(false);
+            }
+        }
+        navigate('/salon-panel');
+    };
 
     useEffect(() => {
         loadSalonApplication();
@@ -280,10 +298,11 @@ export const SalonApplicationPage: React.FC = () => {
                         {application.status === 1 && (
                             <div className="px-6 pb-6 space-y-3">
                                 <Button
-                                    onClick={() => navigate('/salon-panel')}
-                                    className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-100 flex items-center justify-center gap-2"
+                                    onClick={handleGoToSalon}
+                                    disabled={refreshing}
+                                    className="w-full py-4 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-100 flex items-center justify-center gap-2 disabled:opacity-60"
                                 >
-                                    <Store className="h-5 w-5" />
+                                    {refreshing ? <Loader2 className="h-5 w-5 animate-spin" /> : <Store className="h-5 w-5" />}
                                     Salonuma Git
                                 </Button>
                                 <button
