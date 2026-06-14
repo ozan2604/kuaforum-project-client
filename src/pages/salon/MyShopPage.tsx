@@ -21,8 +21,7 @@ import MapPicker from '../../components/MapPicker';
 import { employeeService } from '../../api/employee.service';
 import type { Employee, EmployeeLeaveDate } from '../../types/employee';
 import { DEFAULT_SALON_COVER } from '../../constants/images';
-
-const TURKIYE_API = 'https://api.turkiyeapi.dev/v1';
+import api from '../../api/axios';
 
 interface Province { id: number; name: string; districts: { id: number; name: string }[] }
 interface Neighborhood { id: number; name: string }
@@ -318,9 +317,8 @@ export const MyShopPage: React.FC = () => {
     const loadProvinces = async () => {
         setLoadingProvinces(true);
         try {
-            const res = await fetch(`${TURKIYE_API}/provinces`);
-            const json = await res.json();
-            const data = (json.data || []).sort((a: any, b: any) => a.name.localeCompare(b.name, 'tr'));
+            const res = await api.get('/location/provinces');
+            const data = (res.data?.data || []).sort((a: any, b: any) => a.name.localeCompare(b.name, 'tr'));
             setProvinces(data);
         } catch {
             toast.error('İller yüklenemedi.');
@@ -385,9 +383,8 @@ export const MyShopPage: React.FC = () => {
                 });
 
                 if (shop.city) {
-                    const res = await fetch(`${TURKIYE_API}/provinces`);
-                    const json = await res.json();
-                    const provs: Province[] = json.data || [];
+                    const res = await api.get('/location/provinces');
+                    const provs: Province[] = res.data?.data || [];
                     const prov = provs.find((p: Province) => p.name === shop.city);
                     if (prov) {
                         setSelectedProvinceId(prov.id);
@@ -395,9 +392,8 @@ export const MyShopPage: React.FC = () => {
                         const dist = prov.districts.find((d: any) => d.name === shop.district);
                         if (dist) {
                             setSelectedDistrictId(dist.id);
-                            const nRes = await fetch(`${TURKIYE_API}/neighborhoods?districtId=${dist.id}`);
-                            const nJson = await nRes.json();
-                            setNeighborhoods(nJson.data || []);
+                            const nRes = await api.get(`/location/neighborhoods?districtId=${dist.id}`);
+                            setNeighborhoods(nRes.data?.data || []);
                         }
                     }
                 }
@@ -609,9 +605,8 @@ export const MyShopPage: React.FC = () => {
         setValue('neighborhood', '');
         setLoadingNeighborhoods(true);
         try {
-            const res = await fetch(`${TURKIYE_API}/neighborhoods?districtId=${districtId}`);
-            const json = await res.json();
-            const data = (json.data || []).sort((a: any, b: any) => a.name.localeCompare(b.name, 'tr'));
+            const res = await api.get(`/location/neighborhoods?districtId=${districtId}`);
+            const data = (res.data?.data || []).sort((a: any, b: any) => a.name.localeCompare(b.name, 'tr'));
             setNeighborhoods(data);
         } catch {
             toast.error('Mahalleler yüklenemedi.');

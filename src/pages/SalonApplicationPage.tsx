@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { salonApplicationService } from '../api/salon-application.service';
+import api from '../api/axios';
 import { authService } from '../api/auth.service';
 import { Button } from '../components/Button';
 import { Clock, CheckCircle, XCircle, MapPin, Phone, Mail, Store, ChevronRight, Loader2, ShieldCheck } from 'lucide-react';
@@ -13,7 +14,6 @@ import { TargetGender, TargetGenderLabels, ShopCategory, ShopCategoryLabels } fr
 import { LegalModal } from '../components/LegalModal';
 import { LEGAL_TEXTS } from '../constants/legal';
 
-const TURKIYE_API = 'https://api.turkiyeapi.dev/v1';
 
 interface Province { id: number; name: string; districts: { id: number; name: string }[] }
 interface Neighborhood { id: number; name: string }
@@ -100,9 +100,8 @@ export const SalonApplicationPage: React.FC = () => {
     const loadProvinces = async () => {
         setLoadingProvinces(true);
         try {
-            const res = await fetch(`${TURKIYE_API}/provinces`);
-            const json = await res.json();
-            const data = (json.data || []).sort((a: any, b: any) => a.name.localeCompare(b.name, 'tr'));
+            const res = await api.get('/location/provinces');
+            const data = (res.data?.data || []).sort((a: any, b: any) => a.name.localeCompare(b.name, 'tr'));
             setProvinces(data);
         } catch {
             toast.error('İller yüklenemedi.');
@@ -129,9 +128,8 @@ export const SalonApplicationPage: React.FC = () => {
         setForm(f => ({ ...f, district: dist.name, neighborhood: '' }));
         setLoadingNeighborhoods(true);
         try {
-            const res = await fetch(`${TURKIYE_API}/neighborhoods?districtId=${districtId}`);
-            const json = await res.json();
-            const data = (json.data || []).sort((a: any, b: any) => a.name.localeCompare(b.name, 'tr'));
+            const res = await api.get(`/location/neighborhoods?districtId=${districtId}`);
+            const data = (res.data?.data || []).sort((a: any, b: any) => a.name.localeCompare(b.name, 'tr'));
             setNeighborhoods(data);
         } catch {
             toast.error('Mahalleler yüklenemedi.');

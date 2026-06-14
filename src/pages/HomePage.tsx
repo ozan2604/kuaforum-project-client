@@ -10,6 +10,7 @@ import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
 import { DEFAULT_SALON_COVER } from '../constants/images';
+import api from '../api/axios';
 
 // ─── Session-storage helpers ──────────────────────────────────────────────────
 const SS_KEY = 'homepage_filters';
@@ -30,7 +31,6 @@ L.Icon.Default.mergeOptions({
 
 
 
-const TURKIYE_API = 'https://api.turkiyeapi.dev/v1';
 
 const MapFocuser: React.FC<{ center: [number, number] | null; shopId: string | null }> = ({ center, shopId }) => {
     const map = useMap();
@@ -174,9 +174,8 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
     useEffect(() => {
         const loadProvinces = async () => {
             try {
-                const res = await fetch(`${TURKIYE_API}/provinces`);
-                const json = await res.json();
-                const sorted = (json.data || []).sort((a: Province, b: Province) => a.name.localeCompare(b.name, 'tr'));
+                const res = await api.get('/location/provinces');
+                const sorted = (res.data?.data || []).sort((a: Province, b: Province) => a.name.localeCompare(b.name, 'tr'));
                 setProvinces(sorted);
 
                 // ── Restore districts/neighborhoods from session ─────────────
@@ -190,9 +189,8 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                             const savedDist = sortedDistricts.find((d: any) => d.name === saved.selectedDistrict);
                             if (savedDist) {
                                 try {
-                                    const nRes = await fetch(`${TURKIYE_API}/neighborhoods?districtId=${savedDist.id}`);
-                                    const nJson = await nRes.json();
-                                    const sortedN = (nJson.data || []).sort((a: Neighborhood, b: Neighborhood) => a.name.localeCompare(b.name, 'tr'));
+                                    const nRes = await api.get(`/location/neighborhoods?districtId=${savedDist.id}`);
+                                    const sortedN = (nRes.data?.data || []).sort((a: Neighborhood, b: Neighborhood) => a.name.localeCompare(b.name, 'tr'));
                                     setNeighborhoods(sortedN);
                                 } catch {}
                             }
@@ -231,9 +229,8 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
         if (dist) {
             setLoadingLocation(true);
             try {
-                const res = await fetch(`${TURKIYE_API}/neighborhoods?districtId=${dist.id}`);
-                const json = await res.json();
-                const sorted = (json.data || []).sort((a: Neighborhood, b: Neighborhood) => a.name.localeCompare(b.name, 'tr'));
+                const res = await api.get(`/location/neighborhoods?districtId=${dist.id}`);
+                const sorted = (res.data?.data || []).sort((a: Neighborhood, b: Neighborhood) => a.name.localeCompare(b.name, 'tr'));
                 setNeighborhoods(sorted);
             } catch (error) {
                 console.error('Failed to load neighborhoods', error);

@@ -5,8 +5,7 @@ import { adminService } from '../../api/admin.service';
 import { getApiError } from '../../utils/storage';
 import { TargetGender, TargetGenderLabels, ShopCategoryLabels } from '../../types/shop';
 import { SearchableSelect } from '../../components/SearchableSelect';
-
-const TURKIYE_API = 'https://api.turkiyeapi.dev/v1';
+import api from '../../api/axios';
 
 interface Province { id: number; name: string; districts: { id: number; name: string }[] }
 interface Neighborhood { id: number; name: string }
@@ -54,9 +53,8 @@ export const AdminCreateSalonPage: React.FC = () => {
         const load = async () => {
             setLoadingProvinces(true);
             try {
-                const res = await fetch(`${TURKIYE_API}/provinces`);
-                const json = await res.json();
-                const data = (json.data || []).sort((a: any, b: any) => a.name.localeCompare(b.name, 'tr'));
+                const res = await api.get('/location/provinces');
+                const data = (res.data?.data || []).sort((a: any, b: any) => a.name.localeCompare(b.name, 'tr'));
                 setProvinces(data);
             } catch {
                 toast.error('İller yüklenemedi.');
@@ -84,9 +82,8 @@ export const AdminCreateSalonPage: React.FC = () => {
         if (!dist) return;
         setLoadingNeighborhoods(true);
         try {
-            const res = await fetch(`${TURKIYE_API}/neighborhoods?districtId=${id}`);
-            const json = await res.json();
-            const data = (json.data || []).sort((a: any, b: any) => a.name.localeCompare(b.name, 'tr'));
+            const res = await api.get(`/location/neighborhoods?districtId=${id}`);
+            const data = (res.data?.data || []).sort((a: any, b: any) => a.name.localeCompare(b.name, 'tr'));
             setNeighborhoods(data);
         } catch {
             toast.error('Mahalleler yüklenemedi.');
