@@ -3,7 +3,7 @@ import { toast } from 'react-hot-toast';
 import { Loader2, Phone, Store, MapPin, ChevronDown, Plus } from 'lucide-react';
 import { adminService } from '../../api/admin.service';
 import { getApiError } from '../../utils/storage';
-import { TargetGender, TargetGenderLabels, ShopCategory, ShopCategoryLabels } from '../../types/shop';
+import { TargetGender, TargetGenderLabels, ShopCategoryLabels } from '../../types/shop';
 
 const TURKIYE_API = 'https://turkiyeapi.dev/api/v1';
 
