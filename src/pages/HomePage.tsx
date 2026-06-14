@@ -311,12 +311,25 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
     }, [isAuthenticated, showFavoritesOnly, shops.length]);
 
     const toggleTag = (tag: string) => {
-        setActiveTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag]);
+        setActiveTags(prev => {
+            if (prev.includes(tag)) return prev.filter(t => t !== tag);
+            if (tag === 'pet') return [...prev.filter(t => t !== 'kadin' && t !== 'erkek'), tag];
+            if (tag === 'kadin' || tag === 'erkek') return [...prev.filter(t => t !== 'pet'), tag];
+            return [...prev, tag];
+        });
     };
 
     const toggleSortTag = (tag: string) => {
         setActiveSortTag(prev => prev === tag ? null : tag);
     };
+
+    useEffect(() => {
+        if (selectedCategory === ShopCategory.PetKuafor) {
+            setActiveTags(prev => ['pet', ...prev.filter(t => t !== 'kadin' && t !== 'erkek')]);
+        } else {
+            setActiveTags(prev => prev.filter(t => t !== 'pet'));
+        }
+    }, [selectedCategory]);
 
     useEffect(() => {
         if (!shops) return;
@@ -343,7 +356,10 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
 
         const hasKadin = activeTags.includes('kadin');
         const hasErkek = activeTags.includes('erkek');
-        if (hasKadin && !hasErkek) {
+        const hasPet = activeTags.includes('pet');
+        if (hasPet) {
+            results = results.filter(shop => shop.genderPreference === TargetGender.Pet);
+        } else if (hasKadin && !hasErkek) {
             results = results.filter(shop => shop.genderPreference === TargetGender.Kadin || shop.genderPreference === TargetGender.Unisex);
         } else if (hasErkek && !hasKadin) {
             results = results.filter(shop => shop.genderPreference === TargetGender.Erkek || shop.genderPreference === TargetGender.Unisex);
@@ -574,6 +590,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                             {[
                                 { label: 'Kadın', active: activeTags.includes('kadin'), onClick: () => toggleTag('kadin') },
                                 { label: 'Erkek', active: activeTags.includes('erkek'), onClick: () => toggleTag('erkek') },
+                                { label: 'Pet', active: activeTags.includes('pet'), onClick: () => toggleTag('pet') },
                                 { label: 'Düşük Fiyatlar', active: activeSortTag === 'low-price', onClick: () => toggleSortTag('low-price') },
                                 { label: 'Yüksek Fiyatlar', active: activeSortTag === 'high-price', onClick: () => toggleSortTag('high-price') },
                                 { label: 'En Yüksek Puanlılar', active: activeSortTag === 'rating', onClick: () => toggleSortTag('rating') },
@@ -631,6 +648,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                                 <div className="flex gap-3">
                                     <button onClick={() => toggleTag('kadin')} className={`flex-1 py-2.5 rounded-xl border font-bold text-sm transition-all ${activeTags.includes('kadin') ? 'bg-primary-50 border-primary-600 text-primary-700' : 'bg-white border-gray-200 text-gray-700'}`}>Kadın</button>
                                     <button onClick={() => toggleTag('erkek')} className={`flex-1 py-2.5 rounded-xl border font-bold text-sm transition-all ${activeTags.includes('erkek') ? 'bg-primary-50 border-primary-600 text-primary-700' : 'bg-white border-gray-200 text-gray-700'}`}>Erkek</button>
+                                    <button onClick={() => toggleTag('pet')} className={`flex-1 py-2.5 rounded-xl border font-bold text-sm transition-all ${activeTags.includes('pet') ? 'bg-primary-50 border-primary-600 text-primary-700' : 'bg-white border-gray-200 text-gray-700'}`}>Pet</button>
                                 </div>
                             </div>
                             <div>
@@ -774,7 +792,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                                 { id: ShopCategory.CiltBakimMerkezi,        label: ShopCategoryLabels[ShopCategory.CiltBakimMerkezi],        image: '/images/categories/ciltbakim.png' },
                                 { id: ShopCategory.TirnakSalonu,            label: ShopCategoryLabels[ShopCategory.TirnakSalonu],            image: '/images/categories/nailart.png' },
                                 { id: ShopCategory.LazerEpilasyon,          label: ShopCategoryLabels[ShopCategory.LazerEpilasyon],          image: '/images/categories/lazer.png' },
-                                { id: ShopCategory.MasajSalonu,             label: ShopCategoryLabels[ShopCategory.MasajSalonu],             image: '/images/categories/masaj.png' },
+                                { id: ShopCategory.PetKuafor,               label: ShopCategoryLabels[ShopCategory.PetKuafor],               image: '/images/categories/petkuafor.png' },
                                 { id: ShopCategory.SpaMerkezi,              label: ShopCategoryLabels[ShopCategory.SpaMerkezi],              image: '/images/categories/spa.png' },
                             ].map((cat) => (
                                 <button
@@ -855,7 +873,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                             )}
                             {activeTags.map(tag => (
                                 <span key={tag} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-semibold bg-primary-50 text-primary-700 border border-primary-200 shadow-sm">
-                                    {tag === 'kadin' ? 'Kadın' : 'Erkek'}
+                                    {tag === 'kadin' ? 'Kadın' : tag === 'erkek' ? 'Erkek' : 'Pet'}
                                     <button onClick={() => toggleTag(tag)} className="text-red-500 hover:text-red-600 transition-colors"><XCircle className="w-3.5 h-3.5" /></button>
                                 </span>
                             ))}

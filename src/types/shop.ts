@@ -1,7 +1,8 @@
 export const TargetGender = {
     Kadin: 1,
     Erkek: 2,
-    Unisex: 3
+    Unisex: 3,
+    Pet: 4
 } as const;
 
 export type TargetGender = typeof TargetGender[keyof typeof TargetGender];
@@ -9,7 +10,8 @@ export type TargetGender = typeof TargetGender[keyof typeof TargetGender];
 export const TargetGenderLabels: { [key in TargetGender]: string } = {
     [TargetGender.Kadin]: "Kadın",
     [TargetGender.Erkek]: "Erkek",
-    [TargetGender.Unisex]: "Unisex (Her İkisi)"
+    [TargetGender.Unisex]: "Unisex (Her İkisi)",
+    [TargetGender.Pet]: "Pet (Evcil Hayvan)"
 };
 
 export const ShopCategory = {
@@ -21,7 +23,7 @@ export const ShopCategory = {
     TirnakSalonu: 7,
     CiltBakimMerkezi: 8,
     LazerEpilasyon: 9,
-    MasajSalonu: 10,
+    PetKuafor: 10,
     SacKaynakProtez: 11,
     MakyajKasKirpikStudyosu: 12,
     Diger: 99
@@ -38,7 +40,7 @@ export const ShopCategoryLabels: { [key in ShopCategory]: string } = {
     [ShopCategory.TirnakSalonu]: "Tırnak Salonu",
     [ShopCategory.CiltBakimMerkezi]: "Cilt Bakım Merkezi",
     [ShopCategory.LazerEpilasyon]: "Lazer Epilasyon",
-    [ShopCategory.MasajSalonu]: "Masaj Salonu",
+    [ShopCategory.PetKuafor]: "Pet Kuaför",
     [ShopCategory.SacKaynakProtez]: "Saç Kaynak & Protez",
     [ShopCategory.MakyajKasKirpikStudyosu]: "Makyaj & Kaş/Kirpik",
     [ShopCategory.Diger]: "Diğer"

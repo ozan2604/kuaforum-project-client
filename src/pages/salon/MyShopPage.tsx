@@ -1291,7 +1291,7 @@ export const MyShopPage: React.FC = () => {
                                     Hizmet Verilen Cinsiyet <span className="text-red-500">*</span>
                                 </label>
                                 <div className="flex flex-wrap gap-3">
-                                    {[TargetGender.Kadin, TargetGender.Erkek, TargetGender.Unisex].map((gender) => (
+                                    {[TargetGender.Kadin, TargetGender.Erkek, TargetGender.Unisex, TargetGender.Pet].map((gender) => (
                                         <label
                                             key={gender}
                                             className={`cursor-pointer flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 transition-all ${watch('genderPreference')?.toString() === gender.toString() ? 'border-primary-600 bg-primary-50 text-primary-900' : 'border-gray-200 hover:border-primary-300'}`}

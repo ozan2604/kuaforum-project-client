@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { shopService } from '../api/shop.service';
-import { TargetGender, ShopCategoryLabels } from '../types/shop';
+import { TargetGender, TargetGenderLabels, ShopCategory, ShopCategoryLabels } from '../types/shop';
+import { useEffect } from 'react';
 
 export const CreateShopPage: React.FC = () => {
     const navigate = useNavigate();
@@ -26,6 +27,14 @@ export const CreateShopPage: React.FC = () => {
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
     };
+
+    useEffect(() => {
+        if (formData.categoryIds.includes(ShopCategory.PetKuafor)) {
+            setFormData(f => ({ ...f, genderPreference: TargetGender.Pet }));
+        } else if (formData.genderPreference === TargetGender.Pet) {
+            setFormData(f => ({ ...f, genderPreference: TargetGender.Unisex }));
+        }
+    }, [formData.categoryIds]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -137,6 +146,20 @@ export const CreateShopPage: React.FC = () => {
                                 </label>
                             );
                         })}
+                    </div>
+                </div>
+
+                <div className="space-y-1.5">
+                    <label className="block text-sm font-medium text-gray-700">
+                        Hizmet Verilen Cinsiyet
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                        {[TargetGender.Kadin, TargetGender.Erkek, TargetGender.Unisex, TargetGender.Pet].map(g => (
+                            <label key={g} className={`cursor-pointer flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border-2 font-semibold text-sm transition-all ${formData.genderPreference === g ? 'border-primary-500 bg-primary-50 text-primary-700' : 'border-gray-200 text-gray-500 hover:border-primary-200'}`}>
+                                <input type="radio" name="genderPreference" value={g} checked={formData.genderPreference === g} onChange={() => setFormData(f => ({ ...f, genderPreference: g }))} className="sr-only" />
+                                {TargetGenderLabels[g]}
+                            </label>
+                        ))}
                     </div>
                 </div>
 

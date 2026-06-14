@@ -3,7 +3,7 @@ import { toast } from 'react-hot-toast';
 import { Loader2, Phone, Store, MapPin, Plus } from 'lucide-react';
 import { adminService } from '../../api/admin.service';
 import { getApiError } from '../../utils/storage';
-import { TargetGender, TargetGenderLabels, ShopCategoryLabels } from '../../types/shop';
+import { TargetGender, TargetGenderLabels, ShopCategory, ShopCategoryLabels } from '../../types/shop';
 import { SearchableSelect } from '../../components/SearchableSelect';
 import api from '../../api/axios';
 
@@ -100,12 +100,15 @@ export const AdminCreateSalonPage: React.FC = () => {
     };
 
     const toggleCategory = (val: number) => {
-        setForm(f => ({
-            ...f,
-            categoryIds: f.categoryIds.includes(val)
+        setForm(f => {
+            const next = f.categoryIds.includes(val)
                 ? f.categoryIds.filter(c => c !== val)
-                : [...f.categoryIds, val],
-        }));
+                : [...f.categoryIds, val];
+            const genderPreference = next.includes(ShopCategory.PetKuafor)
+                ? TargetGender.Pet
+                : f.genderPreference === TargetGender.Pet ? TargetGender.Unisex : f.genderPreference;
+            return { ...f, categoryIds: next, genderPreference };
+        });
     };
 
     const handleSubmit = async (e: React.FormEvent) => {

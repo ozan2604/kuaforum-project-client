@@ -86,6 +86,12 @@ export const SalonApplicationPage: React.FC = () => {
         loadProvinces();
     }, []);
 
+    useEffect(() => {
+        if (form.categoryIds.includes(ShopCategory.PetKuafor)) {
+            setForm(f => ({ ...f, genderPreference: TargetGender.Pet }));
+        }
+    }, [form.categoryIds]);
+
     const loadSalonApplication = async () => {
         try {
             const data = await salonApplicationService.getMyApplication();
@@ -378,8 +384,8 @@ export const SalonApplicationPage: React.FC = () => {
                                     </div>
                                     <div>
                                         <label className={labelCls}>Hizmet Verilen Cinsiyet <span className="text-red-500">*</span></label>
-                                        <div className="grid grid-cols-3 gap-3">
-                                            {[TargetGender.Kadin, TargetGender.Erkek, TargetGender.Unisex].map(g => (
+                                        <div className="grid grid-cols-2 gap-3">
+                                            {[TargetGender.Kadin, TargetGender.Erkek, TargetGender.Unisex, TargetGender.Pet].map(g => (
                                                 <label key={g} className={`cursor-pointer flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 font-semibold text-sm transition-all ${form.genderPreference === g ? 'border-indigo-500 bg-indigo-50 text-indigo-700' : 'border-gray-200 text-gray-500 hover:border-indigo-200 hover:bg-indigo-50/50'}`}>
                                                     <input type="radio" name="gender" value={g} checked={form.genderPreference === g} onChange={() => setForm(f => ({ ...f, genderPreference: g }))} className="sr-only" />
                                                     {TargetGenderLabels[g]}
