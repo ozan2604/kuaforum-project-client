@@ -1050,6 +1050,9 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                                 const stripItems = mediaHighlights.slice(chunkIndex * 12, chunkIndex * 12 + 12);
                                 return (
                                     <React.Fragment key={chunkIndex}>
+                                        {stripItems.length > 0 && (
+                                            <MediaStrip items={stripItems} />
+                                        )}
                                         <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-5 w-full">
                                             {chunkShops.map((shop) => (
                                                 <ShopCard
@@ -1060,9 +1063,6 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                                                 />
                                             ))}
                                         </div>
-                                        {stripItems.length > 0 && (
-                                            <MediaStrip items={stripItems} />
-                                        )}
                                     </React.Fragment>
                                 );
                             })}
