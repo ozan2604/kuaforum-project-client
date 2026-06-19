@@ -199,7 +199,7 @@ export const RegisterPage: React.FC = () => {
                                         </svg>
                                     </div>
                                     <input type={showPassword ? 'text' : 'password'} name="password" value={form.password}
-                                        onChange={handleFormChange} placeholder="En az 8 karakter" required
+                                        onChange={handleFormChange} placeholder="En az 6 karakter" required
                                         className="w-full pl-11 pr-12 py-3 border border-gray-200 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all" />
                                     <button type="button" onClick={() => setShowPassword(v => !v)}
                                         className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-600">
