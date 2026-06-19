@@ -42,11 +42,11 @@ const NORMAL_STEPS: { id: Step; label: string; number: number }[] = [
 ];
 
 const GUEST_STEPS: { id: Step; label: string; number: number }[] = [
-    { id: 'info',      label: 'Bilgiler',     number: 1 },
-    { id: 'personnel', label: 'Personel',     number: 2 },
-    { id: 'service',   label: 'Hizmet',       number: 3 },
-    { id: 'datetime',  label: 'Tarih & Saat', number: 4 },
-    { id: 'confirm',   label: 'Onay',         number: 5 },
+    { id: 'personnel', label: 'Personel',     number: 1 },
+    { id: 'service',   label: 'Hizmet',       number: 2 },
+    { id: 'datetime',  label: 'Tarih & Saat', number: 3 },
+    { id: 'confirm',   label: 'Onay',         number: 4 },
+    { id: 'info',      label: 'Doğrula',      number: 5 },
 ];
 
 // Dakikayı "HH:mm" formatına çevirir
@@ -133,7 +133,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     const [loading, setLoading]       = useState(false);
     const [submitting, setSubmitting] = useState(false);
 
-    const [currentStep, setCurrentStep]           = useState<Step>(isGuest ? 'info' : 'personnel');
+    const [currentStep, setCurrentStep]           = useState<Step>('personnel');
     const [selectedServices, setSelectedServices] = useState<ShopServiceDto[]>([]);
     const [selectedEmployeeId, setSelectedEmployeeId] = useState('');
     const [selectedDate, setSelectedDate] = useState(getTodayIstanbul());
@@ -205,7 +205,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     // Modal açılışında sıfırlama
     useEffect(() => {
         if (!isOpen || !shopId) return;
-        setCurrentStep(isGuest ? 'info' : 'personnel');
+        setCurrentStep('personnel');
         setSelectedEmployeeId('');
         setSelectedDate(getTodayIstanbul());
         setSelectedTime('');
@@ -436,17 +436,25 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     };
 
     const nextStep = async () => {
-        if (currentStep === 'info') {
+        if (currentStep === 'personnel') {
+            if (!selectedEmployeeId) { toast.error('Lütfen bir personel seçin.'); return; }
+            setCurrentStep('service');
+        } else if (currentStep === 'service') {
+            if (!selectedServices.length) { toast.error('Lütfen en az bir hizmet seçin.'); return; }
+            setCurrentStep('datetime');
+        } else if (currentStep === 'datetime') {
+            if (!selectedDate || !selectedTime) { toast.error('Lütfen tarih ve saat seçin.'); return; }
+            setCurrentStep('confirm');
+        } else if (currentStep === 'confirm' && isGuest) {
+            setCurrentStep('info');
+        } else if (currentStep === 'info') {
             if (infoSubStep === 'form') {
-                // — Form doğrulaması
                 const errs: { name?: string; phone?: string } = {};
                 if (!guestName.trim()) errs.name = 'Ad soyad zorunludur.';
                 if (!guestPhone.trim()) errs.phone = 'Telefon numarası zorunludur.';
                 else if (!/^05[0-9]{9}$/.test(guestPhone.trim())) errs.phone = 'Telefon 05XXXXXXXXX formatında olmalıdır.';
                 if (Object.keys(errs).length) { setGuestErrors(errs); return; }
                 setGuestErrors({});
-
-                // — SMS kodu gönder (hem yeni hem mevcut numaraya)
                 setSendingOtp(true);
                 try {
                     await authService.sendGuestOtp(guestPhone.trim());
@@ -460,7 +468,6 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 return;
             }
 
-            // — OTP'yi backend'de doğrula → token al → auth context'e kaydet
             if (!guestOtp.trim() || !/^\d{6}$/.test(guestOtp.trim())) {
                 setOtpError('6 haneli kodu eksiksiz girin.');
                 return;
@@ -474,23 +481,13 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 });
                 completeAuth(authResponse);
                 setOtpError(null);
-                setCurrentStep('personnel');
+                await handleSubmit();
             } catch (err: any) {
                 const msg = err?.response?.data?.Message || err?.response?.data?.message || 'Doğrulama kodu hatalı veya süresi dolmuş.';
                 setOtpError(msg);
             } finally {
                 setSendingOtp(false);
             }
-            return;
-        } else if (currentStep === 'personnel') {
-            if (!selectedEmployeeId) { toast.error('Lütfen bir personel seçin.'); return; }
-            setCurrentStep('service');
-        } else if (currentStep === 'service') {
-            if (!selectedServices.length) { toast.error('Lütfen en az bir hizmet seçin.'); return; }
-            setCurrentStep('datetime');
-        } else if (currentStep === 'datetime') {
-            if (!selectedDate || !selectedTime) { toast.error('Lütfen tarih ve saat seçin.'); return; }
-            setCurrentStep('confirm');
         }
     };
 
@@ -499,10 +496,16 @@ export const BookingModal: React.FC<BookingModalProps> = ({
             setInfoSubStep('form');
             setGuestOtp('');
             setOtpError(null);
-        } else if (currentStep === 'personnel') { if (isGuest) setCurrentStep('info'); }
-        else if (currentStep === 'service')   setCurrentStep('personnel');
-        else if (currentStep === 'datetime') { setSelectedTime(''); setCurrentStep('service'); }
-        else if (currentStep === 'confirm')  setCurrentStep('datetime');
+        } else if (currentStep === 'info') {
+            setCurrentStep('confirm');
+        } else if (currentStep === 'service') {
+            setCurrentStep('personnel');
+        } else if (currentStep === 'datetime') {
+            setSelectedTime('');
+            setCurrentStep('service');
+        } else if (currentStep === 'confirm') {
+            setCurrentStep('datetime');
+        }
     };
 
     const addService = (s: ShopServiceDto) => setSelectedServices(prev => [...prev, s]);
@@ -1154,18 +1157,14 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 {/* Footer */}
                 {!bookingSuccess && !bookingError && (
                     <div className="px-5 py-4 border-t border-gray-100 flex items-center justify-between gap-3 shrink-0 bg-white rounded-b-2xl">
-                        {currentStep !== 'personnel' && currentStep !== 'info' ? (
-                            <Button variant="secondary" onClick={prevStep} className="flex items-center gap-1 px-4">
-                                <ChevronLeft className="h-4 w-4" /> Geri
-                            </Button>
-                        ) : (currentStep === 'personnel' && isGuest) || (currentStep === 'info' && infoSubStep === 'otp') ? (
+                        {currentStep !== 'personnel' ? (
                             <Button variant="secondary" onClick={prevStep} className="flex items-center gap-1 px-4">
                                 <ChevronLeft className="h-4 w-4" /> Geri
                             </Button>
                         ) : (
                             <div />
                         )}
-                        {currentStep === 'confirm' ? (
+                        {currentStep === 'confirm' && !isGuest ? (
                             <Button onClick={handleSubmit} disabled={submitting} className="flex-1 sm:flex-none sm:min-w-[160px] justify-center">
                                 {submitting ? 'İşleniyor...' : 'Randevuyu Onayla'}
                             </Button>
@@ -1178,7 +1177,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                 {currentStep === 'info' && infoSubStep === 'form' ? (
                                     sendingOtp ? 'Gönderiliyor...' : 'SMS Kodu Gönder'
                                 ) : currentStep === 'info' && infoSubStep === 'otp' ? (
-                                    sendingOtp ? 'Doğrulanıyor...' : 'Doğrula ve Devam Et'
+                                    sendingOtp ? 'Doğrulanıyor...' : 'Randevuyu Al'
                                 ) : (
                                     <>Devam Et <ChevronRight className="h-4 w-4" /></>
                                 )}
