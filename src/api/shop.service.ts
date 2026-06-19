@@ -1,5 +1,5 @@
 import api from './axios';
-import type { Shop, CreateShopDto, ShopClosureDateDto } from '../types/shop';
+import type { Shop, CreateShopDto, ShopClosureDateDto, MediaHighlight } from '../types/shop';
 
 export const shopService = {
     create: async (data: CreateShopDto): Promise<void> => {
@@ -146,5 +146,15 @@ export const shopService = {
 
     deleteImageTag: async (tagId: string): Promise<void> => {
         await api.delete(`/shop/gallery-images/tags/${tagId}`);
+    },
+
+    getMediaHighlights: async (city?: string, district?: string, neighborhood?: string, limit = 40): Promise<MediaHighlight[]> => {
+        const params = new URLSearchParams();
+        if (city) params.append('city', city);
+        if (district) params.append('district', district);
+        if (neighborhood) params.append('neighborhood', neighborhood);
+        params.append('limit', String(limit));
+        const response = await api.get<MediaHighlight[]>(`/shop/public/media-highlights?${params.toString()}`);
+        return response.data;
     }
 };

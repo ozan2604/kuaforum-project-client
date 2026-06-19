@@ -1,9 +1,10 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { shopService } from '../api/shop.service';
 import { favoriteService } from '../services/favorite.service';
-import { type Shop, TargetGender, ShopCategory, ShopCategoryLabels } from '../types/shop';
+import { type Shop, type MediaHighlight, TargetGender, ShopCategory, ShopCategoryLabels } from '../types/shop';
 import { useSearchParams } from 'react-router-dom';
 import { ShopCard } from '../components/ShopCard';
+import { MediaStrip } from '../components/MediaStrip';
 import { useAuth } from '../context/AuthContext';
 import { MapPin, ChevronDown, ChevronLeft, ChevronRight, Map, XCircle, Navigation } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
@@ -122,6 +123,7 @@ interface HomePageProps {
 export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false }) => {
     const [shops, setShops] = useState<Shop[]>([]);
     const [filteredShops, setFilteredShops] = useState<Shop[]>([]);
+    const [mediaHighlights, setMediaHighlights] = useState<MediaHighlight[]>([]);
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
@@ -240,6 +242,16 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
         }
     };
 
+
+    useEffect(() => {
+        if (showFavoritesOnly) return;
+        shopService.getMediaHighlights(
+            selectedProvince || undefined,
+            selectedDistrict || undefined,
+            selectedNeighborhood || undefined,
+            48
+        ).then(setMediaHighlights).catch(() => {});
+    }, [showFavoritesOnly, selectedProvince, selectedDistrict, selectedNeighborhood]);
 
     useEffect(() => {
         const loadShops = async () => {
@@ -1025,16 +1037,29 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                             ))}
                         </div>
                     ) : (
-                        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-5 w-full">
-                            {filteredShops.map((shop) => (
-                                <ShopCard
-                                    key={shop.id}
-                                    shop={shop}
-                                    initialIsFavorite={favoriteIds.has(shop.id)}
-                                    onToggleFavorite={(status) => handleToggleFavorite(shop.id, status)}
-                                />
-                            ))}
-                        </div>
+                        <>
+                            {Array.from({ length: Math.ceil(filteredShops.length / 4) }, (_, chunkIndex) => {
+                                const chunkShops = filteredShops.slice(chunkIndex * 4, chunkIndex * 4 + 4);
+                                const stripItems = mediaHighlights.slice(chunkIndex * 12, chunkIndex * 12 + 12);
+                                return (
+                                    <React.Fragment key={chunkIndex}>
+                                        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-5 w-full">
+                                            {chunkShops.map((shop) => (
+                                                <ShopCard
+                                                    key={shop.id}
+                                                    shop={shop}
+                                                    initialIsFavorite={favoriteIds.has(shop.id)}
+                                                    onToggleFavorite={(status) => handleToggleFavorite(shop.id, status)}
+                                                />
+                                            ))}
+                                        </div>
+                                        {stripItems.length > 0 && (
+                                            <MediaStrip items={stripItems} />
+                                        )}
+                                    </React.Fragment>
+                                );
+                            })}
+                        </>
                     )}
 
                     {!loading && !showFavoritesOnly && currentPage < totalPages && (

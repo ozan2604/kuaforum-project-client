@@ -59,6 +59,14 @@ export interface ShopVideo {
     createdAt: string;
 }
 
+export interface MediaHighlight {
+    type: 'image' | 'video';
+    url: string;
+    shopId: string;
+    shopName: string;
+    tags: string[];
+}
+
 export interface Shop {
     id: string;
     ownerId: string;
