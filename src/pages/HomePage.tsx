@@ -124,6 +124,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
     const [shops, setShops] = useState<Shop[]>([]);
     const [filteredShops, setFilteredShops] = useState<Shop[]>([]);
     const [mediaHighlights, setMediaHighlights] = useState<MediaHighlight[]>([]);
+    const [mediaRefreshing, setMediaRefreshing] = useState(false);
     const [loading, setLoading] = useState(true);
     const [loadingMore, setLoadingMore] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
@@ -243,14 +244,23 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
     };
 
 
-    useEffect(() => {
+    const fetchMediaHighlights = async () => {
         if (showFavoritesOnly) return;
-        shopService.getMediaHighlights(
-            selectedProvince || undefined,
-            selectedDistrict || undefined,
-            selectedNeighborhood || undefined,
-            48
-        ).then(setMediaHighlights).catch(() => {});
+        setMediaRefreshing(true);
+        try {
+            const data = await shopService.getMediaHighlights(
+                selectedProvince || undefined,
+                selectedDistrict || undefined,
+                selectedNeighborhood || undefined,
+                48
+            );
+            setMediaHighlights(data);
+        } catch {}
+        finally { setMediaRefreshing(false); }
+    };
+
+    useEffect(() => {
+        fetchMediaHighlights();
     }, [showFavoritesOnly, selectedProvince, selectedDistrict, selectedNeighborhood]);
 
     useEffect(() => {
@@ -1054,7 +1064,11 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                                             ))}
                                         </div>
                                         {stripItems.length > 0 && (
-                                            <MediaStrip items={stripItems} />
+                                            <MediaStrip
+                                                items={stripItems}
+                                                onRefresh={chunkIndex === 0 ? fetchMediaHighlights : undefined}
+                                                refreshing={chunkIndex === 0 ? mediaRefreshing : undefined}
+                                            />
                                         )}
                                     </React.Fragment>
                                 );

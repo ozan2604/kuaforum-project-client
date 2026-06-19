@@ -1,127 +1,183 @@
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Play, ArrowRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, ArrowRight, X, RefreshCw } from 'lucide-react';
 import type { MediaHighlight } from '../types/shop';
 
 interface MediaStripProps {
     items: MediaHighlight[];
+    onRefresh?: () => void;
+    refreshing?: boolean;
 }
 
-export const MediaStrip: React.FC<MediaStripProps> = ({ items }) => {
+export const MediaStrip: React.FC<MediaStripProps> = ({ items, onRefresh, refreshing }) => {
     const scrollRef = useRef<HTMLDivElement>(null);
     const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
+    const [videoModal, setVideoModal] = useState<MediaHighlight | null>(null);
+    const [canScrollLeft, setCanScrollLeft] = useState(false);
+    const [canScrollRight, setCanScrollRight] = useState(true);
     const videoRefs = useRef<Record<number, HTMLVideoElement | null>>({});
     const navigate = useNavigate();
+
+    const updateScrollState = () => {
+        const el = scrollRef.current;
+        if (!el) return;
+        setCanScrollLeft(el.scrollLeft > 5);
+        setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 5);
+    };
+
+    useEffect(() => {
+        const el = scrollRef.current;
+        if (!el) return;
+        updateScrollState();
+        el.addEventListener('scroll', updateScrollState, { passive: true });
+        return () => el.removeEventListener('scroll', updateScrollState);
+    }, [items]);
 
     if (items.length === 0) return null;
 
     const scroll = (dir: 'left' | 'right') => {
-        if (!scrollRef.current) return;
-        scrollRef.current.scrollBy({ left: dir === 'left' ? -340 : 340, behavior: 'smooth' });
+        scrollRef.current?.scrollBy({ left: dir === 'left' ? -340 : 340, behavior: 'smooth' });
     };
 
     const handleMouseEnter = (index: number) => {
         setHoveredIndex(index);
         const vid = videoRefs.current[index];
-        if (vid) {
-            vid.currentTime = 0;
-            vid.play().catch(() => {});
-        }
+        if (vid) { vid.currentTime = 0; vid.play().catch(() => {}); }
     };
 
     const handleMouseLeave = (index: number) => {
         setHoveredIndex(null);
-        const vid = videoRefs.current[index];
-        if (vid) vid.pause();
+        videoRefs.current[index]?.pause();
+    };
+
+    const handleCardClick = (item: MediaHighlight) => {
+        if (item.type === 'video') setVideoModal(item);
+        else navigate(`/shop/${item.shopId}`);
     };
 
     return (
-        <div className="relative group/strip my-6">
-            {/* Sol ok */}
-            <button
-                onClick={() => scroll('left')}
-                className="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white shadow-lg border border-gray-200 hidden sm:flex items-center justify-center opacity-0 group-hover/strip:opacity-100 transition-all hover:shadow-xl -translate-x-1"
-            >
-                <ChevronLeft className="w-5 h-5 text-gray-700" />
-            </button>
-
-            {/* Sağ ok */}
-            <button
-                onClick={() => scroll('right')}
-                className="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-white shadow-lg border border-gray-200 hidden sm:flex items-center justify-center opacity-0 group-hover/strip:opacity-100 transition-all hover:shadow-xl translate-x-1"
-            >
-                <ChevronRight className="w-5 h-5 text-gray-700" />
-            </button>
-
-            {/* Scroll container */}
-            <div
-                ref={scrollRef}
-                className="flex gap-3 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] pb-1"
-            >
-                {items.map((item, index) => (
-                    <div
-                        key={`${item.shopId}-${index}`}
-                        className="relative shrink-0 w-40 h-56 sm:w-48 sm:h-64 rounded-2xl overflow-hidden cursor-pointer group/card"
-                        onMouseEnter={() => handleMouseEnter(index)}
-                        onMouseLeave={() => handleMouseLeave(index)}
-                        onClick={() => navigate(`/shop/${item.shopId}`)}
+        <>
+            {/* Başlık satırı */}
+            <div className="flex items-center justify-between mb-3">
+                <p className="text-xs font-semibold text-gray-400 tracking-wide">Salonlardan kolaj</p>
+                {onRefresh && (
+                    <button
+                        onClick={onRefresh}
+                        disabled={refreshing}
+                        className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-primary-600 transition-colors disabled:opacity-50"
                     >
-                        {/* Media */}
-                        {item.type === 'image' ? (
-                            <img
-                                src={item.url}
-                                alt={item.shopName}
-                                className="w-full h-full object-cover transition-transform duration-500 group-hover/card:scale-105"
-                            />
-                        ) : (
-                            <>
-                                <video
-                                    ref={el => { videoRefs.current[index] = el; }}
+                        <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
+                        Yenile
+                    </button>
+                )}
+            </div>
+
+            <div className="relative mb-6">
+                {/* Sol gradient + ok */}
+                <div className={`absolute left-0 top-0 bottom-0 w-16 z-10 pointer-events-none transition-opacity duration-300 ${canScrollLeft ? 'opacity-100' : 'opacity-0'}`}
+                    style={{ background: 'linear-gradient(to right, #f9fafb, transparent)' }}
+                />
+                <button
+                    onClick={() => scroll('left')}
+                    className={`absolute left-1 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white shadow-md border border-gray-200 hidden sm:flex items-center justify-center transition-all duration-300 hover:shadow-lg ${canScrollLeft ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                >
+                    <ChevronLeft className="w-4 h-4 text-gray-700" />
+                </button>
+
+                {/* Sağ gradient + ok */}
+                <div className={`absolute right-0 top-0 bottom-0 w-24 z-10 pointer-events-none transition-opacity duration-300 ${canScrollRight ? 'opacity-100' : 'opacity-0'}`}
+                    style={{ background: 'linear-gradient(to left, #f9fafb, transparent)' }}
+                />
+                <button
+                    onClick={() => scroll('right')}
+                    className={`absolute right-1 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white shadow-md border border-gray-200 hidden sm:flex items-center justify-center transition-all duration-300 hover:shadow-lg ${canScrollRight ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+                >
+                    <ChevronRight className="w-4 h-4 text-gray-700" />
+                </button>
+
+                {/* Scroll container */}
+                <div
+                    ref={scrollRef}
+                    className="flex gap-3 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] pb-1"
+                >
+                    {items.map((item, index) => (
+                        <div
+                            key={`${item.shopId}-${index}`}
+                            className="relative shrink-0 w-40 h-56 sm:w-48 sm:h-64 rounded-2xl overflow-hidden cursor-pointer group/card"
+                            onMouseEnter={() => handleMouseEnter(index)}
+                            onMouseLeave={() => handleMouseLeave(index)}
+                            onClick={() => handleCardClick(item)}
+                        >
+                            {item.type === 'image' ? (
+                                <img
                                     src={item.url}
+                                    alt={item.shopName}
                                     className="w-full h-full object-cover transition-transform duration-500 group-hover/card:scale-105"
-                                    muted
-                                    loop
-                                    playsInline
-                                    preload="metadata"
                                 />
-                                {/* Video play ikonu — hover'da kaybolur */}
-                                <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-200 ${hoveredIndex === index ? 'opacity-0' : 'opacity-100'}`}>
-                                    <div className="w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center shadow-lg">
-                                        <Play className="w-4 h-4 text-gray-900 fill-gray-900 ml-0.5" />
+                            ) : (
+                                <>
+                                    <video
+                                        ref={el => { videoRefs.current[index] = el; }}
+                                        src={item.url}
+                                        className="w-full h-full object-cover transition-transform duration-500 group-hover/card:scale-105"
+                                        muted loop playsInline preload="metadata"
+                                    />
+                                    <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-200 ${hoveredIndex === index ? 'opacity-0' : 'opacity-100'}`}>
+                                        <div className="w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center shadow-lg">
+                                            <Play className="w-4 h-4 text-gray-900 fill-gray-900 ml-0.5" />
+                                        </div>
+                                    </div>
+                                </>
+                            )}
+
+                            {/* Üst etiketler */}
+                            {item.tags.length > 0 && (
+                                <div className="absolute top-0 left-0 right-0 pt-2.5 px-2.5 bg-gradient-to-b from-black/50 to-transparent">
+                                    <div className="flex flex-wrap gap-1">
+                                        {item.tags.slice(0, 2).map((tag) => (
+                                            <span key={tag} className="text-[10px] font-semibold text-white bg-white/20 backdrop-blur-sm px-2 py-0.5 rounded-full border border-white/30">
+                                                {tag}
+                                            </span>
+                                        ))}
                                     </div>
                                 </div>
-                            </>
-                        )}
+                            )}
 
-                        {/* Üst gradient + etiketler */}
-                        {item.tags.length > 0 && (
-                            <div className="absolute top-0 left-0 right-0 pt-2.5 px-2.5 bg-gradient-to-b from-black/50 to-transparent">
-                                <div className="flex flex-wrap gap-1">
-                                    {item.tags.slice(0, 2).map((tag) => (
-                                        <span
-                                            key={tag}
-                                            className="text-[10px] font-semibold text-white bg-white/20 backdrop-blur-sm px-2 py-0.5 rounded-full border border-white/30"
-                                        >
-                                            {tag}
-                                        </span>
-                                    ))}
+                            {/* Alt bilgi */}
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-8 pb-3 px-3">
+                                <p className="text-white text-xs font-bold leading-tight line-clamp-1 mb-1.5">{item.shopName}</p>
+                                <div className={`flex items-center gap-1 text-white/80 text-[11px] font-semibold transition-all duration-200 ${hoveredIndex === index ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'}`}>
+                                    <span>{item.type === 'video' ? 'Videoyu İzle' : 'Salona Git'}</span>
+                                    <ArrowRight className="w-3 h-3" />
                                 </div>
                             </div>
-                        )}
+                        </div>
+                    ))}
+                </div>
+            </div>
 
-                        {/* Alt gradient + salon adı + git butonu */}
-                        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-8 pb-3 px-3">
-                            <p className="text-white text-xs font-bold leading-tight line-clamp-1 mb-2">
-                                {item.shopName}
-                            </p>
-                            <div className={`flex items-center gap-1 text-white/80 text-[11px] font-semibold transition-all duration-200 ${hoveredIndex === index ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-1'}`}>
-                                <span>Salona Git</span>
-                                <ArrowRight className="w-3 h-3" />
+            {/* Video Modal */}
+            {videoModal && (
+                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setVideoModal(null)}>
+                    <div className="relative w-full max-w-lg rounded-2xl overflow-hidden bg-black shadow-2xl" onClick={e => e.stopPropagation()}>
+                        <video src={videoModal.url} className="w-full max-h-[70vh] object-contain" controls autoPlay playsInline />
+                        <div className="flex items-center justify-between px-4 py-3 bg-gray-900">
+                            <p className="text-white font-bold text-sm">{videoModal.shopName}</p>
+                            <div className="flex items-center gap-3">
+                                <button
+                                    onClick={() => { setVideoModal(null); navigate(`/shop/${videoModal.shopId}`); }}
+                                    className="flex items-center gap-1.5 bg-white text-gray-900 text-xs font-bold px-4 py-2 rounded-xl hover:bg-gray-100 transition-colors"
+                                >
+                                    Salona Git <ArrowRight className="w-3.5 h-3.5" />
+                                </button>
+                                <button onClick={() => setVideoModal(null)} className="text-gray-400 hover:text-white transition-colors p-1">
+                                    <X className="w-5 h-5" />
+                                </button>
                             </div>
                         </div>
                     </div>
-                ))}
-            </div>
-        </div>
+                </div>
+            )}
+        </>
     );
 };
