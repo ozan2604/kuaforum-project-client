@@ -13,6 +13,7 @@ interface SalonContextType {
 }
 
 const SalonContext = createContext<SalonContextType | null>(null);
+export { SalonContext };
 
 export const SalonProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const [allShops, setAllShops] = useState<Shop[]>([]);

@@ -5,7 +5,7 @@ import type { Shop } from '../../types/shop';
 import { ShopCategoryLabels, TargetGenderLabels, type ShopCategory } from '../../types/shop';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { MapPin, Phone, Mail, User, Trash2, Search, Store, ChevronLeft, ChevronRight, Tags, Users, FileX, Calendar, Loader2 } from 'lucide-react';
+import { MapPin, Phone, Mail, User, Trash2, Search, Store, ChevronLeft, ChevronRight, Tags, Users, FileX, Calendar, Loader2, Eye } from 'lucide-react';
 
 export const ShopListPage: React.FC = () => {
     const [shops, setShops] = useState<Shop[]>([]);
@@ -172,13 +172,22 @@ export const ShopListPage: React.FC = () => {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                            <button
-                                                onClick={() => setShopToDelete({ id: shop.id, name: shop.name })}
-                                                className="text-red-600 hover:text-red-900 p-2 rounded-full hover:bg-red-50 transition-colors"
-                                                title="Salonu Sil"
-                                            >
-                                                <Trash2 className="w-5 h-5" />
-                                            </button>
+                                            <div className="flex items-center justify-end gap-1">
+                                                <Link
+                                                    to={`/admin/shops/${shop.id}/panel`}
+                                                    className="text-blue-500 hover:text-blue-700 p-2 rounded-full hover:bg-blue-50 transition-colors"
+                                                    title="Salon Panelini Aç"
+                                                >
+                                                    <Eye className="w-5 h-5" />
+                                                </Link>
+                                                <button
+                                                    onClick={() => setShopToDelete({ id: shop.id, name: shop.name })}
+                                                    className="text-red-600 hover:text-red-900 p-2 rounded-full hover:bg-red-50 transition-colors"
+                                                    title="Salonu Sil"
+                                                >
+                                                    <Trash2 className="w-5 h-5" />
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}

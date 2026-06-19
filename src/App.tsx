@@ -8,6 +8,7 @@ import { MainLayout } from './layouts/MainLayout';
 import { SalonOwnerLayout } from './layouts/SalonOwnerLayout';
 import { EmployeeLayout } from './layouts/EmployeeLayout';
 import { AdminLayout } from './layouts/AdminLayout';
+import { AdminSalonLayout } from './layouts/AdminSalonLayout';
 import { AuthLayout } from './layouts/AuthLayout';
 
 import { ProtectedRoute } from './routes/ProtectedRoute';
@@ -115,6 +116,13 @@ function App() {
             <Route path="/admin/users" element={<UserListPage />} />
             <Route path="/admin/sms-test" element={<SmsTestPage />} />
             <Route path="/admin/shops/create" element={<AdminCreateSalonPage />} />
+          </Route>
+          <Route path="/admin/shops/:shopId/panel" element={<AdminSalonLayout />}>
+            <Route index element={<SalonDashboard />} />
+            <Route path="appointments" element={<SalonAppointmentsPage />} />
+            <Route path="shop" element={<MyShopPage />} />
+            <Route path="blocked-customers" element={<BlockedCustomersPage />} />
+            <Route path="qr-kod" element={<SalonQrCodePage />} />
           </Route>
         </Route>
 
