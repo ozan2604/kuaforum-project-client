@@ -1,15 +1,13 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Play, ArrowRight, X, RefreshCw } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, ArrowRight, X } from 'lucide-react';
 import type { MediaHighlight } from '../types/shop';
 
 interface MediaStripProps {
     items: MediaHighlight[];
-    onRefresh?: () => void;
-    refreshing?: boolean;
 }
 
-export const MediaStrip: React.FC<MediaStripProps> = ({ items, onRefresh, refreshing }) => {
+export const MediaStrip: React.FC<MediaStripProps> = ({ items }) => {
     const scrollRef = useRef<HTMLDivElement>(null);
     const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
     const [videoModal, setVideoModal] = useState<MediaHighlight | null>(null);
@@ -57,43 +55,38 @@ export const MediaStrip: React.FC<MediaStripProps> = ({ items, onRefresh, refres
 
     return (
         <>
-            {/* Başlık satırı */}
-            <div className="flex items-center justify-between mb-3">
-                <p className="text-xs font-semibold text-gray-400 tracking-wide">Salonlardan kolaj</p>
-                {onRefresh && (
-                    <button
-                        onClick={onRefresh}
-                        disabled={refreshing}
-                        className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 hover:text-primary-600 transition-colors disabled:opacity-50"
-                    >
-                        <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? 'animate-spin' : ''}`} />
-                        Yenile
-                    </button>
-                )}
+            {/* Başlık satırı — kartta altta konumlu hissi için mt büyük, mb küçük */}
+            <div className="flex items-center justify-between mt-6 mb-2 px-0.5">
+                <p className="text-[11px] font-semibold text-gray-400 tracking-wide uppercase">Salonlardan kolaj</p>
+                <button
+                    onClick={() => scroll('right')}
+                    className="flex items-center gap-1 text-[11px] font-semibold text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                    Sağa kaydır
+                    <ChevronRight className="w-3.5 h-3.5" />
+                </button>
             </div>
 
             <div className="relative mb-6">
-                {/* Sol gradient + ok */}
-                <div className={`absolute left-0 top-0 bottom-0 w-16 z-10 pointer-events-none transition-opacity duration-300 ${canScrollLeft ? 'opacity-100' : 'opacity-0'}`}
-                    style={{ background: 'linear-gradient(to right, #f9fafb, transparent)' }}
-                />
-                <button
-                    onClick={() => scroll('left')}
-                    className={`absolute left-1 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white shadow-md border border-gray-200 hidden sm:flex items-center justify-center transition-all duration-300 hover:shadow-lg ${canScrollLeft ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-                >
-                    <ChevronLeft className="w-4 h-4 text-gray-700" />
-                </button>
+                {/* Sol ok — sadece masaüstünde, scroll varsa */}
+                {canScrollLeft && (
+                    <button
+                        onClick={() => scroll('left')}
+                        className="absolute left-1 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white shadow-md border border-gray-200 hidden sm:flex items-center justify-center hover:shadow-lg transition-all"
+                    >
+                        <ChevronLeft className="w-4 h-4 text-gray-700" />
+                    </button>
+                )}
 
-                {/* Sağ gradient + ok */}
-                <div className={`absolute right-0 top-0 bottom-0 w-24 z-10 pointer-events-none transition-opacity duration-300 ${canScrollRight ? 'opacity-100' : 'opacity-0'}`}
-                    style={{ background: 'linear-gradient(to left, #f9fafb, transparent)' }}
-                />
-                <button
-                    onClick={() => scroll('right')}
-                    className={`absolute right-1 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white shadow-md border border-gray-200 hidden sm:flex items-center justify-center transition-all duration-300 hover:shadow-lg ${canScrollRight ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-                >
-                    <ChevronRight className="w-4 h-4 text-gray-700" />
-                </button>
+                {/* Sağ ok — sadece masaüstünde, scroll varsa */}
+                {canScrollRight && (
+                    <button
+                        onClick={() => scroll('right')}
+                        className="absolute right-1 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white shadow-md border border-gray-200 hidden sm:flex items-center justify-center hover:shadow-lg transition-all"
+                    >
+                        <ChevronRight className="w-4 h-4 text-gray-700" />
+                    </button>
+                )}
 
                 {/* Scroll container */}
                 <div
@@ -120,7 +113,14 @@ export const MediaStrip: React.FC<MediaStripProps> = ({ items, onRefresh, refres
                                         ref={el => { videoRefs.current[index] = el; }}
                                         src={item.url}
                                         className="w-full h-full object-cover transition-transform duration-500 group-hover/card:scale-105"
-                                        muted loop playsInline preload="metadata"
+                                        muted
+                                        loop
+                                        playsInline
+                                        preload="metadata"
+                                        onLoadedMetadata={e => {
+                                            // Siyah kare sorununu önlemek için ilk kareye seekle
+                                            e.currentTarget.currentTime = 0.1;
+                                        }}
                                     />
                                     <div className={`absolute inset-0 flex items-center justify-center transition-opacity duration-200 ${hoveredIndex === index ? 'opacity-0' : 'opacity-100'}`}>
                                         <div className="w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm flex items-center justify-center shadow-lg">
