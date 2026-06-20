@@ -805,6 +805,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                                 { id: ShopCategory.ErkekKuafor,              label: ShopCategoryLabels[ShopCategory.ErkekKuafor],              image: '/images/categories/berber.png' },
                                 { id: ShopCategory.Kuafor,                   label: ShopCategoryLabels[ShopCategory.Kuafor],                   image: '/images/categories/kuafor.png' },
                                 { id: ShopCategory.PetKuafor,               label: ShopCategoryLabels[ShopCategory.PetKuafor],               image: '/images/categories/petkuafor.png' },
+                                { id: ShopCategory.GenelKuafor,             label: ShopCategoryLabels[ShopCategory.GenelKuafor],             image: '/images/categories/spa.png' },
                                 { id: ShopCategory.GuzellikMerkezi,          label: ShopCategoryLabels[ShopCategory.GuzellikMerkezi],          image: '/images/categories/guzellik.png' },
                                 { id: ShopCategory.DovmePiercingStudyosu,   label: ShopCategoryLabels[ShopCategory.DovmePiercingStudyosu],   image: '/images/categories/dovme.png' },
                                 { id: ShopCategory.MakyajKasKirpikStudyosu, label: ShopCategoryLabels[ShopCategory.MakyajKasKirpikStudyosu], image: '/images/categories/makyaj.png' },
@@ -812,7 +813,6 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                                 { id: ShopCategory.CiltBakimMerkezi,        label: ShopCategoryLabels[ShopCategory.CiltBakimMerkezi],        image: '/images/categories/ciltbakim.png' },
                                 { id: ShopCategory.TirnakSalonu,            label: ShopCategoryLabels[ShopCategory.TirnakSalonu],            image: '/images/categories/nailart.png' },
                                 { id: ShopCategory.LazerEpilasyon,          label: ShopCategoryLabels[ShopCategory.LazerEpilasyon],          image: '/images/categories/lazer.png' },
-                                { id: ShopCategory.SpaMerkezi,              label: ShopCategoryLabels[ShopCategory.SpaMerkezi],              image: '/images/categories/spa.png' },
                             ].map((cat) => (
                                 <button
                                     key={cat.id}
