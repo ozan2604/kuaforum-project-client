@@ -805,7 +805,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                                 { id: ShopCategory.ErkekKuafor,              label: ShopCategoryLabels[ShopCategory.ErkekKuafor],              image: '/images/categories/berber.png' },
                                 { id: ShopCategory.Kuafor,                   label: ShopCategoryLabels[ShopCategory.Kuafor],                   image: '/images/categories/kuafor.png' },
                                 { id: ShopCategory.PetKuafor,               label: ShopCategoryLabels[ShopCategory.PetKuafor],               image: '/images/categories/petkuafor.png' },
-                                { id: ShopCategory.GenelKuafor,             label: ShopCategoryLabels[ShopCategory.GenelKuafor],             image: '/images/categories/kuafortag.png' },
+                                { id: ShopCategory.KuaforTag,             label: ShopCategoryLabels[ShopCategory.KuaforTag],             image: '/images/categories/kuafortag.png' },
                                 { id: ShopCategory.GuzellikMerkezi,          label: ShopCategoryLabels[ShopCategory.GuzellikMerkezi],          image: '/images/categories/guzellik.png' },
                                 { id: ShopCategory.DovmePiercingStudyosu,   label: ShopCategoryLabels[ShopCategory.DovmePiercingStudyosu],   image: '/images/categories/dovme.png' },
                                 { id: ShopCategory.MakyajKasKirpikStudyosu, label: ShopCategoryLabels[ShopCategory.MakyajKasKirpikStudyosu], image: '/images/categories/makyaj.png' },
