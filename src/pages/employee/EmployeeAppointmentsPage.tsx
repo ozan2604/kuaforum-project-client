@@ -8,7 +8,7 @@ import { toast } from 'react-hot-toast';
 import { getApiError } from '../../utils/storage';
 import {
     Calendar, Clock, CheckCircle, XCircle, AlertCircle,
-    Scissors, ChevronLeft, ChevronRight, ChevronDown, Filter, X, Plus, UserX, MessageSquare, User, Phone
+    Scissors, ChevronLeft, ChevronRight, ChevronDown, Filter, X, Plus, UserX, MessageSquare, User, Phone, MapPin
 } from 'lucide-react';
 import { blockService } from '../../api/block.service';
 import { ManualBookingModal } from '../../components/ManualBookingModal';
@@ -514,6 +514,14 @@ export const EmployeeAppointmentsPage: React.FC = () => {
                                                                     );
                                                                 })}
                                                             </div>
+
+                                                            {/* Müşteri adresi (seyyar berber) */}
+                                                            {first.customerAddress && (
+                                                                <div className="flex items-start gap-2 text-sm text-purple-700 bg-purple-50 border border-purple-100 rounded-lg px-3 py-2">
+                                                                    <MapPin className="w-4 h-4 text-purple-500 mt-0.5 shrink-0" />
+                                                                    <span>{first.customerAddress}</span>
+                                                                </div>
+                                                            )}
 
                                                             {/* Müşteri notu */}
                                                             {first.note && (

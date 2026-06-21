@@ -9,14 +9,14 @@ import { getApiError } from '../../utils/storage';
 import {
     MapPin, Phone, Building2, Trash2, CalendarX, Clock,
     Camera, Store, ChevronDown, ChevronUp, ArrowRight, AlertTriangle, CalendarClock, UserX,
-    Scissors, Users, CheckCircle, CheckCircle2, Circle, Video
+    Scissors, Users, CheckCircle, CheckCircle2, Circle, Video, Plus, X as XIcon
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { ServicesPage } from './ServicesPage';
 import { EmployeesPage } from './EmployeesPage';
 import { SearchableSelect } from '../../components/SearchableSelect';
-import { ShopCategoryLabels, TargetGender, TargetGenderLabels } from '../../types/shop';
-import type { ShopClosureDateDto } from '../../types/shop';
+import { ShopCategoryLabels, ShopType, TargetGender, TargetGenderLabels } from '../../types/shop';
+import type { ShopClosureDateDto, ServiceAreaDto } from '../../types/shop';
 import MapPicker from '../../components/MapPicker';
 import { employeeService } from '../../api/employee.service';
 import type { Employee, EmployeeLeaveDate } from '../../types/employee';
@@ -212,11 +212,18 @@ export const MyShopPage: React.FC = () => {
     const [confirmUpdate, setConfirmUpdate] = useState<ConfirmUpdateState | null>(null);
     const [infoPopup, setInfoPopup] = useState<string | null>(null);
 
+    const [shopType, setShopType] = useState<ShopType>(ShopType.Fixed);
+    const [serviceAreas, setServiceAreas] = useState<ServiceAreaDto[]>([]);
+    const [savedServiceAreas, setSavedServiceAreas] = useState<ServiceAreaDto[]>([]);
+    const [newArea, setNewArea] = useState<ServiceAreaDto>({ city: '', district: '', neighborhood: '' });
+    const [savingServiceAreas, setSavingServiceAreas] = useState(false);
+
     const [openCards, setOpenCards] = useState({
         setup: false,
         images: false,
         info: false,
         location: false,
+        serviceAreas: false,
         services: false,
         employees: false,
         hours: false,
@@ -359,6 +366,9 @@ export const MyShopPage: React.FC = () => {
                 setSelectedCategories(shop.categories ?? []);
                 setClosureDates(shop.closureDates || []);
                 setWeeklyOffDays(shop.weeklyOffDays ?? []);
+                setShopType(shop.shopType ?? ShopType.Fixed);
+                setServiceAreas(shop.serviceAreas ?? []);
+                setSavedServiceAreas(shop.serviceAreas ?? []);
 
 
                 setSavedSnapshot({
@@ -581,6 +591,35 @@ export const MyShopPage: React.FC = () => {
             toast.error(errorMessage);
         } finally {
             setLoading(false);
+        }
+    };
+
+    const handleSaveServiceAreas = async () => {
+        if (!shopId || !savedSnapshot) return;
+        if (serviceAreas.length === 0) {
+            toast.error('En az bir hizmet bölgesi eklemelisiniz.');
+            return;
+        }
+        setSavingServiceAreas(true);
+        try {
+            await shopService.update(shopId, {
+                name: savedSnapshot.name,
+                description: savedSnapshot.description,
+                phoneNumber: savedSnapshot.phoneNumber,
+                genderPreference: savedSnapshot.genderPreference as TargetGender,
+                categoryIds: savedSnapshot.categoryIds,
+                address: savedSnapshot.address || '',
+                city: savedSnapshot.city || '',
+                district: savedSnapshot.district || '',
+                shopType: ShopType.Mobile,
+                serviceAreas,
+            });
+            setSavedServiceAreas(serviceAreas);
+            toast.success('Hizmet bölgeleri güncellendi');
+        } catch {
+            toast.error('Hizmet bölgeleri güncellenemedi');
+        } finally {
+            setSavingServiceAreas(false);
         }
     };
 
@@ -1358,8 +1397,93 @@ export const MyShopPage: React.FC = () => {
                         </div>
                     </AccordionCard>
 
-                    {/* Kart 3: Konum Detayları */}
-                    <AccordionCard
+                    {/* Kart 3a: Hizmet Bölgeleri — yalnızca seyyar berberler */}
+                    {shopType === ShopType.Mobile && (
+                        <AccordionCard
+                            icon={<MapPin className="w-6 h-6" />}
+                            iconBg="bg-purple-50"
+                            iconColor="text-purple-600"
+                            title="Hizmet Bölgeleri"
+                            subtitle="Hangi il ve ilçelere gidiyorsunuz?"
+                            isOpen={openCards.serviceAreas}
+                            onToggle={() => toggleCard('serviceAreas')}
+                        >
+                            <div className="space-y-4">
+                                {/* Mevcut bölgeler */}
+                                {serviceAreas.length > 0 && (
+                                    <div className="flex flex-wrap gap-2">
+                                        {serviceAreas.map((area, i) => (
+                                            <span key={i} className="flex items-center gap-1 bg-purple-100 text-purple-700 px-3 py-1.5 rounded-full text-sm font-medium">
+                                                {area.city} / {area.district}{area.neighborhood ? ` / ${area.neighborhood}` : ''}
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setServiceAreas(prev => prev.filter((_, idx) => idx !== i))}
+                                                    className="ml-1 hover:text-purple-900"
+                                                >
+                                                    <XIcon className="w-3.5 h-3.5" />
+                                                </button>
+                                            </span>
+                                        ))}
+                                    </div>
+                                )}
+
+                                {/* Yeni bölge girişi */}
+                                <div className="grid grid-cols-3 gap-2">
+                                    <input
+                                        type="text"
+                                        placeholder="Şehir (örn: İstanbul)"
+                                        value={newArea.city}
+                                        onChange={e => setNewArea(a => ({ ...a, city: e.target.value }))}
+                                        className="rounded-xl border-2 border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-purple-500"
+                                    />
+                                    <input
+                                        type="text"
+                                        placeholder="İlçe (örn: Kadıköy)"
+                                        value={newArea.district}
+                                        onChange={e => setNewArea(a => ({ ...a, district: e.target.value }))}
+                                        className="rounded-xl border-2 border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-purple-500"
+                                    />
+                                    <input
+                                        type="text"
+                                        placeholder="Mahalle (opsiyonel)"
+                                        value={newArea.neighborhood || ''}
+                                        onChange={e => setNewArea(a => ({ ...a, neighborhood: e.target.value }))}
+                                        className="rounded-xl border-2 border-gray-200 px-3 py-2 text-sm focus:outline-none focus:border-purple-500"
+                                    />
+                                </div>
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        if (!newArea.city.trim() || !newArea.district.trim()) return;
+                                        setServiceAreas(prev => [...prev, {
+                                            city: newArea.city.trim(),
+                                            district: newArea.district.trim(),
+                                            neighborhood: newArea.neighborhood?.trim() || undefined
+                                        }]);
+                                        setNewArea({ city: '', district: '', neighborhood: '' });
+                                    }}
+                                    disabled={!newArea.city.trim() || !newArea.district.trim()}
+                                    className="flex items-center gap-1.5 text-sm font-medium text-purple-600 hover:text-purple-800 disabled:opacity-40 disabled:cursor-not-allowed"
+                                >
+                                    <Plus className="w-4 h-4" /> Bölge Ekle
+                                </button>
+
+                                <div className="pt-2 border-t border-gray-100">
+                                    <Button
+                                        type="button"
+                                        onClick={handleSaveServiceAreas}
+                                        isLoading={savingServiceAreas}
+                                        className="bg-purple-600 hover:bg-purple-700"
+                                    >
+                                        Hizmet Bölgelerini Güncelle
+                                    </Button>
+                                </div>
+                            </div>
+                        </AccordionCard>
+                    )}
+
+                    {/* Kart 3b: Konum Detayları — yalnızca sabit salonlar */}
+                    {shopType === ShopType.Fixed && <AccordionCard
                         icon={<MapPin className="w-6 h-6" />}
                         iconBg="bg-emerald-50"
                         iconColor="text-emerald-600"
@@ -1488,7 +1612,7 @@ export const MyShopPage: React.FC = () => {
                                 </Button>
                             </div>
                         </div>
-                    </AccordionCard>
+                    </AccordionCard>}
 
                     {/* Kart 4: Hizmetler */}
                     <AccordionCard
