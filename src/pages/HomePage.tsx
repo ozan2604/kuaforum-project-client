@@ -451,7 +451,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col pt-0">
             {/* Sub-Navbar for Quick Filters */}
-            <div className="bg-white border-b border-gray-100 sticky top-24 z-40">
+            <div className="bg-white border-b border-gray-100 sticky top-14 sm:top-24 z-40">
                 <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between sm:justify-start h-12 text-sm font-medium select-none w-full">
 
