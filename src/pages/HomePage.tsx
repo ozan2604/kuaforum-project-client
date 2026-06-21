@@ -141,6 +141,10 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
             setMapFocusShopId(shopId);
             setTimeout(() => mapSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200);
         }
+        if (searchParams.get('openMap') === '1') {
+            setIsMapModalOpen(true);
+            setTimeout(() => mapSectionRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 200);
+        }
     }, [searchParams]);
     const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
     const { isAuthenticated, user } = useAuth();
