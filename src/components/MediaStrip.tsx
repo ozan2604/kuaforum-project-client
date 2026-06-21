@@ -80,10 +80,7 @@ const MediaCard: React.FC<MediaCardProps> = ({
         try {
             const serverLiked = await mediaLikeService.toggle(item.id, item.type);
             setLiked(serverLiked);
-            setCount(prev => {
-                const expected = serverLiked ? item.likeCount + 1 : item.likeCount;
-                return expected;
-            });
+            setCount(serverLiked ? item.likeCount + 1 : item.likeCount);
         } catch {
             setLiked(!newLiked);
             setCount(item.likeCount);
