@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, ArrowRight, X, Volume2, VolumeX, Heart } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowRight, X, Volume2, VolumeX, Heart, Share2, Check } from 'lucide-react';
 import type { MediaHighlight } from '../types/shop';
 import { mediaLikeService } from '../api/mediaLike.service';
 import { useAuth } from '../context/AuthContext';
@@ -39,9 +39,19 @@ const MediaCard: React.FC<MediaCardProps> = ({
     const lastPtrRef   = useRef(0);
     const didDblRef    = useRef(false);
 
-    const [liked, setLiked]       = useState(item.isLikedByCurrentUser);
-    const [count, setCount]       = useState(item.likeCount);
+    const [liked, setLiked]         = useState(item.isLikedByCurrentUser);
+    const [count, setCount]         = useState(item.likeCount);
     const [showHeart, setShowHeart] = useState(false);
+    const [copied, setCopied]       = useState(false);
+
+    const handleShare = (e: React.PointerEvent) => {
+        e.stopPropagation();
+        const url = `${window.location.origin}/kolaj?id=${item.id}`;
+        navigator.clipboard.writeText(url).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        });
+    };
 
     /* Ses durumu değişince video elementine uygula */
     useEffect(() => {
@@ -196,22 +206,33 @@ const MediaCard: React.FC<MediaCardProps> = ({
                         <span>{item.type === 'video' ? 'Videoyu İzle' : 'Salona Git'}</span>
                         <ArrowRight className="w-3 h-3" />
                     </div>
-                    {isAuthenticated && (
+                    <div className="flex items-center gap-2">
+                        {/* Paylaş */}
                         <button
-                            onPointerDown={e => e.stopPropagation()}
-                            onClick={e => { e.stopPropagation(); handleLike(); }}
+                            onPointerDown={handleShare}
                             className="flex items-center gap-1 active:scale-90 transition-transform"
                         >
-                            <Heart className={`w-3.5 h-3.5 transition-colors ${liked ? 'text-red-500 fill-red-500' : 'text-white/80'}`} />
-                            <span className="text-[11px] text-white/80 font-semibold">{count}</span>
+                            {copied
+                                ? <Check className="w-3.5 h-3.5 text-green-400" />
+                                : <Share2 className="w-3.5 h-3.5 text-white/80" />}
                         </button>
-                    )}
-                    {!isAuthenticated && (
-                        <div className="flex items-center gap-1">
-                            <Heart className="w-3.5 h-3.5 text-white/50" />
-                            <span className="text-[11px] text-white/50 font-semibold">{count}</span>
-                        </div>
-                    )}
+                        {/* Beğeni */}
+                        {isAuthenticated ? (
+                            <button
+                                onPointerDown={e => e.stopPropagation()}
+                                onClick={e => { e.stopPropagation(); handleLike(); }}
+                                className="flex items-center gap-1 active:scale-90 transition-transform"
+                            >
+                                <Heart className={`w-3.5 h-3.5 transition-colors ${liked ? 'text-red-500 fill-red-500' : 'text-white/80'}`} />
+                                <span className="text-[11px] text-white/80 font-semibold">{count}</span>
+                            </button>
+                        ) : (
+                            <div className="flex items-center gap-1">
+                                <Heart className="w-3.5 h-3.5 text-white/50" />
+                                <span className="text-[11px] text-white/50 font-semibold">{count}</span>
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>

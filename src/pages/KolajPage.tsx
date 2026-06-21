@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Play, ArrowRight, Volume2, VolumeX, Heart } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { Play, ArrowRight, Volume2, VolumeX, Heart, Share2, Check } from 'lucide-react';
 import { shopService } from '../api/shop.service';
 import { mediaLikeService } from '../api/mediaLike.service';
 import type { MediaHighlight } from '../types/shop';
@@ -40,6 +40,7 @@ const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, isMutedRef, o
     const [liked, setLiked]         = useState(item.isLikedByCurrentUser);
     const [count, setCount]         = useState(item.likeCount);
     const [showHeart, setShowHeart] = useState(false);
+    const [copied, setCopied]       = useState(false);
 
     useEffect(() => {
         if (videoRef.current) videoRef.current.muted = isMuted;
@@ -81,6 +82,15 @@ const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, isMutedRef, o
         }
     };
 
+    const handleShare = (e: React.PointerEvent) => {
+        e.stopPropagation();
+        const url = `${window.location.origin}/kolaj?id=${item.id}`;
+        navigator.clipboard.writeText(url).then(() => {
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        });
+    };
+
     const handlePointerDown = () => {
         const now = Date.now();
         const since = now - lastPtrRef.current;
@@ -88,7 +98,12 @@ const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, isMutedRef, o
         if (since < 320 && since > 0) {
             didDblRef.current = true;
             lastPtrRef.current = 0;
-            handleLike();
+            if (!liked) {
+                handleLike();
+            } else {
+                setShowHeart(true);
+                setTimeout(() => setShowHeart(false), 800);
+            }
             return;
         }
         lastPtrRef.current = now;
@@ -179,25 +194,39 @@ const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, isMutedRef, o
                         Salona Git <ArrowRight className="w-4 h-4" />
                     </button>
 
-                    {isAuthenticated ? (
+                    <div className="flex items-end gap-3">
+                        {/* Paylaş */}
                         <button
-                            onPointerDown={e => e.stopPropagation()}
-                            onClick={handleLike}
+                            onPointerDown={handleShare}
                             className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform"
                         >
                             <div className="w-11 h-11 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center border border-white/20 shadow-lg">
-                                <Heart className={`w-5 h-5 transition-colors ${liked ? 'text-red-500 fill-red-500' : 'text-white'}`} />
+                                {copied ? <Check className="w-5 h-5 text-green-400" /> : <Share2 className="w-5 h-5 text-white" />}
                             </div>
-                            <span className="text-white text-[11px] font-bold drop-shadow">{count}</span>
+                            <span className="text-white text-[11px] font-bold drop-shadow">{copied ? 'Kopyalandı' : 'Paylaş'}</span>
                         </button>
-                    ) : (
-                        <div className="flex flex-col items-center gap-0.5">
-                            <div className="w-11 h-11 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center border border-white/20">
-                                <Heart className="w-5 h-5 text-white/40" />
+
+                        {/* Beğeni */}
+                        {isAuthenticated ? (
+                            <button
+                                onPointerDown={e => e.stopPropagation()}
+                                onClick={handleLike}
+                                className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform"
+                            >
+                                <div className="w-11 h-11 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center border border-white/20 shadow-lg">
+                                    <Heart className={`w-5 h-5 transition-colors ${liked ? 'text-red-500 fill-red-500' : 'text-white'}`} />
+                                </div>
+                                <span className="text-white text-[11px] font-bold drop-shadow">{count}</span>
+                            </button>
+                        ) : (
+                            <div className="flex flex-col items-center gap-0.5">
+                                <div className="w-11 h-11 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center border border-white/20">
+                                    <Heart className="w-5 h-5 text-white/40" />
+                                </div>
+                                <span className="text-white/40 text-[11px] font-bold">{count}</span>
                             </div>
-                            <span className="text-white/40 text-[11px] font-bold">{count}</span>
-                        </div>
-                    )}
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
@@ -206,10 +235,12 @@ const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, isMutedRef, o
 
 export const KolajPage: React.FC = () => {
     const { isAuthenticated } = useAuth();
+    const location            = useLocation();
     const [items, setItems]   = useState<MediaHighlight[]>([]);
     const [loading, setLoading] = useState(true);
     const [isMuted, setIsMuted] = useState(true);
-    const isMutedRef = useRef(true);
+    const isMutedRef  = useRef(true);
+    const scrollRef   = useRef<HTMLDivElement>(null);
 
     const toggleMute = () => setIsMuted(prev => {
         isMutedRef.current = !prev;
@@ -220,6 +251,16 @@ export const KolajPage: React.FC = () => {
         shopService.getMediaHighlights(undefined, undefined, undefined, 100)
             .then(data => setItems(data)).catch(() => {}).finally(() => setLoading(false));
     }, []);
+
+    useEffect(() => {
+        if (!items.length || !scrollRef.current) return;
+        const targetId = new URLSearchParams(location.search).get('id');
+        if (!targetId) return;
+        const index = items.findIndex(i => String(i.id) === targetId);
+        if (index > 0) {
+            scrollRef.current.scrollTop = index * scrollRef.current.clientHeight;
+        }
+    }, [items, location.search]);
 
     if (loading) {
         return (
@@ -241,7 +282,7 @@ export const KolajPage: React.FC = () => {
     return (
         <>
             <style dangerouslySetInnerHTML={{ __html: HEART_STYLE }} />
-            <div className="overflow-y-scroll snap-y snap-mandatory" style={{ height: ITEM_HEIGHT }}>
+            <div ref={scrollRef} className="overflow-y-scroll snap-y snap-mandatory" style={{ height: ITEM_HEIGHT }}>
                 {items.map((item, index) => (
                     <ReelItem
                         key={`${item.shopId}-${index}`}
