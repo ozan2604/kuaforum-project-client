@@ -1,5 +1,5 @@
 import api from './axios';
-import type { Shop, CreateShopDto, ShopClosureDateDto, MediaHighlight } from '../types/shop';
+import type { Shop, CreateShopDto, ShopClosureDateDto, MediaHighlight, ShopType } from '../types/shop';
 
 export const shopService = {
     create: async (data: CreateShopDto): Promise<void> => {
@@ -34,13 +34,14 @@ export const shopService = {
         await api.delete(`/shop/admin/${id}`);
     },
 
-    getPublicShops: async (city?: string, district?: string, neighborhood?: string, pageNumber = 1, pageSize = 20): Promise<{ items: Shop[]; totalCount: number; totalPages: number; pageNumber: number }> => {
+    getPublicShops: async (city?: string, district?: string, neighborhood?: string, pageNumber = 1, pageSize = 20, shopType?: ShopType): Promise<{ items: Shop[]; totalCount: number; totalPages: number; pageNumber: number }> => {
         const params = new URLSearchParams();
         if (city) params.append('city', city);
         if (district) params.append('district', district);
         if (neighborhood) params.append('neighborhood', neighborhood);
         params.append('pageNumber', String(pageNumber));
         params.append('pageSize', String(pageSize));
+        if (shopType !== undefined) params.append('shopType', String(shopType));
         const response = await api.get<{ items: Shop[]; totalCount: number; totalPages: number; pageNumber: number }>(`/shop/public/all?${params.toString()}`);
         return response.data;
     },

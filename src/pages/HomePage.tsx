@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { shopService } from '../api/shop.service';
 import { favoriteService } from '../services/favorite.service';
-import { type Shop, type MediaHighlight, TargetGender, ShopCategory, ShopCategoryLabels } from '../types/shop';
+import { type Shop, type MediaHighlight, TargetGender, ShopCategory, ShopCategoryLabels, ShopType } from '../types/shop';
 import { useSearchParams } from 'react-router-dom';
 import { ShopCard } from '../components/ShopCard';
 import { MediaStrip } from '../components/MediaStrip';
@@ -163,6 +163,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
     const [activeSortTag, setActiveSortTag] = useState<string | null>(_saved.activeSortTag ?? null);
     const [selectedCategory, setSelectedCategory] = useState<ShopCategory | null>(_saved.selectedCategory ?? null);
     const [minRating, setMinRating] = useState<number | null>(_saved.minRating ?? null);
+    const [selectedShopType, setSelectedShopType] = useState<ShopType | null>(_saved.selectedShopType ?? null);
 
     const [isLocationDropdownOpen, setIsLocationDropdownOpen] = useState(false);
     const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
@@ -210,8 +211,8 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
 
     // ── Persist all filter state whenever it changes ────────────────────────
     useEffect(() => {
-        saveFilters({ selectedProvince, selectedDistrict, selectedNeighborhood, activeTags, activeSortTag, selectedCategory, minRating });
-    }, [selectedProvince, selectedDistrict, selectedNeighborhood, activeTags, selectedCategory, minRating]);
+        saveFilters({ selectedProvince, selectedDistrict, selectedNeighborhood, activeTags, activeSortTag, selectedCategory, minRating, selectedShopType });
+    }, [selectedProvince, selectedDistrict, selectedNeighborhood, activeTags, selectedCategory, minRating, selectedShopType]);
 
     const handleProvinceChange = (provinceName: string) => {
         const prov = provinces.find(p => p.name === provinceName);
@@ -276,7 +277,8 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                         selectedProvince || undefined,
                         selectedDistrict || undefined,
                         selectedNeighborhood || undefined,
-                        1, 20
+                        1, 20,
+                        selectedShopType ?? undefined
                     );
                     setShops(result.items);
                     setFilteredShops(result.items);
@@ -289,7 +291,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
             }
         };
         loadShops();
-    }, [showFavoritesOnly, isAuthenticated, selectedProvince, selectedDistrict, selectedNeighborhood]);
+    }, [showFavoritesOnly, isAuthenticated, selectedProvince, selectedDistrict, selectedNeighborhood, selectedShopType]);
 
     const handleLoadMoreShops = async () => {
         const nextPage = currentPage + 1;
@@ -299,7 +301,8 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                 selectedProvince || undefined,
                 selectedDistrict || undefined,
                 selectedNeighborhood || undefined,
-                nextPage, 20
+                nextPage, 20,
+                selectedShopType ?? undefined
             );
             setShops(prev => [...prev, ...result.items]);
             setCurrentPage(nextPage);
@@ -663,6 +666,14 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                         </div>
                         <div className="p-5 overflow-y-auto space-y-6">
                             <div>
+                                <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Salon Tipi</h4>
+                                <div className="flex gap-3">
+                                    <button className={`flex-1 py-2.5 rounded-xl border font-bold text-sm transition-all ${selectedShopType === null ? 'bg-primary-50 border-primary-600 text-primary-700' : 'bg-white border-gray-200 text-gray-700'}`} onClick={() => setSelectedShopType(null)}>Tümü</button>
+                                    <button className={`flex-1 py-2.5 rounded-xl border font-bold text-sm transition-all ${selectedShopType === ShopType.Fixed ? 'bg-primary-50 border-primary-600 text-primary-700' : 'bg-white border-gray-200 text-gray-700'}`} onClick={() => setSelectedShopType(prev => prev === ShopType.Fixed ? null : ShopType.Fixed)}>🏠 Sabit Salon</button>
+                                    <button className={`flex-1 py-2.5 rounded-xl border font-bold text-sm transition-all ${selectedShopType === ShopType.Mobile ? 'bg-purple-50 border-purple-600 text-purple-700' : 'bg-white border-gray-200 text-gray-700'}`} onClick={() => setSelectedShopType(prev => prev === ShopType.Mobile ? null : ShopType.Mobile)}>🚐 Seyyar</button>
+                                </div>
+                            </div>
+                            <div>
                                 <h4 className="text-xs font-bold text-gray-400 uppercase tracking-widest mb-3">Cinsiyet</h4>
                                 <div className="flex gap-3">
                                     <button onClick={() => toggleTag('kadin')} className={`flex-1 py-2.5 rounded-xl border font-bold text-sm transition-all ${activeTags.includes('kadin') ? 'bg-primary-50 border-primary-600 text-primary-700' : 'bg-white border-gray-200 text-gray-700'}`}>Kadın</button>
@@ -694,7 +705,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                             </div>
                         </div>
                         <div className="p-5 border-t border-gray-100 bg-gray-50 flex gap-3">
-                            <button onClick={() => { setActiveTags([]); setActiveSortTag(null); setMinRating(null); }} className="px-6 py-3 bg-red-100 text-red-600 rounded-xl font-bold text-sm">Temizle</button>
+                            <button onClick={() => { setActiveTags([]); setActiveSortTag(null); setMinRating(null); setSelectedShopType(null); }} className="px-6 py-3 bg-red-100 text-red-600 rounded-xl font-bold text-sm">Temizle</button>
                             <button onClick={() => setIsMobileFiltersOpen(false)} className="flex-1 bg-primary-600 text-white rounded-xl font-bold text-sm shadow-md">Sonuçları Gör</button>
                         </div>
                     </div>

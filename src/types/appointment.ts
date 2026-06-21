@@ -42,6 +42,7 @@ export interface CreateAppointmentDto {
     shopEmployeeId: string;
     startTime: string;
     note?: string;
+    customerAddress?: string;
 }
 
 export interface CreateManualAppointmentDto {

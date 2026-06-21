@@ -30,6 +30,7 @@ interface BookingModalProps {
     initialServiceDuration?: number;
     initialServicePrice?: number;
     isGuest?: boolean;
+    isMobile?: boolean;
 }
 
 type Step = 'info' | 'personnel' | 'service' | 'datetime' | 'confirm';
@@ -125,6 +126,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
     initialServiceDuration,
     initialServicePrice,
     isGuest = false,
+    isMobile = false,
 }) => {
     const { completeAuth } = useAuth();
     const STEPS = isGuest ? GUEST_STEPS : NORMAL_STEPS;
@@ -146,6 +148,8 @@ export const BookingModal: React.FC<BookingModalProps> = ({
         employeeName: string; date: string; time: string; totalPrice: number; isNewAccount?: boolean;
     } | null>(null);
     const [bookingError, setBookingError] = useState<string | null>(null);
+
+    const [customerAddress, setCustomerAddress] = useState('');
 
     // Misafir akışı state
     const [guestName, setGuestName]   = useState('');
@@ -361,6 +365,10 @@ export const BookingModal: React.FC<BookingModalProps> = ({
 
     const handleSubmit = async () => {
         if (!selectedServices.length || !selectedTime) return;
+        if (isMobile && !customerAddress.trim()) {
+            setBookingError('Seyyar berber randevusu için adresinizi girmelisiniz.');
+            return;
+        }
         setSubmitting(true);
         try {
             const startTimeIso = new Date(`${selectedDate}T${selectedTime}:00`).toISOString();
@@ -372,6 +380,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 shopEmployeeId: selectedEmployeeId,
                 startTime: startTimeIso,
                 note,
+                customerAddress: isMobile ? customerAddress.trim() : undefined,
             });
             setBookingSuccess({
                 employeeName: selectedEmployee ? `${selectedEmployee.firstName} ${selectedEmployee.lastName}` : '',
@@ -1137,6 +1146,23 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                                     <span className="text-xl font-black text-primary-700">₺{totalPrice}</span>
                                 </div>
                             </div>
+
+                            {isMobile && (
+                                <div className="bg-purple-50 border border-purple-200 rounded-2xl p-4 space-y-2">
+                                    <label className="block text-xs font-semibold text-purple-700 uppercase tracking-wide">
+                                        Adresiniz <span className="text-red-500">*</span>
+                                    </label>
+                                    <p className="text-xs text-purple-600">Berber size bu adrese gelecektir.</p>
+                                    <textarea
+                                        className="w-full p-3 border border-purple-200 rounded-xl focus:ring-2 focus:ring-purple-300 focus:border-purple-400 text-sm resize-none bg-white"
+                                        rows={2}
+                                        value={customerAddress}
+                                        onChange={e => setCustomerAddress(e.target.value)}
+                                        placeholder="Örn: Moda Cad. No:5 Daire:3, Kadıköy / İstanbul"
+                                        required
+                                    />
+                                </div>
+                            )}
 
                             <div>
                                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Not Ekle (İsteğe Bağlı)</label>

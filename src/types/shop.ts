@@ -1,3 +1,16 @@
+export const ShopType = {
+    Fixed: 0,
+    Mobile: 1
+} as const;
+
+export type ShopType = typeof ShopType[keyof typeof ShopType];
+
+export interface ServiceAreaDto {
+    city: string;
+    district: string;
+    neighborhood?: string;
+}
+
 export const TargetGender = {
     Kadin: 1,
     Erkek: 2,
@@ -105,6 +118,8 @@ export interface Shop {
     closeTime?: string;
     weeklyOffDays?: number[];
     closureDates?: ShopClosureDateDto[];
+    shopType?: ShopType;
+    serviceAreas?: ServiceAreaDto[];
 }
 
 export interface ShopSchedule {
@@ -131,4 +146,6 @@ export interface CreateShopDto {
     bookingDaysAhead?: number;
     cancellationHours?: number;
     weeklyOffDays?: number[];
+    shopType?: ShopType;
+    serviceAreas?: ServiceAreaDto[];
 }

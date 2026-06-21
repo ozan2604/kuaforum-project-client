@@ -1089,6 +1089,7 @@ export const ShopDetailsPage: React.FC = () => {
                     initialServiceDuration={selectedService?.duration}
                     initialServicePrice={selectedService?.price}
                     isGuest={isGuestBooking}
+                    isMobile={shop.shopType === 1}
                 />
             )}
 

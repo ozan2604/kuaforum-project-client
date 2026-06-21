@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { MapPin, Star, Heart, Map, ArrowRight } from 'lucide-react';
-import { ShopCategoryLabels, type Shop, type ShopCategory } from '../types/shop';
+import { MapPin, Star, Heart, Map, ArrowRight, Car } from 'lucide-react';
+import { ShopCategoryLabels, ShopType, type Shop, type ShopCategory } from '../types/shop';
 import { useAuth } from '../context/AuthContext';
 import { favoriteService } from '../services/favorite.service';
 import { toast } from 'react-hot-toast';
@@ -112,8 +112,8 @@ export const ShopCard: React.FC<ShopCardProps> = ({ shop, initialIsFavorite = fa
                     </span>
                 </div>
 
-                {/* Haritada Gör — sol alt */}
-                {shop.latitude && shop.longitude && (
+                {/* Haritada Gör — sol alt (sadece sabit salonlar) */}
+                {shop.shopType !== ShopType.Mobile && shop.latitude && shop.longitude && (
                     <button
                         onClick={handleMapClick}
                         className="absolute bottom-2 sm:bottom-3 left-2 sm:left-3 z-20 bg-white/90 backdrop-blur-sm px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md sm:rounded-lg shadow-sm flex items-center gap-0.5 sm:gap-1 hover:bg-white transition-colors"
@@ -121,6 +121,13 @@ export const ShopCard: React.FC<ShopCardProps> = ({ shop, initialIsFavorite = fa
                         <Map className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-primary-600" />
                         <span className="text-[9px] sm:text-[10px] font-semibold text-primary-600">Haritada Gör</span>
                     </button>
+                )}
+                {/* Seyyar Berber badge — sol alt */}
+                {shop.shopType === ShopType.Mobile && (
+                    <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-3 z-20 bg-purple-600/90 backdrop-blur-sm px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md sm:rounded-lg shadow-sm flex items-center gap-0.5 sm:gap-1">
+                        <Car className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-white" />
+                        <span className="text-[9px] sm:text-[10px] font-semibold text-white">Seyyar Berber</span>
+                    </div>
                 )}
 
                 {/* Puan — sağ alt */}
@@ -140,11 +147,23 @@ export const ShopCard: React.FC<ShopCardProps> = ({ shop, initialIsFavorite = fa
                     </h3>
                 </Link>
 
-                {/* Adres */}
-                <div className="flex items-center text-gray-500 text-[11px] sm:text-xs mb-1.5 sm:mb-2 min-w-0">
-                    <MapPin className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-0.5 sm:mr-1 text-secondary-400 shrink-0" />
-                    <span className="truncate">{shop.district}, {shop.city}</span>
-                </div>
+                {/* Adres / Hizmet Bölgesi */}
+                {shop.shopType === ShopType.Mobile ? (
+                    <div className="flex items-start text-purple-600 text-[11px] sm:text-xs mb-1.5 sm:mb-2 min-w-0 gap-0.5 sm:gap-1">
+                        <Car className="h-3 w-3 sm:h-3.5 sm:w-3.5 mt-0.5 shrink-0" />
+                        <span className="truncate font-medium">
+                            Eve/İşyerine Gelir
+                            {shop.serviceAreas && shop.serviceAreas.length > 0
+                                ? ` · ${shop.serviceAreas.slice(0, 2).map(a => a.district).join(', ')}${shop.serviceAreas.length > 2 ? ` +${shop.serviceAreas.length - 2}` : ''}`
+                                : ''}
+                        </span>
+                    </div>
+                ) : (
+                    <div className="flex items-center text-gray-500 text-[11px] sm:text-xs mb-1.5 sm:mb-2 min-w-0">
+                        <MapPin className="h-3 w-3 sm:h-3.5 sm:w-3.5 mr-0.5 sm:mr-1 text-secondary-400 shrink-0" />
+                        <span className="truncate">{shop.district}, {shop.city}</span>
+                    </div>
+                )}
 
                 {/* Alt satır: Açık/Kapalı + Salona Git */}
                 <div className="flex items-center justify-between pt-2 sm:pt-3 border-t border-gray-100 mt-auto gap-2">
