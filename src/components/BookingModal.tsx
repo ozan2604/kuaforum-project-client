@@ -554,7 +554,7 @@ export const BookingModal: React.FC<BookingModalProps> = ({
                 </div>
             </div>
         )}
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-4 z-50">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center pb-14 sm:pb-4 sm:p-4 z-50">
             <div className="bg-white w-full sm:rounded-2xl sm:max-w-xl max-h-[95vh] sm:max-h-[90vh] flex flex-col rounded-t-2xl shadow-2xl">
 
                 {/* Header */}
