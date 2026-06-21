@@ -946,105 +946,111 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
             <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-1">
                 {/* Ana İçerik Listesi */}
                 <main className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-6">
-                        {selectedProvince === null && (
-                            <button
-                                onClick={() => setIsLocationDropdownOpen(true)}
-                                className="flex-1 sm:flex-none sm:w-auto flex items-center justify-center gap-2 p-3 sm:px-6 sm:py-3 rounded-2xl bg-gradient-to-r from-gray-900 to-gray-800 text-white border border-gray-800 shadow-lg active:scale-[0.98] transition-transform"
-                            >
-                                <MapPin className="w-5 h-5 text-gray-300" />
-                                <span className="text-sm font-bold">Konum Seç</span>
-                            </button>
-                        )}
-                        <button
-                            onClick={() => setIsMapModalOpen(!isMapModalOpen)}
-                            className={`flex-1 sm:flex-none sm:w-auto flex items-center justify-center gap-2 p-3 sm:px-6 sm:py-3 rounded-2xl font-bold transition-all shadow-sm border active:scale-[0.98] ${
-                                isMapModalOpen
-                                    ? 'bg-primary-50 text-primary-700 border-primary-200'
-                                    : 'bg-white text-gray-800 border-gray-200'
-                            }`}
-                        >
-                            <Map className={`w-5 h-5 ${isMapModalOpen ? 'text-primary-600' : 'text-gray-500'}`} />
-                            <span className="text-sm font-bold">{isMapModalOpen ? 'Haritayı Gizle' : 'Haritada Gör'}</span>
-                        </button>
-                    </div>
-
-                    {/* Inline Harita Alanı */}
+                    {/* Harita Popup Modal */}
                     {isMapModalOpen && (
-                        <div ref={mapSectionRef} className="w-full h-[400px] sm:h-[450px] mb-8 rounded-[2rem] overflow-hidden shadow-sm border border-gray-200 relative shrink-0 z-0 fade-in-0 animate-in zoom-in-95 duration-300">
-                            <MapContainer
-                                center={userLocation ? [userLocation.lat, userLocation.lng] : [39.9, 32.8]}
-                                zoom={userLocation ? 14 : 6}
-                                style={{ height: '100%', width: '100%', zIndex: 0 }}
-                                zoomControl={true}
+                        <div
+                            className="fixed inset-0 z-[200] flex flex-col p-3 sm:p-8 lg:p-16 animate-in fade-in duration-200"
+                            onClick={() => setIsMapModalOpen(false)}
+                        >
+                            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+                            <div
+                                className="relative z-10 flex-1 flex flex-col rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl animate-in zoom-in-95 duration-200"
+                                onClick={e => e.stopPropagation()}
                             >
-                                <TileLayer
-                                    attribution='&copy; OpenStreetMap'
-                                    url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
-                                />
-                                <MapFocuser center={mapFocusCenter} shopId={mapFocusShopId} />
-                                <UserLocator userLocation={userLocation} />
-
-                                {/* User Location Marker */}
-                                {userLocation && (
-                                    <Marker
-                                        position={[userLocation.lat, userLocation.lng]}
-                                        icon={createUserMarkerIcon(user?.profileImageUrl)}
+                                {/* Modal Başlık */}
+                                <div className="flex items-center justify-between px-5 py-3 bg-white border-b border-gray-100 shrink-0">
+                                    <div className="flex items-center gap-2">
+                                        <Map className="w-4 h-4 text-primary-600" />
+                                        <span className="font-bold text-gray-900 text-sm">Salonları Haritada Gör</span>
+                                        {filteredShops.filter(s => s.latitude && s.longitude).length > 0 && (
+                                            <span className="text-xs font-semibold text-gray-400">
+                                                · {filteredShops.filter(s => s.latitude && s.longitude).length} salon
+                                            </span>
+                                        )}
+                                    </div>
+                                    <button
+                                        onClick={() => setIsMapModalOpen(false)}
+                                        className="p-1.5 rounded-full hover:bg-gray-100 text-gray-500 hover:text-gray-700 transition-colors"
                                     >
-                                        <Popup closeButton={false}>
-                                            <div className="font-bold text-primary-600 py-0.5 px-1">📍 Sizin Konumunuz</div>
-                                        </Popup>
-                                    </Marker>
-                                )}
+                                        <XCircle className="w-5 h-5" />
+                                    </button>
+                                </div>
 
-                                {/* Shops Markers */}
-                                {filteredShops.map((shop) => {
-                                    if (!shop.latitude || !shop.longitude) return null;
-                                    return (
-                                        <Marker
-                                            key={shop.id}
-                                            position={[shop.latitude, shop.longitude]}
-                                            icon={createShopMarkerIcon(shop)}
-                                        >
-                                            <Popup className="shop-popup rounded-2xl border-0 overflow-visible" closeButton={false}>
-                                                <div className="-mx-[20px] -my-[14px] min-w-[220px] font-sans flex flex-col overflow-hidden rounded-xl">
-                                                    <div className="w-full h-28 bg-gray-100 relative shrink-0">
-                                                        <img
-                                                            src={shop.coverImagePath ? shop.coverImagePath : DEFAULT_SALON_COVER}
-                                                            alt={shop.name}
-                                                            className="w-full h-full object-cover"
-                                                            onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_SALON_COVER; }}
-                                                        />
-                                                        <div className="absolute top-2 right-2 bg-white/95 backdrop-blur-sm px-2 py-1 rounded-lg text-xs font-bold text-gray-900 shadow-sm flex items-center gap-1">
-                                                            ★ {shop.averageRating?.toFixed(1) || 'Yeni'}
+                                {/* Harita */}
+                                <div className="flex-1 relative">
+                                    <MapContainer
+                                        center={userLocation ? [userLocation.lat, userLocation.lng] : [39.9, 32.8]}
+                                        zoom={userLocation ? 14 : 6}
+                                        style={{ height: '100%', width: '100%', zIndex: 0 }}
+                                        zoomControl={true}
+                                    >
+                                        <TileLayer
+                                            attribution='&copy; OpenStreetMap'
+                                            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                                        />
+                                        <MapFocuser center={mapFocusCenter} shopId={mapFocusShopId} />
+                                        <UserLocator userLocation={userLocation} />
+
+                                        {userLocation && (
+                                            <Marker
+                                                position={[userLocation.lat, userLocation.lng]}
+                                                icon={createUserMarkerIcon(user?.profileImageUrl)}
+                                            >
+                                                <Popup closeButton={false}>
+                                                    <div className="font-bold text-primary-600 py-0.5 px-1">📍 Sizin Konumunuz</div>
+                                                </Popup>
+                                            </Marker>
+                                        )}
+
+                                        {filteredShops.map((shop) => {
+                                            if (!shop.latitude || !shop.longitude) return null;
+                                            return (
+                                                <Marker
+                                                    key={shop.id}
+                                                    position={[shop.latitude, shop.longitude]}
+                                                    icon={createShopMarkerIcon(shop)}
+                                                >
+                                                    <Popup className="shop-popup rounded-2xl border-0 overflow-visible" closeButton={false}>
+                                                        <div className="-mx-[20px] -my-[14px] min-w-[220px] font-sans flex flex-col overflow-hidden rounded-xl">
+                                                            <div className="w-full h-28 bg-gray-100 relative shrink-0">
+                                                                <img
+                                                                    src={shop.coverImagePath ? shop.coverImagePath : DEFAULT_SALON_COVER}
+                                                                    alt={shop.name}
+                                                                    className="w-full h-full object-cover"
+                                                                    onError={(e) => { (e.target as HTMLImageElement).src = DEFAULT_SALON_COVER; }}
+                                                                />
+                                                                <div className="absolute top-2 right-2 bg-white/95 backdrop-blur-sm px-2 py-1 rounded-lg text-xs font-bold text-gray-900 shadow-sm flex items-center gap-1">
+                                                                    ★ {shop.averageRating?.toFixed(1) || 'Yeni'}
+                                                                </div>
+                                                            </div>
+                                                            <div className="p-3 bg-white">
+                                                                <div className="text-[10px] font-bold text-primary-600 mb-1 uppercase tracking-wider">{shop.categories?.length > 0 ? ShopCategoryLabels[shop.categories[0] as ShopCategory] : ''}</div>
+                                                                <h3 className="font-bold text-gray-900 text-[15px] leading-tight mb-1 line-clamp-1">{shop.name}</h3>
+                                                                <div className="flex items-center gap-1 text-gray-500 text-xs mb-3">
+                                                                    <MapPin className="w-3.5 h-3.5 shrink-0" />
+                                                                    <span className="truncate">{shop.district}, {shop.city}</span>
+                                                                </div>
+                                                                <a href={`/shop/${shop.id}`} className="block w-full py-2.5 bg-gray-900 text-white text-center rounded-xl font-bold text-[13px] hover:bg-black transition-colors mb-2">
+                                                                    Detayları Gör
+                                                                </a>
+                                                                <a
+                                                                    href={`https://www.google.com/maps?q=${shop.latitude},${shop.longitude}`}
+                                                                    target="_blank"
+                                                                    rel="noopener noreferrer"
+                                                                    className="flex items-center justify-center gap-1.5 w-full py-2 text-blue-600 text-[12px] font-semibold hover:text-blue-700 transition-colors"
+                                                                >
+                                                                    <Navigation className="w-3.5 h-3.5" />
+                                                                    Yol Tarifi Al
+                                                                </a>
+                                                            </div>
                                                         </div>
-                                                    </div>
-                                                    <div className="p-3 bg-white">
-                                                        <div className="text-[10px] font-bold text-primary-600 mb-1 uppercase tracking-wider">{shop.categories?.length > 0 ? ShopCategoryLabels[shop.categories[0] as ShopCategory] : ''}</div>
-                                                        <h3 className="font-bold text-gray-900 text-[15px] leading-tight mb-1 line-clamp-1">{shop.name}</h3>
-                                                        <div className="flex items-center gap-1 text-gray-500 text-xs mb-3">
-                                                            <MapPin className="w-3.5 h-3.5 shrink-0" />
-                                                            <span className="truncate">{shop.district}, {shop.city}</span>
-                                                        </div>
-                                                        <a href={`/shop/${shop.id}`} className="block w-full py-2.5 bg-gray-900 text-white text-center rounded-xl font-bold text-[13px] hover:bg-black transition-colors mb-2">
-                                                            Detayları Gör
-                                                        </a>
-                                                        <a
-                                                            href={`https://www.google.com/maps?q=${shop.latitude},${shop.longitude}`}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="flex items-center justify-center gap-1.5 w-full py-2 text-blue-600 text-[12px] font-semibold hover:text-blue-700 transition-colors"
-                                                        >
-                                                            <Navigation className="w-3.5 h-3.5" />
-                                                            Yol Tarifi Al
-                                                        </a>
-                                                    </div>
-                                                </div>
-                                            </Popup>
-                                        </Marker>
-                                    )
-                                })}
-                            </MapContainer>
+                                                    </Popup>
+                                                </Marker>
+                                            );
+                                        })}
+                                    </MapContainer>
+                                </div>
+                            </div>
                         </div>
                     )}
 

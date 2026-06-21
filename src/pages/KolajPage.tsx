@@ -4,8 +4,8 @@ import { Play, ArrowRight } from 'lucide-react';
 import { shopService } from '../api/shop.service';
 import type { MediaHighlight } from '../types/shop';
 
-// Navbar height is h-24 = 96px, bottom nav is ~56px on mobile
-const ITEM_HEIGHT = 'calc(100dvh - 96px)';
+// Mobile: navbar h-14 = 56px, bottom nav ~56px. Desktop: navbar h-24 = 96px
+const ITEM_HEIGHT = 'calc(100dvh - 56px - 56px)';
 
 const ReelItem: React.FC<{ item: MediaHighlight; index: number }> = ({ item, index }) => {
     const navigate = useNavigate();
