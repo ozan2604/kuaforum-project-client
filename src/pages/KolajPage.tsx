@@ -40,7 +40,7 @@ const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, isMutedRef, o
     const [liked, setLiked]         = useState(item.isLikedByCurrentUser);
     const [count, setCount]         = useState(item.likeCount);
     const [showHeart, setShowHeart] = useState(false);
-    const [copied, setCopied]       = useState(false);
+    const [shareState, setShareState] = useState<'idle' | 'loading' | 'copied'>('idle');
 
     useEffect(() => {
         if (videoRef.current) videoRef.current.muted = isMuted;
@@ -82,16 +82,48 @@ const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, isMutedRef, o
         }
     };
 
-    const handleShare = async (e: React.PointerEvent) => {
-        e.stopPropagation();
-        const url = `${window.location.origin}/kolaj?id=${item.id}`;
-        if (navigator.share) {
-            try { await navigator.share({ title: item.shopName, url }); } catch { /* iptal */ }
-        } else {
-            await navigator.clipboard.writeText(url).catch(() => {});
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
+    const handleShare = async () => {
+        if (shareState === 'loading') return;
+        const shopUrl  = `${window.location.origin}/shop/${item.shopId}`;
+        const shareText = [
+            item.shopName,
+            item.tags.length > 0 ? item.tags.map(t => `#${t}`).join(' ') : '',
+            shopUrl,
+        ].filter(Boolean).join('\n');
+
+        setShareState('loading');
+        let shared = false;
+        try {
+            /* Medya dosyasını çek → Instagram Story için gerekli */
+            if (typeof navigator.canShare === 'function') {
+                const ctrl    = new AbortController();
+                const timeout = setTimeout(() => ctrl.abort(), 10_000);
+                try {
+                    const resp = await fetch(item.url, { signal: ctrl.signal, mode: 'cors' });
+                    clearTimeout(timeout);
+                    const blob = await resp.blob();
+                    const ext  = item.type === 'video' ? 'mp4' : 'jpg';
+                    const file = new File([blob], `salonbir.${ext}`, { type: blob.type });
+                    if (navigator.canShare({ files: [file] })) {
+                        await navigator.share({ files: [file], title: item.shopName, text: shareText });
+                        shared = true;
+                    }
+                } catch { clearTimeout(timeout); }
+            }
+            if (!shared && navigator.share) {
+                await navigator.share({ title: item.shopName, text: shareText, url: shopUrl });
+                shared = true;
+            }
+        } catch (err) {
+            if ((err as Error).name === 'AbortError') shared = true; /* kullanıcı iptal etti */
         }
+        if (!shared) {
+            await navigator.clipboard.writeText(shopUrl).catch(() => {});
+            setShareState('copied');
+            setTimeout(() => setShareState('idle'), 2000);
+            return;
+        }
+        setShareState('idle');
     };
 
     const handlePointerDown = () => {
@@ -200,13 +232,19 @@ const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, isMutedRef, o
                     <div className="flex items-end gap-3">
                         {/* Paylaş */}
                         <button
-                            onPointerDown={handleShare}
-                            className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform"
+                            onPointerDown={e => e.stopPropagation()}
+                            onClick={handleShare}
+                            disabled={shareState === 'loading'}
+                            className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform disabled:opacity-60"
                         >
                             <div className="w-11 h-11 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center border border-white/20 shadow-lg">
-                                {copied ? <Check className="w-5 h-5 text-green-400" /> : <Send className="w-5 h-5 text-white" />}
+                                {shareState === 'copied'  ? <Check className="w-5 h-5 text-green-400" /> :
+                                 shareState === 'loading' ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> :
+                                                            <Send className="w-5 h-5 text-white" />}
                             </div>
-                            <span className="text-white text-[11px] font-bold drop-shadow">{copied ? 'Kopyalandı' : 'Paylaş'}</span>
+                            <span className="text-white text-[11px] font-bold drop-shadow">
+                                {shareState === 'copied' ? 'Kopyalandı' : 'Paylaş'}
+                            </span>
                         </button>
 
                         {/* Beğeni */}

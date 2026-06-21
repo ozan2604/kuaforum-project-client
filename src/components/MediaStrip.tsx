@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, ArrowRight, X, Heart, Send, Check, Clapperboard } from 'lucide-react';
+import { ChevronRight, ArrowRight, X, Heart, Send, Check, Clapperboard, Volume2, VolumeX } from 'lucide-react';
 import type { MediaHighlight } from '../types/shop';
 import { mediaLikeService } from '../api/mediaLike.service';
 import { useAuth } from '../context/AuthContext';
@@ -22,9 +22,14 @@ interface MediaCardProps {
     scrollRoot: HTMLDivElement | null;
     onOpenModal: (item: MediaHighlight) => void;
     isAuthenticated: boolean;
+    isMuted: boolean;
+    isMutedRef: React.RefObject<boolean>;
+    onToggleMute: () => void;
 }
 
-const MediaCard: React.FC<MediaCardProps> = ({ item, index, scrollRoot, onOpenModal, isAuthenticated }) => {
+const MediaCard: React.FC<MediaCardProps> = ({
+    item, index, scrollRoot, onOpenModal, isAuthenticated, isMuted, isMutedRef, onToggleMute,
+}) => {
     const navigate      = useNavigate();
     const videoRef      = useRef<HTMLVideoElement | null>(null);
     const containerRef  = useRef<HTMLDivElement | null>(null);
@@ -33,23 +38,17 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, index, scrollRoot, onOpenMo
     const lastPtrRef    = useRef(0);
     const didDblRef     = useRef(false);
 
-    const [liked, setLiked]         = useState(item.isLikedByCurrentUser);
-    const [count, setCount]         = useState(item.likeCount);
-    const [showHeart, setShowHeart] = useState(false);
-    const [copied, setCopied]       = useState(false);
+    const [liked, setLiked]           = useState(item.isLikedByCurrentUser);
+    const [count, setCount]           = useState(item.likeCount);
+    const [showHeart, setShowHeart]   = useState(false);
+    const [shareState, setShareState] = useState<'idle' | 'loading' | 'copied'>('idle');
 
-    const handleShare = async (e: React.PointerEvent) => {
-        e.stopPropagation();
-        const url = `${window.location.origin}/kolaj?id=${item.id}`;
-        if (navigator.share) {
-            try { await navigator.share({ title: item.shopName, url }); } catch { /* iptal */ }
-        } else {
-            await navigator.clipboard.writeText(url).catch(() => {});
-            setCopied(true);
-            setTimeout(() => setCopied(false), 2000);
-        }
-    };
+    /* Ses durumu değişince video elementine uygula */
+    useEffect(() => {
+        if (videoRef.current) videoRef.current.muted = isMuted;
+    }, [isMuted]);
 
+    /* Yatay scroll görünürlük → oynat/durdur */
     useEffect(() => {
         const vid = videoRef.current;
         const container = containerRef.current;
@@ -57,7 +56,7 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, index, scrollRoot, onOpenMo
         const observer = new IntersectionObserver(
             ([entry]) => {
                 if (entry.isIntersecting) {
-                    vid.muted = true;
+                    vid.muted = isMutedRef.current;
                     vid.play().catch(() => {});
                 } else {
                     vid.pause();
@@ -68,6 +67,49 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, index, scrollRoot, onOpenMo
         observer.observe(container);
         return () => observer.disconnect();
     }, [scrollRoot]);
+
+    const handleShare = async () => {
+        if (shareState === 'loading') return;
+        const shopUrl   = `${window.location.origin}/shop/${item.shopId}`;
+        const shareText = [
+            item.shopName,
+            item.tags.length > 0 ? item.tags.map(t => `#${t}`).join(' ') : '',
+            shopUrl,
+        ].filter(Boolean).join('\n');
+
+        setShareState('loading');
+        let shared = false;
+        try {
+            if (typeof navigator.canShare === 'function') {
+                const ctrl    = new AbortController();
+                const timeout = setTimeout(() => ctrl.abort(), 10_000);
+                try {
+                    const resp = await fetch(item.url, { signal: ctrl.signal, mode: 'cors' });
+                    clearTimeout(timeout);
+                    const blob = await resp.blob();
+                    const ext  = item.type === 'video' ? 'mp4' : 'jpg';
+                    const file = new File([blob], `salonbir.${ext}`, { type: blob.type });
+                    if (navigator.canShare({ files: [file] })) {
+                        await navigator.share({ files: [file], title: item.shopName, text: shareText });
+                        shared = true;
+                    }
+                } catch { clearTimeout(timeout); }
+            }
+            if (!shared && navigator.share) {
+                await navigator.share({ title: item.shopName, text: shareText, url: shopUrl });
+                shared = true;
+            }
+        } catch (err) {
+            if ((err as Error).name === 'AbortError') shared = true;
+        }
+        if (!shared) {
+            await navigator.clipboard.writeText(shopUrl).catch(() => {});
+            setShareState('copied');
+            setTimeout(() => setShareState('idle'), 2000);
+            return;
+        }
+        setShareState('idle');
+    };
 
     const handleLike = async () => {
         if (!isAuthenticated) return;
@@ -126,7 +168,7 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, index, scrollRoot, onOpenMo
     return (
         <div
             ref={containerRef}
-            className="relative shrink-0 w-[88px] h-40 rounded-xl overflow-hidden cursor-pointer select-none"
+            className="relative shrink-0 w-[120px] h-[210px] rounded-xl overflow-hidden cursor-pointer select-none"
             onPointerDown={handlePointerDown}
             onPointerUp={handlePointerUp}
             onPointerLeave={handlePointerUp}
@@ -153,25 +195,36 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, index, scrollRoot, onOpenMo
 
             {showHeart && (
                 <div className="heart-pop absolute inset-0 flex items-center justify-center pointer-events-none z-30">
-                    <Heart className="w-10 h-10 text-white fill-white drop-shadow-xl" />
+                    <Heart className="w-12 h-12 text-white fill-white drop-shadow-xl" />
                 </div>
             )}
 
+            {/* Ses butonu — sağ üst, sadece videolarda */}
             {item.type === 'video' && (
-                <div className="absolute top-1.5 right-1.5 pointer-events-none z-10">
-                    <div className="w-4 h-4 rounded-full bg-black/60 flex items-center justify-center">
-                        <ArrowRight className="w-2 h-2 text-white" />
-                    </div>
-                </div>
+                <button
+                    onPointerDown={e => e.stopPropagation()}
+                    onClick={() => {
+                        if (videoRef.current) videoRef.current.muted = !videoRef.current.muted;
+                        onToggleMute();
+                    }}
+                    className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center border border-white/20 z-20 active:scale-90 transition-transform"
+                >
+                    {isMuted ? <VolumeX className="w-3.5 h-3.5 text-white" /> : <Volume2 className="w-3.5 h-3.5 text-white" />}
+                </button>
             )}
 
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent pt-5 pb-1.5 px-1.5">
-                <p className="text-white text-[9px] font-bold leading-tight line-clamp-1 mb-1">{item.shopName}</p>
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent pt-6 pb-2 px-2">
+                <p className="text-white text-[10px] font-bold leading-tight line-clamp-1 mb-1.5">{item.shopName}</p>
                 <div className="flex items-center justify-between">
-                    <button onPointerDown={handleShare} className="active:scale-90 transition-transform">
-                        {copied
-                            ? <Check className="w-3 h-3 text-green-400" />
-                            : <Send className="w-3 h-3 text-white/70" />}
+                    <button
+                        onPointerDown={e => e.stopPropagation()}
+                        onClick={e => { e.stopPropagation(); handleShare(); }}
+                        disabled={shareState === 'loading'}
+                        className="active:scale-90 transition-transform"
+                    >
+                        {shareState === 'copied'  ? <Check className="w-3.5 h-3.5 text-green-400" /> :
+                         shareState === 'loading' ? <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" /> :
+                                                    <Send className="w-3.5 h-3.5 text-white/70" />}
                     </button>
                     {isAuthenticated ? (
                         <button
@@ -179,13 +232,13 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, index, scrollRoot, onOpenMo
                             onClick={e => { e.stopPropagation(); handleLike(); }}
                             className="flex items-center gap-0.5 active:scale-90 transition-transform"
                         >
-                            <Heart className={`w-3 h-3 transition-colors ${liked ? 'text-red-500 fill-red-500' : 'text-white/70'}`} />
-                            <span className="text-[9px] text-white/70 font-semibold">{count}</span>
+                            <Heart className={`w-3.5 h-3.5 transition-colors ${liked ? 'text-red-500 fill-red-500' : 'text-white/70'}`} />
+                            <span className="text-[10px] text-white/70 font-semibold">{count}</span>
                         </button>
                     ) : (
                         <div className="flex items-center gap-0.5">
-                            <Heart className="w-3 h-3 text-white/40" />
-                            <span className="text-[9px] text-white/40 font-semibold">{count}</span>
+                            <Heart className="w-3.5 h-3.5 text-white/40" />
+                            <span className="text-[10px] text-white/40 font-semibold">{count}</span>
                         </div>
                     )}
                 </div>
@@ -203,18 +256,24 @@ export const MediaStrip: React.FC<MediaStripProps> = ({ items }) => {
     const scrollRef  = useRef<HTMLDivElement>(null);
     const navigate   = useNavigate();
     const [videoModal, setVideoModal] = useState<MediaHighlight | null>(null);
+    const [isMuted, setIsMuted] = useState(true);
+    const isMutedRef = useRef(true);
+
+    const toggleMute = () => setIsMuted(prev => {
+        isMutedRef.current = !prev;
+        return !prev;
+    });
 
     if (items.length === 0) return null;
 
     const scroll = () => {
-        scrollRef.current?.scrollBy({ left: 260, behavior: 'smooth' });
+        scrollRef.current?.scrollBy({ left: 300, behavior: 'smooth' });
     };
 
     return (
         <>
             <style dangerouslySetInnerHTML={{ __html: HEART_STYLE }} />
 
-            {/* Dark reels modülü */}
             <div className="rounded-2xl bg-gray-950 px-3 pt-3 pb-3 my-4">
                 <div className="flex items-center justify-between mb-2.5">
                     <div className="flex items-center gap-1.5">
@@ -238,6 +297,9 @@ export const MediaStrip: React.FC<MediaStripProps> = ({ items }) => {
                             scrollRoot={scrollRef.current}
                             onOpenModal={setVideoModal}
                             isAuthenticated={isAuthenticated}
+                            isMuted={isMuted}
+                            isMutedRef={isMutedRef}
+                            onToggleMute={toggleMute}
                         />
                     ))}
                 </div>
