@@ -1,7 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster, ToastBar, toast } from 'react-hot-toast';
 import { X } from 'lucide-react';
-import { CookieBanner } from './components/CookieBanner';
 import { ScrollToTop } from './components/ScrollToTop';
 
 import { MainLayout } from './layouts/MainLayout';
@@ -73,7 +72,6 @@ function App() {
           </ToastBar>
         )}
       </Toaster>
-      <CookieBanner />
       <Routes>
 
         {/* ── Genel Sayfalar ── */}
