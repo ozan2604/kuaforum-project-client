@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '../components/Button';
 import { Input } from '../components/Input';
 import { shopService } from '../api/shop.service';
-import { TargetGender, TargetGenderLabels, ShopCategory, ShopCategoryLabels, ShopType, ServiceAreaDto } from '../types/shop';
+import { TargetGender, TargetGenderLabels, ShopCategory, ShopCategoryLabels, ShopType } from '../types/shop';
+import type { ServiceAreaDto } from '../types/shop';
 import { X, Plus } from 'lucide-react';
 
 export const CreateShopPage: React.FC = () => {
