@@ -30,12 +30,12 @@ export const Navbar: React.FC = () => {
                 <div className="flex justify-between items-center h-14 sm:h-24 gap-2 sm:gap-4">
 
                     {/* Left: Logo */}
-                    <div className="flex items-center shrink-0 overflow-hidden h-14 sm:h-24 w-[150px] sm:w-[280px] relative -ml-2 sm:-ml-4">
+                    <div className="flex items-center shrink-0 overflow-hidden h-14 sm:h-24 w-[165px] sm:w-[280px] relative -ml-2 sm:-ml-4">
                         <Link to="/" className="absolute inset-0 flex items-center justify-center group">
                             <img
                                 src="/logo.png"
                                 alt="SALONBİR Logo"
-                                className="w-[150px] sm:w-[280px] max-w-none transition-transform duration-300 group-hover:scale-105"
+                                className="w-[165px] sm:w-[280px] max-w-none transition-transform duration-300 group-hover:scale-105"
                             />
                         </Link>
                     </div>

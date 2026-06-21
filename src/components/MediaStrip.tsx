@@ -56,7 +56,7 @@ export const MediaStrip: React.FC<MediaStripProps> = ({ items }) => {
     return (
         <>
             {/* Başlık satırı — kartta altta konumlu hissi için mt büyük, mb küçük */}
-            <div className="flex items-center justify-between mt-6 mb-2 px-0.5">
+            <div className="flex items-center justify-between mt-2 sm:mt-6 mb-2 px-0.5">
                 <p className="text-[11px] font-semibold text-gray-400 tracking-wide uppercase">Salonlardan kolaj</p>
                 <button
                     onClick={() => scroll('right')}

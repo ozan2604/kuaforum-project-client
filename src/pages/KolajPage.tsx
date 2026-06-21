@@ -1,17 +1,25 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Play, ArrowRight } from 'lucide-react';
+import { Play, ArrowRight, Volume2, VolumeX } from 'lucide-react';
 import { shopService } from '../api/shop.service';
 import type { MediaHighlight } from '../types/shop';
 
-// Mobile: navbar h-14 = 56px, bottom nav ~56px. Desktop: navbar h-24 = 96px
+// Mobile: navbar h-14 = 56px, bottom nav ~56px
 const ITEM_HEIGHT = 'calc(100dvh - 56px - 56px)';
 
-const ReelItem: React.FC<{ item: MediaHighlight; index: number }> = ({ item, index }) => {
+const ReelItem: React.FC<{ item: MediaHighlight; index: number; isMuted: boolean }> = ({ item, index, isMuted }) => {
     const navigate = useNavigate();
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const containerRef = useRef<HTMLDivElement | null>(null);
 
+    // Ses durumu değişince video elementine uygula
+    useEffect(() => {
+        if (videoRef.current) {
+            videoRef.current.muted = isMuted;
+        }
+    }, [isMuted]);
+
+    // Görünürlüğe göre oynat/durdur
     useEffect(() => {
         const vid = videoRef.current;
         const container = containerRef.current;
@@ -21,6 +29,7 @@ const ReelItem: React.FC<{ item: MediaHighlight; index: number }> = ({ item, ind
             ([entry]) => {
                 if (entry.isIntersecting) {
                     vid.currentTime = 0;
+                    vid.muted = isMuted;
                     vid.play().catch(() => {});
                 } else {
                     vid.pause();
@@ -53,6 +62,7 @@ const ReelItem: React.FC<{ item: MediaHighlight; index: number }> = ({ item, ind
                     muted
                     loop
                     playsInline
+                    autoPlay={index === 0}
                     preload={index < 2 ? 'auto' : 'metadata'}
                     onLoadedMetadata={e => { e.currentTarget.currentTime = 0.1; }}
                 />
@@ -60,15 +70,6 @@ const ReelItem: React.FC<{ item: MediaHighlight; index: number }> = ({ item, ind
 
             {/* Karartma gradient */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent pointer-events-none" />
-
-            {/* Video ikon */}
-            {item.type === 'video' && (
-                <div className="absolute top-4 right-4">
-                    <div className="w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                        <Play className="w-4 h-4 text-white fill-white ml-0.5" />
-                    </div>
-                </div>
-            )}
 
             {/* Etiketler */}
             {item.tags.length > 0 && (
@@ -81,8 +82,8 @@ const ReelItem: React.FC<{ item: MediaHighlight; index: number }> = ({ item, ind
                 </div>
             )}
 
-            {/* Alt bilgi — bottom navın üstünde kalacak şekilde */}
-            <div className="absolute bottom-16 left-4 right-4 pb-2">
+            {/* Alt bilgi */}
+            <div className="absolute bottom-4 left-4 right-16 pb-2">
                 <p className="text-white font-bold text-xl leading-snug mb-1 drop-shadow-sm">{item.shopName}</p>
                 <button
                     onClick={() => navigate(`/shop/${item.shopId}`)}
@@ -99,6 +100,7 @@ const ReelItem: React.FC<{ item: MediaHighlight; index: number }> = ({ item, ind
 export const KolajPage: React.FC = () => {
     const [items, setItems] = useState<MediaHighlight[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isMuted, setIsMuted] = useState(true);
 
     useEffect(() => {
         shopService
@@ -126,13 +128,27 @@ export const KolajPage: React.FC = () => {
     }
 
     return (
-        <div
-            className="overflow-y-scroll snap-y snap-mandatory"
-            style={{ height: ITEM_HEIGHT }}
-        >
-            {items.map((item, index) => (
-                <ReelItem key={`${item.shopId}-${index}`} item={item} index={index} />
-            ))}
-        </div>
+        <>
+            <div
+                className="overflow-y-scroll snap-y snap-mandatory"
+                style={{ height: ITEM_HEIGHT }}
+            >
+                {items.map((item, index) => (
+                    <ReelItem key={`${item.shopId}-${index}`} item={item} index={index} isMuted={isMuted} />
+                ))}
+            </div>
+
+            {/* Ses toggle — bottom nav'ın hemen üstünde, sağ altta */}
+            <button
+                onClick={() => setIsMuted(prev => !prev)}
+                className="fixed bottom-16 right-4 z-[60] w-11 h-11 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center text-white border border-white/25 shadow-xl active:scale-90 transition-all"
+                aria-label={isMuted ? 'Sesi aç' : 'Sesi kapat'}
+            >
+                {isMuted
+                    ? <VolumeX className="w-5 h-5" />
+                    : <Volume2 className="w-5 h-5" />
+                }
+            </button>
+        </>
     );
 };
