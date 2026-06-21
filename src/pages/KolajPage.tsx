@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Play, ArrowRight, Volume2, VolumeX, Heart, Share2, Check } from 'lucide-react';
+import { Play, ArrowRight, Volume2, VolumeX, Heart, Send, Check } from 'lucide-react';
 import { shopService } from '../api/shop.service';
 import { mediaLikeService } from '../api/mediaLike.service';
 import type { MediaHighlight } from '../types/shop';
@@ -82,13 +82,16 @@ const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, isMutedRef, o
         }
     };
 
-    const handleShare = (e: React.PointerEvent) => {
+    const handleShare = async (e: React.PointerEvent) => {
         e.stopPropagation();
         const url = `${window.location.origin}/kolaj?id=${item.id}`;
-        navigator.clipboard.writeText(url).then(() => {
+        if (navigator.share) {
+            try { await navigator.share({ title: item.shopName, url }); } catch { /* iptal */ }
+        } else {
+            await navigator.clipboard.writeText(url).catch(() => {});
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
-        });
+        }
     };
 
     const handlePointerDown = () => {
@@ -201,7 +204,7 @@ const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, isMutedRef, o
                             className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform"
                         >
                             <div className="w-11 h-11 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center border border-white/20 shadow-lg">
-                                {copied ? <Check className="w-5 h-5 text-green-400" /> : <Share2 className="w-5 h-5 text-white" />}
+                                {copied ? <Check className="w-5 h-5 text-green-400" /> : <Send className="w-5 h-5 text-white" />}
                             </div>
                             <span className="text-white text-[11px] font-bold drop-shadow">{copied ? 'Kopyalandı' : 'Paylaş'}</span>
                         </button>
