@@ -2,8 +2,9 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Play, ArrowRight, Volume2, VolumeX, Heart } from 'lucide-react';
 import { shopService } from '../api/shop.service';
+import { mediaLikeService } from '../api/mediaLike.service';
 import type { MediaHighlight } from '../types/shop';
-import { mediaLikesService } from '../services/mediaLikes.service';
+import { useAuth } from '../context/AuthContext';
 
 const ITEM_HEIGHT = 'calc(100dvh - 56px - 56px)';
 
@@ -24,9 +25,10 @@ interface ReelItemProps {
     isMuted: boolean;
     isMutedRef: React.RefObject<boolean>;
     onToggleMute: () => void;
+    isAuthenticated: boolean;
 }
 
-const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, isMutedRef, onToggleMute }) => {
+const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, isMutedRef, onToggleMute, isAuthenticated }) => {
     const navigate       = useNavigate();
     const videoRef       = useRef<HTMLVideoElement | null>(null);
     const containerRef   = useRef<HTMLDivElement | null>(null);
@@ -35,16 +37,14 @@ const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, isMutedRef, o
     const lastPtrRef     = useRef(0);
     const didDblRef      = useRef(false);
 
-    const [liked, setLiked]         = useState(() => mediaLikesService.isLiked(item.url));
-    const [count, setCount]         = useState(() => mediaLikesService.getCount(item.url));
+    const [liked, setLiked]         = useState(item.isLikedByCurrentUser);
+    const [count, setCount]         = useState(item.likeCount);
     const [showHeart, setShowHeart] = useState(false);
 
-    /* Ses durumu değişince video elementine uygula */
     useEffect(() => {
         if (videoRef.current) videoRef.current.muted = isMuted;
     }, [isMuted]);
 
-    /* Dikey scroll'da görünürlüğe göre oynat/durdur */
     useEffect(() => {
         const vid = videoRef.current;
         const container = containerRef.current;
@@ -52,7 +52,7 @@ const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, isMutedRef, o
         const observer = new IntersectionObserver(
             ([entry]) => {
                 if (entry.isIntersecting) {
-                    vid.muted = isMutedRef.current; // her zaman güncel
+                    vid.muted = isMutedRef.current;
                     vid.play().catch(() => {});
                 } else {
                     vid.pause();
@@ -64,13 +64,20 @@ const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, isMutedRef, o
         return () => observer.disconnect();
     }, []);
 
-    const handleLike = () => {
-        const nowLiked = mediaLikesService.toggle(item);
-        setLiked(nowLiked);
-        setCount(mediaLikesService.getCount(item.url));
-        if (nowLiked) {
+    const handleLike = async () => {
+        if (!isAuthenticated) return;
+        const newLiked = !liked;
+        setLiked(newLiked);
+        setCount(prev => prev + (newLiked ? 1 : -1));
+        if (newLiked) {
             setShowHeart(true);
             setTimeout(() => setShowHeart(false), 800);
+        }
+        try {
+            await mediaLikeService.toggle(item.id, item.type);
+        } catch {
+            setLiked(!newLiked);
+            setCount(item.likeCount);
         }
     };
 
@@ -79,7 +86,6 @@ const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, isMutedRef, o
         const since = now - lastPtrRef.current;
 
         if (since < 320 && since > 0) {
-            /* Çift dokunuş */
             didDblRef.current = true;
             lastPtrRef.current = 0;
             handleLike();
@@ -127,17 +133,14 @@ const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, isMutedRef, o
                 />
             )}
 
-            {/* Kalp pop animasyonu */}
             {showHeart && (
                 <div className="heart-pop-big absolute inset-0 flex items-center justify-center pointer-events-none z-30">
                     <Heart className="w-28 h-28 text-white fill-white drop-shadow-2xl" />
                 </div>
             )}
 
-            {/* Karartma */}
             <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/10 to-transparent pointer-events-none" />
 
-            {/* Etiketler */}
             {item.tags.length > 0 && (
                 <div className="absolute top-4 left-4 flex flex-wrap gap-1 pointer-events-none">
                     {item.tags.slice(0, 3).map(tag => (
@@ -146,49 +149,58 @@ const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, isMutedRef, o
                 </div>
             )}
 
-            {/* Sağ kenar butonları */}
-            <div className="absolute right-3 bottom-24 flex flex-col items-center gap-4">
-                {/* Beğeni */}
+            {/* Ses butonu — sağ kenar üst, sadece videolarda */}
+            {item.type === 'video' && (
                 <button
                     onPointerDown={e => e.stopPropagation()}
-                    onClick={handleLike}
-                    className="flex flex-col items-center gap-1 active:scale-90 transition-transform"
+                    onClick={onToggleMute}
+                    className="absolute right-3 bottom-[88px] w-11 h-11 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white border border-white/20 shadow-lg active:scale-90 transition-transform"
+                    aria-label={isMuted ? 'Sesi aç' : 'Sesi kapat'}
                 >
-                    <div className="w-11 h-11 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center border border-white/20 shadow-lg">
-                        <Heart className={`w-5 h-5 transition-colors ${liked ? 'text-red-500 fill-red-500' : 'text-white'}`} />
-                    </div>
-                    <span className="text-white text-[11px] font-bold drop-shadow">{count}</span>
+                    {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
                 </button>
+            )}
 
-                {/* Ses — sadece videolarda */}
-                {item.type === 'video' && (
+            {/* Alt bilgi + beğeni */}
+            <div className="absolute bottom-4 left-4 right-4 pb-2">
+                <p className="text-white font-bold text-xl leading-snug mb-3 drop-shadow-sm">{item.shopName}</p>
+                {/* Salona Git + Beğeni yan yana */}
+                <div className="flex items-center justify-between">
                     <button
                         onPointerDown={e => e.stopPropagation()}
-                        onClick={onToggleMute}
-                        className="w-11 h-11 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white border border-white/20 shadow-lg active:scale-90 transition-transform"
-                        aria-label={isMuted ? 'Sesi aç' : 'Sesi kapat'}
+                        onClick={() => navigate(`/shop/${item.shopId}`)}
+                        className="inline-flex items-center gap-1.5 bg-white text-gray-900 text-sm font-bold px-4 py-2.5 rounded-2xl shadow-lg active:scale-95 transition-transform"
                     >
-                        {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                        Salona Git <ArrowRight className="w-4 h-4" />
                     </button>
-                )}
-            </div>
 
-            {/* Alt bilgi */}
-            <div className="absolute bottom-4 left-4 right-16 pb-2">
-                <p className="text-white font-bold text-xl leading-snug mb-1 drop-shadow-sm">{item.shopName}</p>
-                <button
-                    onPointerDown={e => e.stopPropagation()}
-                    onClick={() => navigate(`/shop/${item.shopId}`)}
-                    className="mt-2 inline-flex items-center gap-1.5 bg-white text-gray-900 text-sm font-bold px-4 py-2.5 rounded-2xl shadow-lg active:scale-95 transition-transform"
-                >
-                    Salona Git <ArrowRight className="w-4 h-4" />
-                </button>
+                    {isAuthenticated ? (
+                        <button
+                            onPointerDown={e => e.stopPropagation()}
+                            onClick={handleLike}
+                            className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform"
+                        >
+                            <div className="w-11 h-11 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center border border-white/20 shadow-lg">
+                                <Heart className={`w-5 h-5 transition-colors ${liked ? 'text-red-500 fill-red-500' : 'text-white'}`} />
+                            </div>
+                            <span className="text-white text-[11px] font-bold drop-shadow">{count}</span>
+                        </button>
+                    ) : (
+                        <div className="flex flex-col items-center gap-0.5">
+                            <div className="w-11 h-11 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center border border-white/20">
+                                <Heart className="w-5 h-5 text-white/40" />
+                            </div>
+                            <span className="text-white/40 text-[11px] font-bold">{count}</span>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     );
 };
 
 export const KolajPage: React.FC = () => {
+    const { isAuthenticated } = useAuth();
     const [items, setItems]   = useState<MediaHighlight[]>([]);
     const [loading, setLoading] = useState(true);
     const [isMuted, setIsMuted] = useState(true);
@@ -233,6 +245,7 @@ export const KolajPage: React.FC = () => {
                         isMuted={isMuted}
                         isMutedRef={isMutedRef}
                         onToggleMute={toggleMute}
+                        isAuthenticated={isAuthenticated}
                     />
                 ))}
             </div>

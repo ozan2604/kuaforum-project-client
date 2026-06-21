@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Heart, Play, Store } from 'lucide-react';
-import { mediaLikesService, type LikedMediaItem } from '../services/mediaLikes.service';
+import { mediaLikeService } from '../api/mediaLike.service';
 import { favoriteService } from '../services/favorite.service';
 import { ShopCard } from '../components/ShopCard';
 import { useAuth } from '../context/AuthContext';
-import type { Shop } from '../types/shop';
+import type { Shop, MediaHighlight } from '../types/shop';
 
 type Tab = 'media' | 'salons';
 
@@ -13,16 +13,22 @@ export const FavoritesPage: React.FC = () => {
     const navigate = useNavigate();
     const { isAuthenticated } = useAuth();
     const [activeTab, setActiveTab] = useState<Tab>('media');
-    const [likedMedia, setLikedMedia] = useState<LikedMediaItem[]>([]);
+    const [likedMedia, setLikedMedia] = useState<MediaHighlight[]>([]);
     const [favShops, setFavShops]     = useState<Shop[]>([]);
+    const [loadingMedia, setLoadingMedia] = useState(false);
     const [loadingShops, setLoadingShops] = useState(false);
 
-    /* Medyaları localStorage'dan al (sayfa her açılışında taze) */
+    /* Beğenilen medyaları API'den çek */
     useEffect(() => {
-        setLikedMedia(mediaLikesService.getAll());
-    }, []);
+        if (activeTab !== 'media' || !isAuthenticated) return;
+        setLoadingMedia(true);
+        mediaLikeService.getMyLikes()
+            .then(setLikedMedia)
+            .catch(() => {})
+            .finally(() => setLoadingMedia(false));
+    }, [activeTab, isAuthenticated]);
 
-    /* Favori salonları API'den çek — yalnızca sekme aktifken */
+    /* Favori salonları API'den çek */
     useEffect(() => {
         if (activeTab !== 'salons' || !isAuthenticated) return;
         setLoadingShops(true);
@@ -32,9 +38,13 @@ export const FavoritesPage: React.FC = () => {
             .finally(() => setLoadingShops(false));
     }, [activeTab, isAuthenticated]);
 
-    const unlikeMedia = (url: string) => {
-        mediaLikesService.toggle(likedMedia.find(i => i.url === url)!);
-        setLikedMedia(mediaLikesService.getAll());
+    const unlikeMedia = async (item: MediaHighlight) => {
+        setLikedMedia(prev => prev.filter(i => i.id !== item.id));
+        try {
+            await mediaLikeService.toggle(item.id, item.type);
+        } catch {
+            setLikedMedia(prev => [...prev, item]);
+        }
     };
 
     return (
@@ -70,7 +80,22 @@ export const FavoritesPage: React.FC = () => {
             {/* ── Beğenilen Medya ── */}
             {activeTab === 'media' && (
                 <div className="max-w-[1600px] mx-auto px-3 py-4">
-                    {likedMedia.length === 0 ? (
+                    {!isAuthenticated ? (
+                        <div className="flex flex-col items-center justify-center py-32 text-gray-400 gap-4">
+                            <Heart className="w-14 h-14 stroke-[1.5]" />
+                            <p className="font-semibold text-base">Giriş yapman gerekiyor</p>
+                            <button
+                                onClick={() => navigate('/login')}
+                                className="px-5 py-2.5 bg-primary-600 text-white text-sm font-bold rounded-2xl shadow-md hover:bg-primary-700 transition-colors"
+                            >
+                                Giriş Yap
+                            </button>
+                        </div>
+                    ) : loadingMedia ? (
+                        <div className="flex justify-center py-32">
+                            <div className="w-8 h-8 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
+                        </div>
+                    ) : likedMedia.length === 0 ? (
                         <div className="flex flex-col items-center justify-center py-32 text-gray-400 gap-4">
                             <Heart className="w-14 h-14 stroke-[1.5]" />
                             <p className="font-semibold text-base">Henüz beğenilen içerik yok</p>
@@ -88,7 +113,7 @@ export const FavoritesPage: React.FC = () => {
                         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1.5">
                             {likedMedia.map(item => (
                                 <div
-                                    key={item.url}
+                                    key={item.id}
                                     className="relative aspect-square rounded-xl overflow-hidden cursor-pointer group"
                                     onClick={() => navigate(`/shop/${item.shopId}`)}
                                 >
@@ -109,7 +134,6 @@ export const FavoritesPage: React.FC = () => {
                                         />
                                     )}
 
-                                    {/* Video ikonu */}
                                     {item.type === 'video' && (
                                         <div className="absolute top-2 right-2">
                                             <div className="w-6 h-6 rounded-full bg-black/50 flex items-center justify-center">
@@ -118,14 +142,12 @@ export const FavoritesPage: React.FC = () => {
                                         </div>
                                     )}
 
-                                    {/* Alt gradient + salon adı */}
                                     <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent pt-6 pb-2 px-2">
                                         <p className="text-white text-[11px] font-bold leading-tight line-clamp-1">{item.shopName}</p>
                                     </div>
 
-                                    {/* Beğeniyi kaldır butonu */}
                                     <button
-                                        onClick={e => { e.stopPropagation(); unlikeMedia(item.url); }}
+                                        onClick={e => { e.stopPropagation(); unlikeMedia(item); }}
                                         className="absolute top-2 left-2 w-6 h-6 rounded-full bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                                     >
                                         <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500" />

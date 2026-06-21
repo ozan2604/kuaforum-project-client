@@ -73,11 +73,14 @@ export interface ShopVideo {
 }
 
 export interface MediaHighlight {
+    id: string;
     type: 'image' | 'video';
     url: string;
     shopId: string;
     shopName: string;
     tags: string[];
+    likeCount: number;
+    isLikedByCurrentUser: boolean;
 }
 
 export interface Shop {

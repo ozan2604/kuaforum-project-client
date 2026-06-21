@@ -2,7 +2,8 @@ import React, { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, ChevronRight, ArrowRight, X, Volume2, VolumeX, Heart } from 'lucide-react';
 import type { MediaHighlight } from '../types/shop';
-import { mediaLikesService } from '../services/mediaLikes.service';
+import { mediaLikeService } from '../api/mediaLike.service';
+import { useAuth } from '../context/AuthContext';
 
 /* ── Kalp pop animasyonu ── */
 const HEART_STYLE = `
@@ -24,10 +25,11 @@ interface MediaCardProps {
     isMutedRef: React.RefObject<boolean>;
     onToggleMute: (e: React.MouseEvent | React.PointerEvent) => void;
     onOpenModal: (item: MediaHighlight) => void;
+    isAuthenticated: boolean;
 }
 
 const MediaCard: React.FC<MediaCardProps> = ({
-    item, index, scrollRoot, isMuted, isMutedRef, onToggleMute, onOpenModal,
+    item, index, scrollRoot, isMuted, isMutedRef, onToggleMute, onOpenModal, isAuthenticated,
 }) => {
     const navigate = useNavigate();
     const videoRef    = useRef<HTMLVideoElement | null>(null);
@@ -37,8 +39,8 @@ const MediaCard: React.FC<MediaCardProps> = ({
     const lastPtrRef   = useRef(0);
     const didDblRef    = useRef(false);
 
-    const [liked, setLiked]       = useState(() => mediaLikesService.isLiked(item.url));
-    const [count, setCount]       = useState(() => mediaLikesService.getCount(item.url));
+    const [liked, setLiked]       = useState(item.isLikedByCurrentUser);
+    const [count, setCount]       = useState(item.likeCount);
     const [showHeart, setShowHeart] = useState(false);
 
     /* Ses durumu değişince video elementine uygula */
@@ -54,7 +56,7 @@ const MediaCard: React.FC<MediaCardProps> = ({
         const observer = new IntersectionObserver(
             ([entry]) => {
                 if (entry.isIntersecting) {
-                    vid.muted = isMutedRef.current; // her zaman güncel değer
+                    vid.muted = isMutedRef.current;
                     vid.play().catch(() => {});
                 } else {
                     vid.pause();
@@ -66,13 +68,25 @@ const MediaCard: React.FC<MediaCardProps> = ({
         return () => observer.disconnect();
     }, [scrollRoot]);
 
-    const handleLike = () => {
-        const nowLiked = mediaLikesService.toggle(item);
-        setLiked(nowLiked);
-        setCount(mediaLikesService.getCount(item.url));
-        if (nowLiked) {
+    const handleLike = async () => {
+        if (!isAuthenticated) return;
+        const newLiked = !liked;
+        setLiked(newLiked);
+        setCount(prev => prev + (newLiked ? 1 : -1));
+        if (newLiked) {
             setShowHeart(true);
             setTimeout(() => setShowHeart(false), 800);
+        }
+        try {
+            const serverLiked = await mediaLikeService.toggle(item.id, item.type);
+            setLiked(serverLiked);
+            setCount(prev => {
+                const expected = serverLiked ? item.likeCount + 1 : item.likeCount;
+                return expected;
+            });
+        } catch {
+            setLiked(!newLiked);
+            setCount(item.likeCount);
         }
     };
 
@@ -81,7 +95,6 @@ const MediaCard: React.FC<MediaCardProps> = ({
         const since = now - lastPtrRef.current;
 
         if (since < 320 && since > 0) {
-            /* ── Çift dokunuş ── */
             didDblRef.current = true;
             lastPtrRef.current = 0;
             handleLike();
@@ -144,14 +157,12 @@ const MediaCard: React.FC<MediaCardProps> = ({
                 />
             )}
 
-            {/* Kalp pop animasyonu */}
             {showHeart && (
                 <div className="heart-pop absolute inset-0 flex items-center justify-center pointer-events-none z-30">
                     <Heart className="w-16 h-16 text-white fill-white drop-shadow-xl" />
                 </div>
             )}
 
-            {/* Üst etiketler */}
             {item.tags.length > 0 && (
                 <div className="absolute top-0 left-0 right-0 pt-2.5 px-2.5 bg-gradient-to-b from-black/50 to-transparent pointer-events-none">
                     <div className="flex flex-wrap gap-1">
@@ -183,15 +194,22 @@ const MediaCard: React.FC<MediaCardProps> = ({
                         <span>{item.type === 'video' ? 'Videoyu İzle' : 'Salona Git'}</span>
                         <ArrowRight className="w-3 h-3" />
                     </div>
-                    {/* Beğeni */}
-                    <button
-                        onPointerDown={e => e.stopPropagation()}
-                        onClick={e => { e.stopPropagation(); handleLike(); }}
-                        className="flex items-center gap-1 active:scale-90 transition-transform"
-                    >
-                        <Heart className={`w-3.5 h-3.5 transition-colors ${liked ? 'text-red-500 fill-red-500' : 'text-white/80'}`} />
-                        <span className="text-[11px] text-white/80 font-semibold">{count}</span>
-                    </button>
+                    {isAuthenticated && (
+                        <button
+                            onPointerDown={e => e.stopPropagation()}
+                            onClick={e => { e.stopPropagation(); handleLike(); }}
+                            className="flex items-center gap-1 active:scale-90 transition-transform"
+                        >
+                            <Heart className={`w-3.5 h-3.5 transition-colors ${liked ? 'text-red-500 fill-red-500' : 'text-white/80'}`} />
+                            <span className="text-[11px] text-white/80 font-semibold">{count}</span>
+                        </button>
+                    )}
+                    {!isAuthenticated && (
+                        <div className="flex items-center gap-1">
+                            <Heart className="w-3.5 h-3.5 text-white/50" />
+                            <span className="text-[11px] text-white/50 font-semibold">{count}</span>
+                        </div>
+                    )}
                 </div>
             </div>
         </div>
@@ -203,6 +221,7 @@ interface MediaStripProps {
 }
 
 export const MediaStrip: React.FC<MediaStripProps> = ({ items }) => {
+    const { isAuthenticated } = useAuth();
     const scrollRef    = useRef<HTMLDivElement>(null);
     const [videoModal, setVideoModal]     = useState<MediaHighlight | null>(null);
     const [canScrollLeft, setCanScrollLeft]   = useState(false);
@@ -273,6 +292,7 @@ export const MediaStrip: React.FC<MediaStripProps> = ({ items }) => {
                             isMutedRef={isMutedRef}
                             onToggleMute={toggleMute}
                             onOpenModal={setVideoModal}
+                            isAuthenticated={isAuthenticated}
                         />
                     ))}
                 </div>
