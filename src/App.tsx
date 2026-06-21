@@ -23,6 +23,7 @@ import { SalonApplicationPage } from './pages/SalonApplicationPage';
 import { CreateShopPage } from './pages/CreateShopPage';
 import { MyAppointmentsPage } from './pages/MyAppointmentsPage';
 import { KolajPage } from './pages/KolajPage';
+import { FavoritesPage } from './pages/FavoritesPage';
 import { UnauthorizedPage } from './pages/UnauthorizedPage';
 import { LegalPage } from './pages/legal/LegalPage';
 import { LEGAL_TEXTS } from './constants/legal';
@@ -81,7 +82,7 @@ function App() {
           <Route path="/isletmeler-icin" element={<BusinessMarketingPage />} />
           <Route path="/shop/:id" element={<ShopDetailsPage />} />
           <Route path="/kolaj" element={<KolajPage />} />
-          <Route path="/favorites" element={<HomePage showFavoritesOnly={true} />} />
+          <Route path="/favorites" element={<FavoritesPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/account" element={<ProfilePage />} />
           <Route path="/unauthorized" element={<UnauthorizedPage />} />

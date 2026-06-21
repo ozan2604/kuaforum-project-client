@@ -1,64 +1,106 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, ArrowRight, X, Volume2, VolumeX } from 'lucide-react';
+import { ChevronLeft, ChevronRight, ArrowRight, X, Volume2, VolumeX, Heart } from 'lucide-react';
 import type { MediaHighlight } from '../types/shop';
+import { mediaLikesService } from '../services/mediaLikes.service';
+
+/* ── Kalp pop animasyonu ── */
+const HEART_STYLE = `
+@keyframes heartPop {
+    0%   { transform: scale(0);   opacity: 0.95; }
+    40%  { transform: scale(1.4); opacity: 1;    }
+    65%  { transform: scale(1.1); opacity: 1;    }
+    80%  { transform: scale(1);   opacity: 1;    }
+    100% { transform: scale(1);   opacity: 0;    }
+}
+.heart-pop { animation: heartPop 0.75s ease-out forwards; }
+`;
 
 interface MediaCardProps {
     item: MediaHighlight;
     index: number;
     scrollRoot: HTMLDivElement | null;
     isMuted: boolean;
+    isMutedRef: React.RefObject<boolean>;
     onToggleMute: (e: React.MouseEvent | React.PointerEvent) => void;
     onOpenModal: (item: MediaHighlight) => void;
 }
 
-const MediaCard: React.FC<MediaCardProps> = ({ item, index, scrollRoot, isMuted, onToggleMute, onOpenModal }) => {
+const MediaCard: React.FC<MediaCardProps> = ({
+    item, index, scrollRoot, isMuted, isMutedRef, onToggleMute, onOpenModal,
+}) => {
     const navigate = useNavigate();
-    const videoRef = useRef<HTMLVideoElement | null>(null);
+    const videoRef    = useRef<HTMLVideoElement | null>(null);
     const containerRef = useRef<HTMLDivElement | null>(null);
     const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    const isHoldRef = useRef(false);
+    const isHoldRef    = useRef(false);
+    const lastPtrRef   = useRef(0);
+    const didDblRef    = useRef(false);
 
-    // Ses durumu değişince video elementine uygula
+    const [liked, setLiked]       = useState(() => mediaLikesService.isLiked(item.url));
+    const [count, setCount]       = useState(() => mediaLikesService.getCount(item.url));
+    const [showHeart, setShowHeart] = useState(false);
+
+    /* Ses durumu değişince video elementine uygula */
     useEffect(() => {
         if (videoRef.current) videoRef.current.muted = isMuted;
     }, [isMuted]);
 
-    // Yatay scroll container'da görünürlüğe göre oynat/durdur
+    /* Yatay scroll'da görünürlüğe göre oynat/durdur */
     useEffect(() => {
         const vid = videoRef.current;
         const container = containerRef.current;
         if (!vid || !container) return;
-
         const observer = new IntersectionObserver(
             ([entry]) => {
                 if (entry.isIntersecting) {
-                    vid.muted = isMuted;
+                    vid.muted = isMutedRef.current; // her zaman güncel değer
                     vid.play().catch(() => {});
                 } else {
                     vid.pause();
                 }
             },
-            { root: scrollRoot, threshold: 0.4 }
+            { root: scrollRoot, threshold: 0.4 },
         );
         observer.observe(container);
         return () => observer.disconnect();
     }, [scrollRoot]);
 
+    const handleLike = () => {
+        const nowLiked = mediaLikesService.toggle(item);
+        setLiked(nowLiked);
+        setCount(mediaLikesService.getCount(item.url));
+        if (nowLiked) {
+            setShowHeart(true);
+            setTimeout(() => setShowHeart(false), 800);
+        }
+    };
+
     const handlePointerDown = () => {
-        if (item.type !== 'video') return;
-        isHoldRef.current = false;
-        holdTimerRef.current = setTimeout(() => {
-            isHoldRef.current = true;
-            videoRef.current?.pause();
-        }, 180);
+        const now = Date.now();
+        const since = now - lastPtrRef.current;
+
+        if (since < 320 && since > 0) {
+            /* ── Çift dokunuş ── */
+            didDblRef.current = true;
+            lastPtrRef.current = 0;
+            handleLike();
+            return;
+        }
+        lastPtrRef.current = now;
+        didDblRef.current  = false;
+        isHoldRef.current  = false;
+
+        if (item.type === 'video') {
+            holdTimerRef.current = setTimeout(() => {
+                isHoldRef.current = true;
+                videoRef.current?.pause();
+            }, 200);
+        }
     };
 
     const handlePointerUp = () => {
-        if (holdTimerRef.current) {
-            clearTimeout(holdTimerRef.current);
-            holdTimerRef.current = null;
-        }
+        if (holdTimerRef.current) { clearTimeout(holdTimerRef.current); holdTimerRef.current = null; }
         if (isHoldRef.current) {
             isHoldRef.current = false;
             videoRef.current?.play().catch(() => {});
@@ -66,6 +108,7 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, index, scrollRoot, isMuted,
     };
 
     const handleClick = () => {
+        if (didDblRef.current) { didDblRef.current = false; return; }
         if (isHoldRef.current) return;
         if (item.type === 'video') onOpenModal(item);
         else navigate(`/shop/${item.shopId}`);
@@ -101,6 +144,13 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, index, scrollRoot, isMuted,
                 />
             )}
 
+            {/* Kalp pop animasyonu */}
+            {showHeart && (
+                <div className="heart-pop absolute inset-0 flex items-center justify-center pointer-events-none z-30">
+                    <Heart className="w-16 h-16 text-white fill-white drop-shadow-xl" />
+                </div>
+            )}
+
             {/* Üst etiketler */}
             {item.tags.length > 0 && (
                 <div className="absolute top-0 left-0 right-0 pt-2.5 px-2.5 bg-gradient-to-b from-black/50 to-transparent pointer-events-none">
@@ -114,24 +164,34 @@ const MediaCard: React.FC<MediaCardProps> = ({ item, index, scrollRoot, isMuted,
                 </div>
             )}
 
-            {/* Ses butonu — sadece videolarda, sağ üst köşe */}
+            {/* Ses butonu — sadece videolarda */}
             {item.type === 'video' && (
                 <button
                     onPointerDown={e => e.stopPropagation()}
                     onClick={onToggleMute}
-                    className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/55 backdrop-blur-sm flex items-center justify-center text-white border border-white/20 shadow-md z-10 active:scale-90 transition-transform"
-                    aria-label={isMuted ? 'Sesi aç' : 'Sesi kapat'}
+                    className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/55 backdrop-blur-sm flex items-center justify-center text-white border border-white/20 z-10 active:scale-90 transition-transform"
                 >
                     {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
                 </button>
             )}
 
-            {/* Alt bilgi */}
-            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-8 pb-3 px-3">
+            {/* Alt bilgi + beğeni */}
+            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-8 pb-2.5 px-3">
                 <p className="text-white text-xs font-bold leading-tight line-clamp-1 mb-1.5">{item.shopName}</p>
-                <div className={`flex items-center gap-1 text-white/80 text-[11px] font-semibold transition-all duration-200 ${item.type === 'image' ? 'opacity-0 group-hover/card:opacity-100' : 'opacity-70'}`}>
-                    <span>{item.type === 'video' ? 'Videoyu İzle' : 'Salona Git'}</span>
-                    <ArrowRight className="w-3 h-3" />
+                <div className="flex items-center justify-between">
+                    <div className={`flex items-center gap-1 text-white/80 text-[11px] font-semibold transition-all duration-200 ${item.type === 'image' ? 'opacity-0 group-hover/card:opacity-100' : 'opacity-70'}`}>
+                        <span>{item.type === 'video' ? 'Videoyu İzle' : 'Salona Git'}</span>
+                        <ArrowRight className="w-3 h-3" />
+                    </div>
+                    {/* Beğeni */}
+                    <button
+                        onPointerDown={e => e.stopPropagation()}
+                        onClick={e => { e.stopPropagation(); handleLike(); }}
+                        className="flex items-center gap-1 active:scale-90 transition-transform"
+                    >
+                        <Heart className={`w-3.5 h-3.5 transition-colors ${liked ? 'text-red-500 fill-red-500' : 'text-white/80'}`} />
+                        <span className="text-[11px] text-white/80 font-semibold">{count}</span>
+                    </button>
                 </div>
             </div>
         </div>
@@ -143,12 +203,21 @@ interface MediaStripProps {
 }
 
 export const MediaStrip: React.FC<MediaStripProps> = ({ items }) => {
-    const scrollRef = useRef<HTMLDivElement>(null);
-    const [videoModal, setVideoModal] = useState<MediaHighlight | null>(null);
-    const [canScrollLeft, setCanScrollLeft] = useState(false);
+    const scrollRef    = useRef<HTMLDivElement>(null);
+    const [videoModal, setVideoModal]     = useState<MediaHighlight | null>(null);
+    const [canScrollLeft, setCanScrollLeft]   = useState(false);
     const [canScrollRight, setCanScrollRight] = useState(true);
     const [isMuted, setIsMuted] = useState(true);
+    const isMutedRef = useRef(true);
     const navigate = useNavigate();
+
+    const toggleMute = (e: React.MouseEvent | React.PointerEvent) => {
+        e.stopPropagation();
+        setIsMuted(prev => {
+            isMutedRef.current = !prev;
+            return !prev;
+        });
+    };
 
     const updateScrollState = () => {
         const el = scrollRef.current;
@@ -171,46 +240,29 @@ export const MediaStrip: React.FC<MediaStripProps> = ({ items }) => {
         scrollRef.current?.scrollBy({ left: dir === 'left' ? -340 : 340, behavior: 'smooth' });
     };
 
-    const toggleMute = (e: React.MouseEvent | React.PointerEvent) => {
-        e.stopPropagation();
-        setIsMuted(prev => !prev);
-    };
-
     return (
         <>
+            <style dangerouslySetInnerHTML={{ __html: HEART_STYLE }} />
+
             <div className="flex items-center justify-between mt-2 sm:mt-6 mb-2 px-0.5">
                 <p className="text-[11px] font-semibold text-gray-400 tracking-wide uppercase">Salonlardan kolaj</p>
-                <button
-                    onClick={() => scroll('right')}
-                    className="flex items-center gap-1 text-[11px] font-semibold text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                    Sağa kaydır
-                    <ChevronRight className="w-3.5 h-3.5" />
+                <button onClick={() => scroll('right')} className="flex items-center gap-1 text-[11px] font-semibold text-gray-400 hover:text-gray-600 transition-colors">
+                    Sağa kaydır <ChevronRight className="w-3.5 h-3.5" />
                 </button>
             </div>
 
             <div className="relative mb-6">
                 {canScrollLeft && (
-                    <button
-                        onClick={() => scroll('left')}
-                        className="absolute left-1 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white shadow-md border border-gray-200 hidden sm:flex items-center justify-center hover:shadow-lg transition-all"
-                    >
+                    <button onClick={() => scroll('left')} className="absolute left-1 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white shadow-md border border-gray-200 hidden sm:flex items-center justify-center hover:shadow-lg transition-all">
                         <ChevronLeft className="w-4 h-4 text-gray-700" />
                     </button>
                 )}
                 {canScrollRight && (
-                    <button
-                        onClick={() => scroll('right')}
-                        className="absolute right-1 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white shadow-md border border-gray-200 hidden sm:flex items-center justify-center hover:shadow-lg transition-all"
-                    >
+                    <button onClick={() => scroll('right')} className="absolute right-1 top-1/2 -translate-y-1/2 z-20 w-8 h-8 rounded-full bg-white shadow-md border border-gray-200 hidden sm:flex items-center justify-center hover:shadow-lg transition-all">
                         <ChevronRight className="w-4 h-4 text-gray-700" />
                     </button>
                 )}
-
-                <div
-                    ref={scrollRef}
-                    className="flex gap-3 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] pb-1"
-                >
+                <div ref={scrollRef} className="flex gap-3 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] pb-1">
                     {items.map((item, index) => (
                         <MediaCard
                             key={`${item.shopId}-${index}`}
@@ -218,6 +270,7 @@ export const MediaStrip: React.FC<MediaStripProps> = ({ items }) => {
                             index={index}
                             scrollRoot={scrollRef.current}
                             isMuted={isMuted}
+                            isMutedRef={isMutedRef}
                             onToggleMute={toggleMute}
                             onOpenModal={setVideoModal}
                         />
@@ -233,10 +286,7 @@ export const MediaStrip: React.FC<MediaStripProps> = ({ items }) => {
                         <div className="flex items-center justify-between px-4 py-3 bg-gray-900">
                             <p className="text-white font-bold text-sm">{videoModal.shopName}</p>
                             <div className="flex items-center gap-3">
-                                <button
-                                    onClick={() => { setVideoModal(null); navigate(`/shop/${videoModal.shopId}`); }}
-                                    className="flex items-center gap-1.5 bg-white text-gray-900 text-xs font-bold px-4 py-2 rounded-xl hover:bg-gray-100 transition-colors"
-                                >
+                                <button onClick={() => { setVideoModal(null); navigate(`/shop/${videoModal.shopId}`); }} className="flex items-center gap-1.5 bg-white text-gray-900 text-xs font-bold px-4 py-2 rounded-xl hover:bg-gray-100 transition-colors">
                                     Salona Git <ArrowRight className="w-3.5 h-3.5" />
                                 </button>
                                 <button onClick={() => setVideoModal(null)} className="text-gray-400 hover:text-white transition-colors p-1">
