@@ -214,7 +214,6 @@ export const MyShopPage: React.FC = () => {
 
     const [shopType, setShopType] = useState<ShopType>(ShopType.Fixed);
     const [serviceAreas, setServiceAreas] = useState<ServiceAreaDto[]>([]);
-    const [savedServiceAreas, setSavedServiceAreas] = useState<ServiceAreaDto[]>([]);
     const [newArea, setNewArea] = useState<ServiceAreaDto>({ city: '', district: '', neighborhood: '' });
     const [savingServiceAreas, setSavingServiceAreas] = useState(false);
 
@@ -368,7 +367,6 @@ export const MyShopPage: React.FC = () => {
                 setWeeklyOffDays(shop.weeklyOffDays ?? []);
                 setShopType(shop.shopType ?? ShopType.Fixed);
                 setServiceAreas(shop.serviceAreas ?? []);
-                setSavedServiceAreas(shop.serviceAreas ?? []);
 
 
                 setSavedSnapshot({
@@ -614,7 +612,6 @@ export const MyShopPage: React.FC = () => {
                 shopType: ShopType.Mobile,
                 serviceAreas,
             });
-            setSavedServiceAreas(serviceAreas);
             toast.success('Hizmet bölgeleri güncellendi');
         } catch {
             toast.error('Hizmet bölgeleri güncellenemedi');
