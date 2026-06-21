@@ -850,7 +850,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                                             }`}
                                         />
                                     </div>
-                                    <span className={`text-[11px] sm:text-sm font-semibold text-center leading-[1.15] sm:leading-tight transition-colors whitespace-pre-line sm:whitespace-normal ${selectedCategory === cat.id ? 'text-primary-700' : 'text-gray-700 group-hover:text-primary-600'
+                                    <span className={`text-[11px] sm:text-sm font-semibold text-center leading-tight transition-colors whitespace-pre-line sm:whitespace-normal h-8 sm:h-auto flex items-start justify-center ${selectedCategory === cat.id ? 'text-primary-700' : 'text-gray-700 group-hover:text-primary-600'
                                         }`}>
                                         {cat.label.replace(' ', '\n')}
                                     </span>
@@ -943,7 +943,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
             )}
 
             {/* Ana İçerik Alanı */}
-            <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full flex-1">
+            <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-3 sm:py-8 w-full flex-1">
                 {/* Ana İçerik Listesi */}
                 <main className="flex-1 min-w-0">
                     {/* Harita Popup Modal */}
