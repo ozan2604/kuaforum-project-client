@@ -4,22 +4,29 @@ import { Play, ArrowRight, Volume2, VolumeX } from 'lucide-react';
 import { shopService } from '../api/shop.service';
 import type { MediaHighlight } from '../types/shop';
 
-// Mobile: navbar h-14 = 56px, bottom nav ~56px
 const ITEM_HEIGHT = 'calc(100dvh - 56px - 56px)';
 
-const ReelItem: React.FC<{ item: MediaHighlight; index: number; isMuted: boolean }> = ({ item, index, isMuted }) => {
+interface ReelItemProps {
+    item: MediaHighlight;
+    index: number;
+    isMuted: boolean;
+    onToggleMute: () => void;
+}
+
+const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, onToggleMute }) => {
     const navigate = useNavigate();
     const videoRef = useRef<HTMLVideoElement | null>(null);
     const containerRef = useRef<HTMLDivElement | null>(null);
+    const holdTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    // Ses durumu değişince video elementine uygula
+    // Ses durumu değişince mevcut video elementine uygula
     useEffect(() => {
         if (videoRef.current) {
             videoRef.current.muted = isMuted;
         }
     }, [isMuted]);
 
-    // Görünürlüğe göre oynat/durdur
+    // Viewport'a girince oynat, çıkınca durdur
     useEffect(() => {
         const vid = videoRef.current;
         const container = containerRef.current;
@@ -41,11 +48,32 @@ const ReelItem: React.FC<{ item: MediaHighlight; index: number; isMuted: boolean
         return () => observer.disconnect();
     }, []);
 
+    // Basılı tutunca duraklat
+    const handlePointerDown = () => {
+        if (item.type !== 'video' || !videoRef.current) return;
+        holdTimerRef.current = setTimeout(() => {
+            videoRef.current?.pause();
+        }, 120);
+    };
+
+    const handlePointerUp = () => {
+        if (holdTimerRef.current) {
+            clearTimeout(holdTimerRef.current);
+            holdTimerRef.current = null;
+        }
+        if (item.type === 'video' && videoRef.current) {
+            videoRef.current.play().catch(() => {});
+        }
+    };
+
     return (
         <div
             ref={containerRef}
-            className="relative w-full shrink-0 snap-start snap-always overflow-hidden bg-black"
+            className="relative w-full shrink-0 snap-start snap-always overflow-hidden bg-black select-none"
             style={{ height: ITEM_HEIGHT }}
+            onPointerDown={handlePointerDown}
+            onPointerUp={handlePointerUp}
+            onPointerLeave={handlePointerUp}
         >
             {item.type === 'image' ? (
                 <img
@@ -53,6 +81,7 @@ const ReelItem: React.FC<{ item: MediaHighlight; index: number; isMuted: boolean
                     alt={item.shopName}
                     className="w-full h-full object-cover"
                     loading={index < 3 ? 'eager' : 'lazy'}
+                    draggable={false}
                 />
             ) : (
                 <video
@@ -62,7 +91,6 @@ const ReelItem: React.FC<{ item: MediaHighlight; index: number; isMuted: boolean
                     muted
                     loop
                     playsInline
-                    autoPlay={index === 0}
                     preload={index < 2 ? 'auto' : 'metadata'}
                     onLoadedMetadata={e => { e.currentTarget.currentTime = 0.1; }}
                 />
@@ -73,7 +101,7 @@ const ReelItem: React.FC<{ item: MediaHighlight; index: number; isMuted: boolean
 
             {/* Etiketler */}
             {item.tags.length > 0 && (
-                <div className="absolute top-4 left-4 flex flex-wrap gap-1">
+                <div className="absolute top-4 left-4 flex flex-wrap gap-1 pointer-events-none">
                     {item.tags.slice(0, 3).map(tag => (
                         <span key={tag} className="text-[11px] font-semibold text-white bg-white/20 backdrop-blur-sm px-2.5 py-0.5 rounded-full border border-white/30">
                             {tag}
@@ -82,10 +110,23 @@ const ReelItem: React.FC<{ item: MediaHighlight; index: number; isMuted: boolean
                 </div>
             )}
 
+            {/* Ses butonu — sadece videolarda, sağ altta */}
+            {item.type === 'video' && (
+                <button
+                    onPointerDown={e => e.stopPropagation()}
+                    onClick={onToggleMute}
+                    className="absolute bottom-20 right-4 w-11 h-11 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center text-white border border-white/25 shadow-xl active:scale-90 transition-transform"
+                    aria-label={isMuted ? 'Sesi aç' : 'Sesi kapat'}
+                >
+                    {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                </button>
+            )}
+
             {/* Alt bilgi */}
             <div className="absolute bottom-4 left-4 right-16 pb-2">
                 <p className="text-white font-bold text-xl leading-snug mb-1 drop-shadow-sm">{item.shopName}</p>
                 <button
+                    onPointerDown={e => e.stopPropagation()}
                     onClick={() => navigate(`/shop/${item.shopId}`)}
                     className="mt-2 inline-flex items-center gap-1.5 bg-white text-gray-900 text-sm font-bold px-4 py-2.5 rounded-2xl shadow-lg active:scale-95 transition-transform"
                 >
@@ -128,27 +169,19 @@ export const KolajPage: React.FC = () => {
     }
 
     return (
-        <>
-            <div
-                className="overflow-y-scroll snap-y snap-mandatory"
-                style={{ height: ITEM_HEIGHT }}
-            >
-                {items.map((item, index) => (
-                    <ReelItem key={`${item.shopId}-${index}`} item={item} index={index} isMuted={isMuted} />
-                ))}
-            </div>
-
-            {/* Ses toggle — bottom nav'ın hemen üstünde, sağ altta */}
-            <button
-                onClick={() => setIsMuted(prev => !prev)}
-                className="fixed bottom-16 right-4 z-[60] w-11 h-11 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center text-white border border-white/25 shadow-xl active:scale-90 transition-all"
-                aria-label={isMuted ? 'Sesi aç' : 'Sesi kapat'}
-            >
-                {isMuted
-                    ? <VolumeX className="w-5 h-5" />
-                    : <Volume2 className="w-5 h-5" />
-                }
-            </button>
-        </>
+        <div
+            className="overflow-y-scroll snap-y snap-mandatory"
+            style={{ height: ITEM_HEIGHT }}
+        >
+            {items.map((item, index) => (
+                <ReelItem
+                    key={`${item.shopId}-${index}`}
+                    item={item}
+                    index={index}
+                    isMuted={isMuted}
+                    onToggleMute={() => setIsMuted(prev => !prev)}
+                />
+            ))}
+        </div>
     );
 };
