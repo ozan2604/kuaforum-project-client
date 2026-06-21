@@ -153,8 +153,14 @@ const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, isMutedRef, o
             {item.type === 'video' && (
                 <button
                     onPointerDown={e => e.stopPropagation()}
-                    onClick={onToggleMute}
-                    className="absolute right-3 bottom-[88px] w-11 h-11 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white border border-white/20 shadow-lg active:scale-90 transition-transform"
+                    onClick={() => {
+                        /* Video elementine direkt uygula (iOS gesture context içinde) */
+                        if (videoRef.current) {
+                            videoRef.current.muted = !videoRef.current.muted;
+                        }
+                        onToggleMute();
+                    }}
+                    className="absolute right-4 bottom-[88px] w-11 h-11 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white border border-white/20 shadow-lg active:scale-90 transition-transform"
                     aria-label={isMuted ? 'Sesi aç' : 'Sesi kapat'}
                 >
                     {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}

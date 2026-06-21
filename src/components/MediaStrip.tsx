@@ -176,7 +176,12 @@ const MediaCard: React.FC<MediaCardProps> = ({
             {item.type === 'video' && (
                 <button
                     onPointerDown={e => e.stopPropagation()}
-                    onClick={onToggleMute}
+                    onClick={(e) => {
+                        if (videoRef.current) {
+                            videoRef.current.muted = !videoRef.current.muted;
+                        }
+                        onToggleMute(e);
+                    }}
                     className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/55 backdrop-blur-sm flex items-center justify-center text-white border border-white/20 z-10 active:scale-90 transition-transform"
                 >
                     {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
