@@ -203,7 +203,8 @@ const MediaCard: React.FC<MediaCardProps> = ({
             {item.type === 'video' && (
                 <button
                     onPointerDown={e => e.stopPropagation()}
-                    onClick={() => {
+                    onClick={e => {
+                        e.stopPropagation();
                         if (videoRef.current) videoRef.current.muted = !videoRef.current.muted;
                         onToggleMute();
                     }}
