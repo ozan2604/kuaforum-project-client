@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ChevronRight, ArrowRight, X, Heart, Send, Check, Clapperboard, Volume2, VolumeX } from 'lucide-react';
 import type { MediaHighlight } from '../types/shop';
 import { mediaLikeService } from '../api/mediaLike.service';
+import { shopService } from '../api/shop.service';
 import { useAuth } from '../context/AuthContext';
 
 const HEART_STYLE = `
@@ -36,18 +37,25 @@ const MediaCard: React.FC<MediaCardProps> = ({
     const lastPtrRef    = useRef(0);
     const didDblRef     = useRef(false);
 
+    const viewRecordedRef = useRef(false);
+
     const [liked, setLiked]           = useState(item.isLikedByCurrentUser);
     const [count, setCount]           = useState(item.likeCount);
     const [showHeart, setShowHeart]   = useState(false);
     const [shareState, setShareState] = useState<'idle' | 'loading' | 'copied'>('idle');
+    const [viewCount, setViewCount]   = useState(item.viewCount ?? 0);
 
-    /* Odak değişince oynat / durdur */
+    /* Odak değişince oynat / durdur + view kaydet */
     useEffect(() => {
         const vid = videoRef.current;
         if (!vid) return;
         if (isFocused) {
             vid.muted = isMuted;
             vid.play().catch(() => {});
+            if (!viewRecordedRef.current) {
+                viewRecordedRef.current = true;
+                shopService.recordVideoView(item.id).then(newCount => setViewCount(newCount)).catch(() => {});
+            }
         } else {
             vid.pause();
         }
@@ -202,18 +210,21 @@ const MediaCard: React.FC<MediaCardProps> = ({
                 </div>
             )}
 
-            {/* Ses butonu — sağ üst, sadece videolarda */}
+            {/* Ses butonu + izlenme sayısı — sağ üst, sadece videolarda */}
             {item.type === 'video' && (
-                <button
-                    onPointerDown={e => e.stopPropagation()}
-                    onClick={e => {
-                        e.stopPropagation();
-                        onToggleMute();
-                    }}
-                    className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center border border-white/20 z-20 active:scale-90 transition-transform"
-                >
-                    {isMuted ? <VolumeX className="w-3.5 h-3.5 text-white" /> : <Volume2 className="w-3.5 h-3.5 text-white" />}
-                </button>
+                <div className="absolute top-2 right-2 flex flex-col items-center gap-0.5 z-20">
+                    <button
+                        onPointerDown={e => e.stopPropagation()}
+                        onClick={e => {
+                            e.stopPropagation();
+                            onToggleMute();
+                        }}
+                        className="w-7 h-7 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center border border-white/20 active:scale-90 transition-transform"
+                    >
+                        {isMuted ? <VolumeX className="w-3.5 h-3.5 text-white" /> : <Volume2 className="w-3.5 h-3.5 text-white" />}
+                    </button>
+                    <span className="text-white text-[9px] font-bold drop-shadow leading-none">{viewCount >= 1000 ? `${(viewCount / 1000).toFixed(1)}B` : viewCount}</span>
+                </div>
             )}
 
             {/* Odak göstergesi — altta ince çizgi */}

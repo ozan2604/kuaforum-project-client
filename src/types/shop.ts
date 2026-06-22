@@ -70,6 +70,7 @@ export interface ShopVideo {
     url: string;
     displayOrder: number;
     createdAt: string;
+    viewCount: number;
 }
 
 export interface MediaHighlight {
@@ -81,6 +82,7 @@ export interface MediaHighlight {
     tags: string[];
     likeCount: number;
     isLikedByCurrentUser: boolean;
+    viewCount: number;
 }
 
 export interface Shop {

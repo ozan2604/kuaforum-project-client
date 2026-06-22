@@ -47,6 +47,7 @@ export const ShopDetailsPage: React.FC = () => {
     const [showPromoVideo, setShowPromoVideo] = useState(false);
     const [showStickyHeader, setShowStickyHeader] = useState(false);
     const tabsRef = useRef<HTMLDivElement>(null);
+    const videoViewRecordedRef = useRef(false);
 
 
     useEffect(() => {
@@ -318,6 +319,12 @@ export const ShopDetailsPage: React.FC = () => {
                                         autoPlay
                                         className="w-full h-full object-contain"
                                         playsInline
+                                        onPlay={() => {
+                                            if (!videoViewRecordedRef.current && shop.videos?.[0]?.id) {
+                                                videoViewRecordedRef.current = true;
+                                                shopService.recordVideoView(shop.videos[0].id).catch(() => {});
+                                            }
+                                        }}
                                     />
                                 ) : (
                                     <>
@@ -852,6 +859,12 @@ export const ShopDetailsPage: React.FC = () => {
                                                         className="w-full h-full object-contain"
                                                         preload="metadata"
                                                         playsInline
+                                                        onPlay={() => {
+                                                            if (!videoViewRecordedRef.current && shop.videos?.[0]?.id) {
+                                                                videoViewRecordedRef.current = true;
+                                                                shopService.recordVideoView(shop.videos[0].id).catch(() => {});
+                                                            }
+                                                        }}
                                                     />
                                                 </div>
                                             </div>

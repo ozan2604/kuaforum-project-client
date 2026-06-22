@@ -36,11 +36,13 @@ const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, isMutedRef, o
     const isHoldRef      = useRef(false);
     const lastPtrRef     = useRef(0);
     const didDblRef      = useRef(false);
+    const viewRecordedRef = useRef(false);
 
     const [liked, setLiked]         = useState(item.isLikedByCurrentUser);
     const [count, setCount]         = useState(item.likeCount);
     const [showHeart, setShowHeart] = useState(false);
     const [shareState, setShareState] = useState<'idle' | 'loading' | 'copied'>('idle');
+    const [viewCount, setViewCount] = useState(item.viewCount ?? 0);
 
     useEffect(() => {
         if (videoRef.current) videoRef.current.muted = isMuted;
@@ -55,6 +57,10 @@ const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, isMutedRef, o
                 if (entry.isIntersecting) {
                     vid.muted = isMutedRef.current;
                     vid.play().catch(() => {});
+                    if (!viewRecordedRef.current) {
+                        viewRecordedRef.current = true;
+                        shopService.recordVideoView(item.id).then(newCount => setViewCount(newCount)).catch(() => {});
+                    }
                 } else {
                     vid.pause();
                 }
@@ -199,21 +205,24 @@ const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, isMutedRef, o
                 </div>
             )}
 
-            {/* Ses butonu — sağ üst köşe, sadece videolarda */}
+            {/* Ses butonu + izlenme sayısı — sağ üst köşe, sadece videolarda */}
             {item.type === 'video' && (
-                <button
-                    onPointerDown={e => e.stopPropagation()}
-                    onClick={() => {
-                        if (videoRef.current) {
-                            videoRef.current.muted = !videoRef.current.muted;
-                        }
-                        onToggleMute();
-                    }}
-                    className="absolute top-4 right-4 w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white border border-white/20 shadow-lg active:scale-90 transition-transform z-20"
-                    aria-label={isMuted ? 'Sesi aç' : 'Sesi kapat'}
-                >
-                    {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-                </button>
+                <div className="absolute top-4 right-4 flex flex-col items-center gap-1 z-20">
+                    <button
+                        onPointerDown={e => e.stopPropagation()}
+                        onClick={() => {
+                            if (videoRef.current) {
+                                videoRef.current.muted = !videoRef.current.muted;
+                            }
+                            onToggleMute();
+                        }}
+                        className="w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white border border-white/20 shadow-lg active:scale-90 transition-transform"
+                        aria-label={isMuted ? 'Sesi aç' : 'Sesi kapat'}
+                    >
+                        {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                    </button>
+                    <span className="text-white text-[11px] font-bold drop-shadow">{viewCount >= 1000 ? `${(viewCount / 1000).toFixed(1)}B` : viewCount}</span>
+                </div>
             )}
 
             {/* Alt bilgi + beğeni */}

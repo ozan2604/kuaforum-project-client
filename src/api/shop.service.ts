@@ -157,5 +157,10 @@ export const shopService = {
         params.append('limit', String(limit));
         const response = await api.get<MediaHighlight[]>(`/shop/public/media-highlights?${params.toString()}`);
         return response.data;
+    },
+
+    recordVideoView: async (videoId: string): Promise<number> => {
+        const response = await api.post<{ viewCount: number }>(`/shop/videos/${videoId}/view`);
+        return response.data.viewCount;
     }
 };
