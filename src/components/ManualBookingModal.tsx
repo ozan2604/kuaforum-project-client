@@ -318,7 +318,7 @@ export const ManualBookingModal: React.FC<ManualBookingModalProps> = ({
                 shopEmployeeId: selectedEmployeeId,
                 startTime: new Date(`${selectedDate}T${selectedTime}:00`).toISOString(),
                 note: note || undefined,
-                guestCustomerName: customerMode === 'named' && guestName.trim() ? guestName.trim() : undefined,
+                guestCustomerName: guestName.trim() ? guestName.trim() : undefined,
                 guestCustomerPhone: customerMode === 'named' && guestPhone.trim() ? guestPhone.trim() : undefined,
             });
             const emp = employees.find(e => e.id === selectedEmployeeId);
@@ -458,7 +458,7 @@ export const ManualBookingModal: React.FC<ManualBookingModalProps> = ({
                                     <div className="px-4 py-3 flex justify-between items-center">
                                         <span className="text-gray-500">Müşteri</span>
                                         <span className="font-semibold text-gray-900">
-                                            {customerMode === 'named' ? guestName : 'Misafir'}
+                                            {guestName.trim() || 'Misafir'}
                                         </span>
                                     </div>
                                     <div className="px-4 py-3 flex justify-between items-center">
@@ -542,7 +542,7 @@ export const ManualBookingModal: React.FC<ManualBookingModalProps> = ({
                                             <Users className={`w-7 h-7 ${customerMode === 'guest' ? 'text-primary-600' : 'text-gray-400'}`} />
                                             <div className="text-center">
                                                 <p className={`font-bold text-sm ${customerMode === 'guest' ? 'text-primary-900' : 'text-gray-700'}`}>Misafir</p>
-                                                <p className="text-[11px] text-gray-400 mt-0.5">Bilgi girilmeyecek</p>
+                                                <p className="text-[11px] text-gray-400 mt-0.5">İsim isteğe bağlı</p>
                                             </div>
                                             <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${customerMode === 'guest' ? 'bg-primary-500 border-primary-500' : 'border-gray-300'
                                                 }`}>
@@ -583,9 +583,29 @@ export const ManualBookingModal: React.FC<ManualBookingModalProps> = ({
                                     )}
 
                                     {customerMode === 'guest' && (
-                                        <div className="p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700 flex items-start gap-2">
-                                            <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                                            <span>Randevu "Misafir" olarak kaydedilecek. Müşteri adı ve telefonu görünmeyecek.</span>
+                                        <div className="space-y-3 pt-1">
+                                            <div>
+                                                <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                                                    Ad Soyad <span className="text-gray-400 font-normal">(İsteğe Bağlı)</span>
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={guestName}
+                                                    onChange={e => setGuestName(e.target.value)}
+                                                    placeholder="Girilmezse 'Misafir' olarak kaydedilir"
+                                                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-300 focus:border-primary-400 text-sm"
+                                                />
+                                            </div>
+                                            <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700 flex items-start gap-2">
+                                                <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
+                                                <span>
+                                                    Telefon bilgisi kaydedilmeyecek.{' '}
+                                                    {guestName.trim()
+                                                        ? <><strong>"{guestName.trim()}"</strong> adıyla kaydedilecek.</>
+                                                        : <>İsim girilmezse <strong>"Misafir"</strong> olarak kaydedilecek.</>
+                                                    }
+                                                </span>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
@@ -861,9 +881,9 @@ export const ManualBookingModal: React.FC<ManualBookingModalProps> = ({
                                     <div className={`flex items-center gap-3 p-3.5 rounded-2xl border ${customerMode === 'named' ? 'bg-green-50 border-green-100' : 'bg-gray-50 border-gray-100'}`}>
                                         {customerMode === 'named' ? <UserCheck className="w-5 h-5 text-green-600 shrink-0" /> : <Users className="w-5 h-5 text-gray-400 shrink-0" />}
                                         <div>
-                                            <p className="font-bold text-gray-900 text-sm">{customerMode === 'named' ? guestName : 'Misafir'}</p>
+                                            <p className="font-bold text-gray-900 text-sm">{guestName.trim() || 'Misafir'}</p>
                                             {customerMode === 'named' && guestPhone && <p className="text-xs text-gray-500 mt-0.5">{guestPhone}</p>}
-                                            {customerMode === 'guest' && <p className="text-xs text-gray-400 mt-0.5">Anonim randevu</p>}
+                                            {customerMode === 'guest' && <p className="text-xs text-gray-400 mt-0.5">Telefon kaydedilmedi</p>}
                                         </div>
                                     </div>
 
