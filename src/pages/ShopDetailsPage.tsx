@@ -7,7 +7,8 @@ import type { Shop } from '../types/shop';
 import { ShopCategoryLabels, ShopCategory, TargetGenderLabels } from '../types/shop';
 import type { ServiceCategoryDto, ShopServiceDto } from '../types/service';
 import type { PublicEmployeeScheduleDto } from '../types/employee';
-import { MapPin, Star, Clock, Calendar, ChevronDown, Heart, Grid, Info, Image, MessageCircle, Users, ArrowLeft, Phone, User, ExternalLink, CheckCircle, Map, Share2, Play, X } from 'lucide-react';
+import { MapPin, Star, Clock, Calendar, ChevronDown, Heart, Grid, Info, Image, MessageCircle, Users, ArrowLeft, Phone, User, ExternalLink, CheckCircle, Map, Share2, Play, X, Send, Check, Eye } from 'lucide-react';
+import { mediaLikeService } from '../api/mediaLike.service';
 import { Button } from '../components/Button';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import { toast } from 'react-hot-toast';
@@ -21,6 +22,110 @@ import { reviewService } from '../api/review.service';
 import type { Appointment } from '../types/appointment';
 import { CustomSelect } from '../components/CustomSelect';
 import { DEFAULT_SALON_COVER } from '../constants/images';
+
+interface GalleryImageCardProps {
+    image: { id: string; url: string; tags: { id: string; name: string }[]; likeCount: number; isLikedByCurrentUser: boolean };
+    shopName: string;
+    shopId: string;
+    isAuthenticated: boolean;
+}
+
+const GalleryImageCard: React.FC<GalleryImageCardProps> = ({ image, shopName, shopId, isAuthenticated }) => {
+    const [liked, setLiked] = useState(image.isLikedByCurrentUser);
+    const [count, setCount] = useState(image.likeCount);
+    const [shareState, setShareState] = useState<'idle' | 'loading' | 'copied'>('idle');
+
+    const handleLike = async () => {
+        if (!isAuthenticated) return;
+        const newLiked = !liked;
+        setLiked(newLiked);
+        setCount(prev => prev + (newLiked ? 1 : -1));
+        try {
+            const serverLiked = await mediaLikeService.toggle(image.id, 'image');
+            setLiked(serverLiked);
+            setCount(serverLiked ? image.likeCount + 1 : image.likeCount);
+        } catch {
+            setLiked(!newLiked);
+            setCount(image.likeCount);
+        }
+    };
+
+    const handleShare = async () => {
+        if (shareState === 'loading') return;
+        const shopUrl = `${window.location.origin}/shop/${shopId}`;
+        setShareState('loading');
+        try {
+            if (navigator.share) {
+                await navigator.share({ title: shopName, url: shopUrl });
+            } else {
+                await navigator.clipboard.writeText(shopUrl);
+                setShareState('copied');
+                setTimeout(() => setShareState('idle'), 2000);
+                return;
+            }
+        } catch { }
+        setShareState('idle');
+    };
+
+    return (
+        <div className="break-inside-avoid mb-4">
+            <div className="rounded-xl overflow-hidden border border-gray-100 shadow-sm bg-white group">
+                <div
+                    className="relative cursor-zoom-in"
+                    onClick={() => window.open(image.url, '_blank')}
+                >
+                    <img
+                        src={image.url}
+                        alt={shopName}
+                        className="w-full h-auto block group-hover:brightness-95 transition-all duration-300"
+                        draggable={false}
+                    />
+                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200 pointer-events-none" />
+                </div>
+                <div className="px-3 py-2.5 flex items-center gap-2">
+                    <div className="flex flex-wrap gap-1 flex-1 min-w-0">
+                        {image.tags.map(tag => (
+                            <span
+                                key={tag.id}
+                                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-100"
+                            >
+                                {tag.name}
+                            </span>
+                        ))}
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0 ml-auto">
+                        <button
+                            onClick={e => { e.stopPropagation(); handleShare(); }}
+                            disabled={shareState === 'loading'}
+                            className="active:scale-90 transition-transform disabled:opacity-50"
+                            title="Paylaş"
+                        >
+                            {shareState === 'copied'
+                                ? <Check className="w-4 h-4 text-green-500" />
+                                : shareState === 'loading'
+                                    ? <div className="w-3.5 h-3.5 border border-gray-400 border-t-transparent rounded-full animate-spin" />
+                                    : <Send className="w-4 h-4 text-gray-400 hover:text-gray-600 transition-colors" />}
+                        </button>
+                        {isAuthenticated ? (
+                            <button
+                                onClick={e => { e.stopPropagation(); handleLike(); }}
+                                className="flex items-center gap-1 active:scale-90 transition-transform"
+                            >
+                                <Heart className={`w-4 h-4 transition-colors ${liked ? 'text-red-500 fill-red-500' : 'text-gray-400 hover:text-red-400'}`} />
+                                <span className="text-xs text-gray-500 font-semibold">{count}</span>
+                            </button>
+                        ) : (
+                            <div className="flex items-center gap-1">
+                                <Heart className="w-4 h-4 text-gray-300" />
+                                <span className="text-xs text-gray-400 font-semibold">{count}</span>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 export const ShopDetailsPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
@@ -48,6 +153,10 @@ export const ShopDetailsPage: React.FC = () => {
     const [showStickyHeader, setShowStickyHeader] = useState(false);
     const tabsRef = useRef<HTMLDivElement>(null);
     const videoViewRecordedRef = useRef(false);
+
+    const [videoLiked, setVideoLiked] = useState(false);
+    const [videoLikeCount, setVideoLikeCount] = useState(0);
+    const [videoViewCount, setVideoViewCount] = useState(0);
 
 
     useEffect(() => {
@@ -123,6 +232,11 @@ export const ShopDetailsPage: React.FC = () => {
                     employeeService.getPublicShopSchedules(id).catch(() => [])
                 ]);
                 setShop(shopData);
+                if (shopData.videos?.[0]) {
+                    setVideoLiked(shopData.videos[0].isLikedByCurrentUser ?? false);
+                    setVideoLikeCount(shopData.videos[0].likeCount ?? 0);
+                    setVideoViewCount(shopData.videos[0].viewCount ?? 0);
+                }
                 setCategories(servicesData);
                 const initExpanded: Record<string, boolean> = {};
                 servicesData.forEach(cat => { initExpanded[cat.id] = false; });
@@ -862,10 +976,44 @@ export const ShopDetailsPage: React.FC = () => {
                                                         onPlay={() => {
                                                             if (!videoViewRecordedRef.current && shop.videos?.[0]?.id) {
                                                                 videoViewRecordedRef.current = true;
-                                                                shopService.recordVideoView(shop.videos[0].id).catch(() => {});
+                                                                shopService.recordVideoView(shop.videos[0].id).then(n => setVideoViewCount(n)).catch(() => {});
                                                             }
                                                         }}
                                                     />
+                                                </div>
+                                                {/* Video: beğeni + izlenme */}
+                                                <div className="flex items-center justify-end gap-4 mt-3 px-1">
+                                                    <div className="flex items-center gap-1.5 text-gray-500">
+                                                        <Eye className="w-4 h-4" />
+                                                        <span className="text-sm font-semibold">{videoViewCount}</span>
+                                                    </div>
+                                                    {isAuthenticated ? (
+                                                        <button
+                                                            onClick={async () => {
+                                                                if (!shop.videos?.[0]?.id) return;
+                                                                const newLiked = !videoLiked;
+                                                                setVideoLiked(newLiked);
+                                                                setVideoLikeCount(prev => prev + (newLiked ? 1 : -1));
+                                                                try {
+                                                                    const serverLiked = await mediaLikeService.toggle(shop.videos![0].id, 'video');
+                                                                    setVideoLiked(serverLiked);
+                                                                    setVideoLikeCount(serverLiked ? (shop.videos![0].likeCount ?? 0) + 1 : (shop.videos![0].likeCount ?? 0));
+                                                                } catch {
+                                                                    setVideoLiked(!newLiked);
+                                                                    setVideoLikeCount(shop.videos![0].likeCount ?? 0);
+                                                                }
+                                                            }}
+                                                            className="flex items-center gap-1.5 active:scale-90 transition-transform"
+                                                        >
+                                                            <Heart className={`w-4 h-4 transition-colors ${videoLiked ? 'text-red-500 fill-red-500' : 'text-gray-400 hover:text-red-400'}`} />
+                                                            <span className="text-sm font-semibold text-gray-500">{videoLikeCount}</span>
+                                                        </button>
+                                                    ) : (
+                                                        <div className="flex items-center gap-1.5">
+                                                            <Heart className="w-4 h-4 text-gray-300" />
+                                                            <span className="text-sm font-semibold text-gray-400">{videoLikeCount}</span>
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
                                         );
@@ -882,29 +1030,14 @@ export const ShopDetailsPage: React.FC = () => {
                                     )}
                                     {shop.images && shop.images.length > 0 ? (
                                         <div className="columns-2 md:columns-3 gap-4">
-                                            {shop.images.map((image, index) => (
-                                                <div key={index} className="break-inside-avoid mb-4">
-                                                    <div className="rounded-xl overflow-hidden border border-gray-100 shadow-sm bg-white group cursor-zoom-in">
-                                                        <img
-                                                            src={getImageUrl(image.url)}
-                                                            alt={`${shop.name} ${index + 1}`}
-                                                            className="w-full h-auto block group-hover:brightness-95 transition-all duration-300"
-                                                            onClick={() => window.open(getImageUrl(image.url), '_blank')}
-                                                        />
-                                                        {image.tags && image.tags.length > 0 && (
-                                                            <div className="px-3 py-2.5 flex flex-wrap gap-1.5">
-                                                                {image.tags.map(tag => (
-                                                                    <span
-                                                                        key={tag.id}
-                                                                        className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-100"
-                                                                    >
-                                                                        {tag.name}
-                                                                    </span>
-                                                                ))}
-                                                            </div>
-                                                        )}
-                                                    </div>
-                                                </div>
+                                            {shop.images.map((image) => (
+                                                <GalleryImageCard
+                                                    key={image.id}
+                                                    image={{ ...image, url: getImageUrl(image.url) }}
+                                                    shopName={shop.name}
+                                                    shopId={shop.id}
+                                                    isAuthenticated={isAuthenticated}
+                                                />
                                             ))}
                                         </div>
                                     ) : (

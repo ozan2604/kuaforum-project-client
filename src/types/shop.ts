@@ -71,6 +71,8 @@ export interface ShopVideo {
     displayOrder: number;
     createdAt: string;
     viewCount: number;
+    likeCount: number;
+    isLikedByCurrentUser: boolean;
 }
 
 export interface MediaHighlight {
@@ -105,7 +107,7 @@ export interface Shop {
     coverImagePath?: string;
     promoVideoUrl?: string;   // Legacy alan
     videos?: ShopVideo[];     // Yeni çok-video mimarisi
-    images?: { id: string; url: string; tags: { id: string; name: string }[] }[];
+    images?: { id: string; url: string; tags: { id: string; name: string }[]; likeCount: number; isLikedByCurrentUser: boolean }[];
     averageRating: number;
     reviewCount: number;
     minServicePrice?: number;
