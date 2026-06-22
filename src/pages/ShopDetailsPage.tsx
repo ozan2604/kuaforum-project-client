@@ -82,18 +82,20 @@ const GalleryImageCard: React.FC<GalleryImageCardProps> = ({ image, shopName, sh
                     />
                     <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200 pointer-events-none" />
                 </div>
-                <div className="px-3 py-2.5 flex items-center gap-2">
-                    <div className="flex flex-wrap gap-1 flex-1 min-w-0">
-                        {image.tags.map(tag => (
-                            <span
-                                key={tag.id}
-                                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-100"
-                            >
-                                {tag.name}
-                            </span>
-                        ))}
-                    </div>
-                    <div className="flex items-center gap-3 shrink-0 ml-auto">
+                <div className="px-3 pt-2 pb-2.5 space-y-2">
+                    {image.tags.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                            {image.tags.map(tag => (
+                                <span
+                                    key={tag.id}
+                                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-100"
+                                >
+                                    {tag.name}
+                                </span>
+                            ))}
+                        </div>
+                    )}
+                    <div className="flex items-center justify-end gap-3">
                         <button
                             onClick={e => { e.stopPropagation(); handleShare(); }}
                             disabled={shareState === 'loading'}

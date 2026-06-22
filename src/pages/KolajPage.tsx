@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Play, ArrowRight, Volume2, VolumeX, Heart, Send, Check } from 'lucide-react';
+import { Play, ArrowRight, Volume2, VolumeX, Heart, Send, Check, Eye } from 'lucide-react';
 import { shopService } from '../api/shop.service';
 import { mediaLikeService } from '../api/mediaLike.service';
 import type { MediaHighlight } from '../types/shop';
@@ -205,9 +205,9 @@ const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, isMutedRef, o
                 </div>
             )}
 
-            {/* Ses butonu + izlenme sayısı — sağ üst köşe, sadece videolarda */}
+            {/* Ses butonu — sağ üst köşe, sadece videolarda */}
             {item.type === 'video' && (
-                <div className="absolute top-4 right-4 flex flex-col items-center gap-1 z-20">
+                <div className="absolute top-4 right-4 z-20">
                     <button
                         onPointerDown={e => e.stopPropagation()}
                         onClick={() => {
@@ -221,7 +221,6 @@ const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, isMutedRef, o
                     >
                         {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
                     </button>
-                    <span className="text-white text-[11px] font-bold drop-shadow">{viewCount >= 1000 ? `${(viewCount / 1000).toFixed(1)}B` : viewCount}</span>
                 </div>
             )}
 
@@ -255,6 +254,18 @@ const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, isMutedRef, o
                                 {shareState === 'copied' ? 'Kopyalandı' : 'Paylaş'}
                             </span>
                         </button>
+
+                        {/* Görüntülenme — sadece videolarda */}
+                        {item.type === 'video' && (
+                            <div className="flex flex-col items-center gap-0.5">
+                                <div className="w-11 h-11 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center border border-white/20 shadow-lg">
+                                    <Eye className="w-5 h-5 text-white" />
+                                </div>
+                                <span className="text-white text-[11px] font-bold drop-shadow">
+                                    {viewCount >= 1000 ? `${(viewCount / 1000).toFixed(1)}B` : viewCount}
+                                </span>
+                            </div>
+                        )}
 
                         {/* Beğeni */}
                         {isAuthenticated ? (

@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, ArrowRight, X, Heart, Send, Check, Clapperboard, Volume2, VolumeX } from 'lucide-react';
+import { ChevronRight, ArrowRight, X, Heart, Send, Check, Clapperboard, Volume2, VolumeX, Eye } from 'lucide-react';
 import type { MediaHighlight } from '../types/shop';
 import { mediaLikeService } from '../api/mediaLike.service';
 import { shopService } from '../api/shop.service';
@@ -210,9 +210,9 @@ const MediaCard: React.FC<MediaCardProps> = ({
                 </div>
             )}
 
-            {/* Ses butonu + izlenme sayısı — sağ üst, sadece videolarda */}
+            {/* Ses butonu — sağ üst, sadece videolarda */}
             {item.type === 'video' && (
-                <div className="absolute top-2 right-2 flex flex-col items-center gap-0.5 z-20">
+                <div className="absolute top-2 right-2 z-20">
                     <button
                         onPointerDown={e => e.stopPropagation()}
                         onClick={e => {
@@ -223,7 +223,6 @@ const MediaCard: React.FC<MediaCardProps> = ({
                     >
                         {isMuted ? <VolumeX className="w-3.5 h-3.5 text-white" /> : <Volume2 className="w-3.5 h-3.5 text-white" />}
                     </button>
-                    <span className="text-white text-[9px] font-bold drop-shadow leading-none">{viewCount >= 1000 ? `${(viewCount / 1000).toFixed(1)}B` : viewCount}</span>
                 </div>
             )}
 
@@ -235,16 +234,26 @@ const MediaCard: React.FC<MediaCardProps> = ({
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent pt-6 pb-2 px-2">
                 <p className="text-white text-[10px] font-bold leading-tight line-clamp-1 mb-1.5">{item.shopName}</p>
                 <div className="flex items-center justify-between">
-                    <button
-                        onPointerDown={e => e.stopPropagation()}
-                        onClick={e => { e.stopPropagation(); handleShare(); }}
-                        disabled={shareState === 'loading'}
-                        className="active:scale-90 transition-transform"
-                    >
-                        {shareState === 'copied'  ? <Check className="w-3.5 h-3.5 text-green-400" /> :
-                         shareState === 'loading' ? <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" /> :
-                                                    <Send className="w-3.5 h-3.5 text-white/70" />}
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                        <button
+                            onPointerDown={e => e.stopPropagation()}
+                            onClick={e => { e.stopPropagation(); handleShare(); }}
+                            disabled={shareState === 'loading'}
+                            className="active:scale-90 transition-transform"
+                        >
+                            {shareState === 'copied'  ? <Check className="w-3.5 h-3.5 text-green-400" /> :
+                             shareState === 'loading' ? <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin" /> :
+                                                        <Send className="w-3.5 h-3.5 text-white/70" />}
+                        </button>
+                        {item.type === 'video' && (
+                            <div className="flex items-center gap-0.5">
+                                <Eye className="w-3.5 h-3.5 text-white/70" />
+                                <span className="text-[10px] text-white/70 font-semibold">
+                                    {viewCount >= 1000 ? `${(viewCount / 1000).toFixed(1)}B` : viewCount}
+                                </span>
+                            </div>
+                        )}
+                    </div>
                     {isAuthenticated ? (
                         <button
                             onPointerDown={e => e.stopPropagation()}
