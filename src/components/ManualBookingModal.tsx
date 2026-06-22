@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { X, User, Clock, Check, ChevronRight, ChevronLeft, Scissors, Star, Plus, Minus, AlertCircle, Calendar, UserCheck, Users } from 'lucide-react';
+import { X, User, Clock, Check, ChevronRight, ChevronLeft, Scissors, Star, Plus, Minus, AlertCircle, Calendar, UserCheck, Users, BookUser } from 'lucide-react';
 import { Button } from './Button';
 import { employeeService } from '../api/employee.service';
 import { appointmentService } from '../api/appointment.service';
@@ -365,6 +365,26 @@ export const ManualBookingModal: React.FC<ManualBookingModalProps> = ({
         }
     };
 
+    const isContactPickerSupported = typeof navigator !== 'undefined' && 'contacts' in navigator;
+
+    const handlePickContact = async () => {
+        try {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const contacts = await (navigator as any).contacts.select(['name', 'tel'], { multiple: false });
+            if (!contacts || contacts.length === 0) return;
+            const contact = contacts[0];
+            if (contact.name?.[0]) setGuestName(contact.name[0]);
+            if (contact.tel?.[0]) {
+                let phone = contact.tel[0].replace(/\D/g, '');
+                if (phone.startsWith('90') && phone.length === 12) phone = '0' + phone.slice(2);
+                else if (phone.length === 10 && phone.startsWith('5')) phone = '0' + phone;
+                setGuestPhone(phone.slice(0, 11));
+            }
+        } catch {
+            // Kullanıcı iptal etti
+        }
+    };
+
     const addService = (s: ShopServiceDto) => setSelectedServices(prev => [...prev, s]);
     const removeService = (id: string) => setSelectedServices(prev => {
         const i = prev.findIndex(s => s.id === id);
@@ -554,6 +574,16 @@ export const ManualBookingModal: React.FC<ManualBookingModalProps> = ({
                                     {/* İsimli müşteri formu */}
                                     {customerMode === 'named' && (
                                         <div className="space-y-3 pt-1">
+                                            {isContactPickerSupported && (
+                                                <button
+                                                    type="button"
+                                                    onClick={handlePickContact}
+                                                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-primary-300 text-primary-600 bg-primary-50 hover:bg-primary-100 rounded-xl text-sm font-semibold transition-colors"
+                                                >
+                                                    <BookUser className="w-4 h-4" />
+                                                    Rehberden Seç
+                                                </button>
+                                            )}
                                             <div>
                                                 <label className="block text-xs font-semibold text-gray-600 mb-1.5">
                                                     Ad Soyad <span className="text-red-500">*</span>
@@ -584,6 +614,16 @@ export const ManualBookingModal: React.FC<ManualBookingModalProps> = ({
 
                                     {customerMode === 'guest' && (
                                         <div className="space-y-3 pt-1">
+                                            {isContactPickerSupported && (
+                                                <button
+                                                    type="button"
+                                                    onClick={handlePickContact}
+                                                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-primary-300 text-primary-600 bg-primary-50 hover:bg-primary-100 rounded-xl text-sm font-semibold transition-colors"
+                                                >
+                                                    <BookUser className="w-4 h-4" />
+                                                    Rehberden Seç
+                                                </button>
+                                            )}
                                             <div>
                                                 <label className="block text-xs font-semibold text-gray-600 mb-1.5">
                                                     Ad Soyad <span className="text-gray-400 font-normal">(İsteğe Bağlı)</span>
