@@ -1,5 +1,9 @@
 import React, { useMemo, useState } from 'react';
-import { Calendar, ChevronDown, Scissors, User } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import {
+    Calendar, ChevronDown, Scissors, User, Phone, MessageSquare,
+    X, MapPin, Clock, AlertCircle, CheckCircle, XCircle, UserX
+} from 'lucide-react';
 import { format, addDays } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { type Appointment, AppointmentStatus } from '../types/appointment';
@@ -49,6 +53,25 @@ const LEGEND = [
     { label: 'Gelmedi',       dot: 'bg-orange-400' },
 ];
 
+function getStatusBadge(status: AppointmentStatus) {
+    switch (status) {
+        case AppointmentStatus.Pending:
+            return <span className="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-xs font-semibold inline-flex items-center gap-1"><AlertCircle className="w-3.5 h-3.5" /> Onay Bekliyor</span>;
+        case AppointmentStatus.Confirmed:
+            return <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold inline-flex items-center gap-1"><CheckCircle className="w-3.5 h-3.5" /> Onaylandı</span>;
+        case AppointmentStatus.Completed:
+            return <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold inline-flex items-center gap-1"><CheckCircle className="w-3.5 h-3.5" /> Tamamlandı</span>;
+        case AppointmentStatus.Cancelled:
+            return <span className="px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-xs font-semibold inline-flex items-center gap-1"><XCircle className="w-3.5 h-3.5" /> İptal Edildi</span>;
+        case AppointmentStatus.Rejected:
+            return <span className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-semibold inline-flex items-center gap-1"><XCircle className="w-3.5 h-3.5" /> Reddedildi</span>;
+        case AppointmentStatus.NoShow:
+            return <span className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-xs font-semibold inline-flex items-center gap-1"><UserX className="w-3.5 h-3.5" /> Gelmedi</span>;
+        default:
+            return null;
+    }
+}
+
 // ─── Component ──────────────────────────────────────────────────────────────
 interface WeeklyCalendarCardProps {
     appointments: Appointment[];
@@ -69,6 +92,7 @@ export const WeeklyCalendarCard: React.FC<WeeklyCalendarCardProps> = ({
 }) => {
     const [open, setOpen]   = useState(defaultOpen);
     const [selDay, setDay]  = useState(0);
+    const [detailAppt, setDetailAppt] = useState<Appointment | null>(null);
 
     const weekDays = useMemo(() => Array.from({ length: daysAhead }, (_, i) => addDays(new Date(), i)), [daysAhead]);
 
@@ -105,6 +129,7 @@ export const WeeklyCalendarCard: React.FC<WeeklyCalendarCardProps> = ({
     const wkPending = activeAppointments.filter(a => a.status === AppointmentStatus.Pending).length;
 
     return (
+        <>
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
 
             {/* ── Accordion header ── */}
@@ -308,8 +333,8 @@ export const WeeklyCalendarCard: React.FC<WeeklyCalendarCardProps> = ({
                                     return (
                                         <div
                                             key={app.id}
-                                            title={`${app.customerName} • ${app.serviceName}${showEmployeeName ? ` • ${app.employeeName}` : ''} • ${format(new Date(app.startTime), 'HH:mm')}–${format(new Date(app.endTime), 'HH:mm')}`}
-                                            className={`absolute rounded-lg border-l-[3px] px-2 py-1.5 overflow-hidden shadow-sm hover:shadow-md hover:z-10 cursor-default transition-shadow ${s.card}`}
+                                            onClick={() => setDetailAppt(app)}
+                                            className={`absolute rounded-lg border-l-[3px] px-2 py-1.5 overflow-hidden shadow-sm hover:shadow-md hover:z-10 cursor-pointer transition-shadow group ${s.card}`}
                                             style={{ top: `${top}px`, height: `${height}px`, left: `${leftPct}%`, width: `${widthPct}%` }}
                                         >
                                             {/* Saat aralığı */}
@@ -318,6 +343,7 @@ export const WeeklyCalendarCard: React.FC<WeeklyCalendarCardProps> = ({
                                                 <span className="text-[10px] font-semibold tabular-nums opacity-75">
                                                     {format(new Date(app.startTime), 'HH:mm')}–{format(new Date(app.endTime), 'HH:mm')}
                                                 </span>
+                                                {app.note && <MessageSquare className="w-2.5 h-2.5 opacity-50 shrink-0 ml-auto" />}
                                             </div>
                                             {/* Müşteri */}
                                             <div className="text-xs font-bold truncate leading-tight">{app.customerName}</div>
@@ -339,6 +365,11 @@ export const WeeklyCalendarCard: React.FC<WeeklyCalendarCardProps> = ({
                                             {height > SLOT_H * 2 && (
                                                 <div className="text-[10px] opacity-50 mt-0.5">₺{app.price}</div>
                                             )}
+
+                                            {/* "Detaylar için tıklayın" — her zaman blok altında görünür */}
+                                            <div className="absolute bottom-1 left-2 right-2 text-[9px] font-medium opacity-40 group-hover:opacity-80 transition-opacity truncate">
+                                                Detaylar için tıklayın
+                                            </div>
                                         </div>
                                     );
                                 })}
@@ -349,5 +380,135 @@ export const WeeklyCalendarCard: React.FC<WeeklyCalendarCardProps> = ({
                 </div>
             )}
         </div>
+
+        {/* ── Randevu Detay Popup ── */}
+        {detailAppt && createPortal(
+            <div
+                className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+                onClick={() => setDetailAppt(null)}
+            >
+                <div
+                    className="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
+                    onClick={e => e.stopPropagation()}
+                >
+                    {/* Header */}
+                    <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
+                        <div className="flex items-center gap-3">
+                            <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-700 font-bold text-base shrink-0">
+                                {detailAppt.customerName.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                                <p className="font-bold text-gray-900 text-base leading-tight">{detailAppt.customerName}</p>
+                                <div className="mt-0.5">{getStatusBadge(detailAppt.status)}</div>
+                            </div>
+                        </div>
+                        <button
+                            type="button"
+                            onClick={() => setDetailAppt(null)}
+                            className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 transition-colors shrink-0"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+
+                    {/* Body */}
+                    <div className="px-5 py-4 space-y-3">
+
+                        {/* Tarih & Saat */}
+                        <div className="flex items-center gap-3 text-sm text-gray-700">
+                            <Calendar className="w-4 h-4 text-gray-400 shrink-0" />
+                            <span>{format(new Date(detailAppt.startTime), 'd MMMM yyyy, EEEE', { locale: tr })}</span>
+                        </div>
+                        <div className="flex items-center gap-3 text-sm text-gray-700">
+                            <Clock className="w-4 h-4 text-gray-400 shrink-0" />
+                            <span>
+                                {format(new Date(detailAppt.startTime), 'HH:mm')} – {format(new Date(detailAppt.endTime), 'HH:mm')}
+                                <span className="text-gray-400 ml-1">({detailAppt.duration} dakika)</span>
+                            </span>
+                        </div>
+
+                        {/* Hizmet */}
+                        <div className="flex items-center gap-3 text-sm text-gray-700">
+                            <Scissors className="w-4 h-4 text-gray-400 shrink-0" />
+                            <span className="flex-1">{detailAppt.serviceName}</span>
+                            <span className="font-bold text-gray-900 shrink-0">₺{detailAppt.price}</span>
+                        </div>
+
+                        {/* Personel */}
+                        <div className="flex items-center gap-3 text-sm text-gray-700">
+                            <User className="w-4 h-4 text-gray-400 shrink-0" />
+                            <span>{detailAppt.employeeName}</span>
+                        </div>
+
+                        {/* Telefon */}
+                        {detailAppt.customerPhone && (
+                            <div className="flex items-center gap-3 text-sm">
+                                <Phone className="w-4 h-4 text-gray-400 shrink-0" />
+                                <a
+                                    href={`tel:${detailAppt.customerPhone}`}
+                                    className="text-indigo-600 hover:text-indigo-800 font-medium"
+                                >
+                                    {detailAppt.customerPhone}
+                                </a>
+                            </div>
+                        )}
+
+                        {/* Müşteri notu */}
+                        {detailAppt.note && (
+                            <div className="flex items-start gap-2 text-sm text-amber-800 bg-amber-50 border border-amber-100 rounded-xl px-3 py-2.5">
+                                <MessageSquare className="w-4 h-4 text-amber-500 mt-0.5 shrink-0" />
+                                <div>
+                                    <p className="text-[10px] font-semibold text-amber-500 uppercase tracking-wider mb-0.5">Müşteri Notu</p>
+                                    <p>{detailAppt.note}</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Müşteri adresi (seyyar berber) */}
+                        {detailAppt.customerAddress && (
+                            <div className="flex items-start gap-2 text-sm text-purple-800 bg-purple-50 border border-purple-100 rounded-xl px-3 py-2.5">
+                                <MapPin className="w-4 h-4 text-purple-500 mt-0.5 shrink-0" />
+                                <div>
+                                    <p className="text-[10px] font-semibold text-purple-500 uppercase tracking-wider mb-0.5">Adres</p>
+                                    <p>{detailAppt.customerAddress}</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* İptal / Red sebebi */}
+                        {detailAppt.cancellationReason && (
+                            <div className="flex items-start gap-2 text-sm text-red-800 bg-red-50 border border-red-100 rounded-xl px-3 py-2.5">
+                                <XCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+                                <div>
+                                    <p className="text-[10px] font-semibold text-red-500 uppercase tracking-wider mb-0.5">İptal / Red Sebebi</p>
+                                    <p>{detailAppt.cancellationReason}</p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Manuel randevu etiketi */}
+                        {detailAppt.isManual && (
+                            <div className="text-xs text-gray-400 flex items-center gap-1.5 pt-1">
+                                <span className="w-1.5 h-1.5 rounded-full bg-gray-300 shrink-0" />
+                                Manuel olarak oluşturuldu
+                            </div>
+                        )}
+                    </div>
+
+                    {/* Footer */}
+                    <div className="px-5 py-3 bg-gray-50 border-t border-gray-100 flex justify-end">
+                        <button
+                            type="button"
+                            onClick={() => setDetailAppt(null)}
+                            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white hover:bg-gray-100 border border-gray-200 rounded-xl transition-colors"
+                        >
+                            Kapat
+                        </button>
+                    </div>
+                </div>
+            </div>,
+            document.body
+        )}
+        </>
     );
 };

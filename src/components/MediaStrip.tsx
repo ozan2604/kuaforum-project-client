@@ -1,4 +1,4 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, ArrowRight, X, Heart, Send, Check, Clapperboard, Volume2, VolumeX } from 'lucide-react';
 import type { MediaHighlight } from '../types/shop';
@@ -19,20 +19,18 @@ const HEART_STYLE = `
 interface MediaCardProps {
     item: MediaHighlight;
     index: number;
-    scrollRoot: HTMLDivElement | null;
     onOpenModal: (item: MediaHighlight) => void;
     isAuthenticated: boolean;
+    isFocused: boolean;
     isMuted: boolean;
-    isMutedRef: React.RefObject<boolean>;
     onToggleMute: () => void;
 }
 
 const MediaCard: React.FC<MediaCardProps> = ({
-    item, index, scrollRoot, onOpenModal, isAuthenticated, isMuted, isMutedRef, onToggleMute,
+    item, index, onOpenModal, isAuthenticated, isFocused, isMuted, onToggleMute,
 }) => {
     const navigate      = useNavigate();
     const videoRef      = useRef<HTMLVideoElement | null>(null);
-    const containerRef  = useRef<HTMLDivElement | null>(null);
     const holdTimerRef  = useRef<ReturnType<typeof setTimeout> | null>(null);
     const isHoldRef     = useRef(false);
     const lastPtrRef    = useRef(0);
@@ -43,30 +41,24 @@ const MediaCard: React.FC<MediaCardProps> = ({
     const [showHeart, setShowHeart]   = useState(false);
     const [shareState, setShareState] = useState<'idle' | 'loading' | 'copied'>('idle');
 
-    /* Ses durumu değişince video elementine uygula */
-    useEffect(() => {
-        if (videoRef.current) videoRef.current.muted = isMuted;
-    }, [isMuted]);
-
-    /* Yatay scroll görünürlük → oynat/durdur */
+    /* Odak değişince oynat / durdur */
     useEffect(() => {
         const vid = videoRef.current;
-        const container = containerRef.current;
-        if (!vid || !container) return;
-        const observer = new IntersectionObserver(
-            ([entry]) => {
-                if (entry.isIntersecting) {
-                    vid.muted = isMutedRef.current;
-                    vid.play().catch(() => {});
-                } else {
-                    vid.pause();
-                }
-            },
-            { root: scrollRoot, threshold: 0.4 },
-        );
-        observer.observe(container);
-        return () => observer.disconnect();
-    }, [scrollRoot]);
+        if (!vid) return;
+        if (isFocused) {
+            vid.muted = isMuted;
+            vid.play().catch(() => {});
+        } else {
+            vid.pause();
+        }
+    }, [isFocused]);
+
+    /* Global ses değişince sadece odaktaki videoya uygula */
+    useEffect(() => {
+        if (videoRef.current && isFocused) {
+            videoRef.current.muted = isMuted;
+        }
+    }, [isMuted]);
 
     const handleShare = async () => {
         if (shareState === 'loading') return;
@@ -154,7 +146,7 @@ const MediaCard: React.FC<MediaCardProps> = ({
         if (holdTimerRef.current) { clearTimeout(holdTimerRef.current); holdTimerRef.current = null; }
         if (isHoldRef.current) {
             isHoldRef.current = false;
-            videoRef.current?.play().catch(() => {});
+            if (isFocused) videoRef.current?.play().catch(() => {});
         }
     };
 
@@ -167,7 +159,7 @@ const MediaCard: React.FC<MediaCardProps> = ({
 
     return (
         <div
-            ref={containerRef}
+            data-media-id={String(item.id)}
             className="relative shrink-0 w-[120px] h-[210px] rounded-xl overflow-hidden cursor-pointer select-none"
             onPointerDown={handlePointerDown}
             onPointerUp={handlePointerUp}
@@ -199,19 +191,34 @@ const MediaCard: React.FC<MediaCardProps> = ({
                 </div>
             )}
 
+            {/* Salon sahibinin atadığı etiketler — sol üst */}
+            {item.tags.length > 0 && (
+                <div className="absolute top-2 left-2 z-20 flex flex-col gap-0.5 max-w-[80px]">
+                    {item.tags.slice(0, 2).map(tag => (
+                        <span key={tag} className="px-1.5 py-0.5 rounded-md bg-black/60 backdrop-blur-sm border border-white/20 text-[9px] font-bold text-white/90 tracking-wide truncate">
+                            #{tag}
+                        </span>
+                    ))}
+                </div>
+            )}
+
             {/* Ses butonu — sağ üst, sadece videolarda */}
             {item.type === 'video' && (
                 <button
                     onPointerDown={e => e.stopPropagation()}
                     onClick={e => {
                         e.stopPropagation();
-                        if (videoRef.current) videoRef.current.muted = !videoRef.current.muted;
                         onToggleMute();
                     }}
                     className="absolute top-2 right-2 w-7 h-7 rounded-full bg-black/60 backdrop-blur-sm flex items-center justify-center border border-white/20 z-20 active:scale-90 transition-transform"
                 >
                     {isMuted ? <VolumeX className="w-3.5 h-3.5 text-white" /> : <Volume2 className="w-3.5 h-3.5 text-white" />}
                 </button>
+            )}
+
+            {/* Odak göstergesi — altta ince çizgi */}
+            {item.type === 'video' && isFocused && (
+                <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-white/60 z-10" />
             )}
 
             <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 to-transparent pt-6 pb-2 px-2">
@@ -254,16 +261,50 @@ interface MediaStripProps {
 
 export const MediaStrip: React.FC<MediaStripProps> = ({ items }) => {
     const { isAuthenticated } = useAuth();
-    const scrollRef  = useRef<HTMLDivElement>(null);
-    const navigate   = useNavigate();
+    const scrollRef    = useRef<HTMLDivElement>(null);
+    const navigate     = useNavigate();
     const [videoModal, setVideoModal] = useState<MediaHighlight | null>(null);
-    const [isMuted, setIsMuted] = useState(true);
-    const isMutedRef = useRef(true);
+    const [isMuted, setIsMuted]       = useState(true);
+    const [focusedId, setFocusedId]   = useState<string | null>(null);
+    const focusedIdRef                = useRef<string | null>(null);
 
-    const toggleMute = () => setIsMuted(prev => {
-        isMutedRef.current = !prev;
-        return !prev;
-    });
+    const toggleMute = () => setIsMuted(prev => !prev);
+
+    /* Scroll container'ın ortasına en yakın kartı bul */
+    const updateFocus = useCallback(() => {
+        const container = scrollRef.current;
+        if (!container) return;
+        const center = container.scrollLeft + container.clientWidth / 2;
+
+        let closestId: string | null = null;
+        let minDist = Infinity;
+
+        container.querySelectorAll<HTMLElement>('[data-media-id]').forEach(el => {
+            const elCenter = el.offsetLeft + el.offsetWidth / 2;
+            const dist = Math.abs(elCenter - center);
+            if (dist < minDist) {
+                minDist = dist;
+                closestId = el.dataset.mediaId ?? null;
+            }
+        });
+
+        if (closestId !== focusedIdRef.current) {
+            focusedIdRef.current = closestId;
+            setFocusedId(closestId);
+        }
+    }, []);
+
+    useEffect(() => {
+        const container = scrollRef.current;
+        if (!container) return;
+        container.addEventListener('scroll', updateFocus, { passive: true });
+        // İlk render'dan sonra odağı hesapla
+        const t = setTimeout(updateFocus, 80);
+        return () => {
+            container.removeEventListener('scroll', updateFocus);
+            clearTimeout(t);
+        };
+    }, [updateFocus, items]);
 
     if (items.length === 0) return null;
 
@@ -295,11 +336,12 @@ export const MediaStrip: React.FC<MediaStripProps> = ({ items }) => {
                             key={`${item.shopId}-${index}`}
                             item={item}
                             index={index}
-                            scrollRoot={scrollRef.current}
                             onOpenModal={setVideoModal}
                             isAuthenticated={isAuthenticated}
+                            isFocused={focusedId !== null
+                                ? focusedId === String(item.id)
+                                : index === 0}
                             isMuted={isMuted}
-                            isMutedRef={isMutedRef}
                             onToggleMute={toggleMute}
                         />
                     ))}
