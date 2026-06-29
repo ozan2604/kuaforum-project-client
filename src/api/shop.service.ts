@@ -149,6 +149,23 @@ export const shopService = {
         await api.delete(`/shop/gallery-images/tags/${tagId}`);
     },
 
+    addVideoTag: async (videoId: string, name: string): Promise<{ id: string; name: string }> => {
+        const response = await api.post<{ id: string; name: string }>(`/shop/videos/${videoId}/tags`, JSON.stringify(name), {
+            headers: { 'Content-Type': 'application/json' }
+        });
+        return response.data;
+    },
+
+    updateVideoTag: async (tagId: string, name: string): Promise<void> => {
+        await api.put(`/shop/videos/tags/${tagId}`, JSON.stringify(name), {
+            headers: { 'Content-Type': 'application/json' }
+        });
+    },
+
+    deleteVideoTag: async (tagId: string): Promise<void> => {
+        await api.delete(`/shop/videos/tags/${tagId}`);
+    },
+
     getMediaHighlights: async (city?: string, district?: string, neighborhood?: string, limit = 40): Promise<MediaHighlight[]> => {
         const params = new URLSearchParams();
         if (city) params.append('city', city);

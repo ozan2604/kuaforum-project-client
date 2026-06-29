@@ -71,8 +71,9 @@ export interface ShopVideo {
     displayOrder: number;
     createdAt: string;
     viewCount: number;
-    likeCount: number;
-    isLikedByCurrentUser: boolean;
+    likeCount?: number;
+    isLikedByCurrentUser?: boolean;
+    tags?: { id: string; name: string }[];
 }
 
 export interface MediaHighlight {

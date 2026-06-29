@@ -171,7 +171,10 @@ export const MyShopPage: React.FC = () => {
     const [tagInputs, setTagInputs] = useState<Record<string, string>>({});
     const watchedImages = watch('images') || [];
     const watchedVideos = watch('videos') || [];
+    const watchedPromoVideo = watch('promoVideoUrl');
     const [editingTag, setEditingTag] = useState<{ tagId: string; name: string } | null>(null);
+    const [videoTagInputs, setVideoTagInputs] = useState<Record<string, string>>({});
+    const [editingVideoTag, setEditingVideoTag] = useState<{ tagId: string; name: string } | null>(null);
     const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
     const [savedSnapshot, setSavedSnapshot] = useState<ShopSnapshot | null>(null);
     const [setupStatus, setSetupStatus] = useState<any>(null);
@@ -182,7 +185,11 @@ export const MyShopPage: React.FC = () => {
 
     const [uploadingVideo, setUploadingVideo] = useState(false);
     const [videoError, setVideoError] = useState(false);
-    const [deleteVideoConfirm, setDeleteVideoConfirm] = useState(false);
+    const [deleteVideoConfirm, setDeleteVideoConfirm] = useState<string | null>(null);
+
+    const [uploadingPromoVideo, setUploadingPromoVideo] = useState(false);
+    const [promoVideoError, setPromoVideoError] = useState(false);
+    const [deletePromoConfirm, setDeletePromoConfirm] = useState(false);
 
     const [weeklyOffDays, setWeeklyOffDays] = useState<number[]>([]);
 
@@ -709,6 +716,67 @@ export const MyShopPage: React.FC = () => {
         }
     };
 
+    const handlePromoVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        e.target.value = '';
+        if (!file || !shopId) return;
+
+        if (file.size > 150 * 1024 * 1024) {
+            toast.error('Video boyutu en fazla 150MB olabilir.');
+            return;
+        }
+
+        const uploadVideoFile = async () => {
+            try {
+                setUploadingPromoVideo(true);
+                const toastId = toast.loading('Tanıtım videosu yükleniyor, bu işlem biraz sürebilir...');
+                const res = await shopService.uploadPromoVideo(shopId, file);
+                setValue('promoVideoUrl', res.path);
+                toast.dismiss(toastId);
+                toast.success('Tanıtım videosu başarıyla yüklendi!');
+                setRefreshImages(prev => prev + 1);
+            } catch (err) {
+                toast.error(getApiError(err, 'Video yüklenemedi.'));
+            } finally {
+                setUploadingPromoVideo(false);
+            }
+        };
+
+        const videoElement = document.createElement('video');
+        videoElement.preload = 'metadata';
+        
+        videoElement.onloadedmetadata = async () => {
+            window.URL.revokeObjectURL(videoElement.src);
+            if (videoElement.duration > 90) {
+                toast.error('Video uzunluğu en fazla 90 saniye olabilir.');
+                return;
+            }
+            await uploadVideoFile();
+        };
+
+        videoElement.onerror = async () => {
+            window.URL.revokeObjectURL(videoElement.src);
+            console.warn("Video metadata could not be read. Proceeding with upload anyway.");
+            await uploadVideoFile();
+        };
+
+        videoElement.src = URL.createObjectURL(file);
+    };
+
+    const handleDeletePromoVideo = async () => {
+        if (!shopId) return;
+        try {
+            const toastId = toast.loading('Video siliniyor...');
+            await shopService.deletePromoVideo(shopId);
+            setValue('promoVideoUrl', '');
+            toast.dismiss(toastId);
+            toast.success('Tanıtım videosu silindi.');
+            setRefreshImages(prev => prev + 1);
+        } catch (err) {
+            toast.error(getApiError(err, 'Video silinemedi.'));
+        }
+    };
+
     const handleShopVideoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         // Dosya seçimi sıfırla ki aynı dosyayı tekrar seçebilsin
@@ -765,7 +833,8 @@ export const MyShopPage: React.FC = () => {
             const toastId = toast.loading('Video siliniyor...');
             await shopService.deleteShopVideo(id);
             toast.dismiss(toastId);
-            toast.success('Tanıtım videosu silindi.');
+            toast.success('Salon videosu silindi.');
+            setValue('videos', (getValues('videos') || []).filter(v => v.id !== id));
             setRefreshImages(prev => prev + 1);
         } catch (err) {
             toast.error(getApiError(err, 'Video silinemedi.'));
@@ -836,6 +905,52 @@ export const MyShopPage: React.FC = () => {
             await shopService.deleteImageTag(tagId);
             setValue('images', (getValues('images') || []).map(img =>
                 img.id === imageId ? { ...img, tags: img.tags.filter(t => t.id !== tagId) } : img
+            ));
+        } catch {
+            toast.error('Etiket silinemedi');
+        }
+    };
+
+    const handleAddVideoTag = async (videoId: string) => {
+        const name = (videoTagInputs[videoId] || '').trim();
+        if (!name) return;
+        const currentTags = (getValues('videos') || []).find(v => v.id === videoId)?.tags || [];
+        if (currentTags.length >= TAG_LIMIT) {
+            toast.error(`Bir videoya en fazla ${TAG_LIMIT} etiket eklenebilir`);
+            return;
+        }
+        try {
+            const tag = await shopService.addVideoTag(videoId, name);
+            setValue('videos', (getValues('videos') || []).map(v =>
+                v.id === videoId ? { ...v, tags: [...(v.tags || []), tag] } : v
+            ));
+            setVideoTagInputs(prev => ({ ...prev, [videoId]: '' }));
+        } catch {
+            toast.error('Etiket eklenemedi');
+        }
+    };
+
+    const handleUpdateVideoTag = async (videoId: string, tagId: string, name: string) => {
+        const trimmed = name.trim();
+        if (!trimmed) return;
+        try {
+            await shopService.updateVideoTag(tagId, trimmed);
+            setValue('videos', (getValues('videos') || []).map(v =>
+                v.id === videoId
+                    ? { ...v, tags: (v.tags || []).map(t => t.id === tagId ? { ...t, name: trimmed } : t) }
+                    : v
+            ));
+            setEditingVideoTag(null);
+        } catch {
+            toast.error('Etiket güncellenemedi');
+        }
+    };
+
+    const handleDeleteVideoTag = async (videoId: string, tagId: string) => {
+        try {
+            await shopService.deleteVideoTag(tagId);
+            setValue('videos', (getValues('videos') || []).map(v =>
+                v.id === videoId ? { ...v, tags: (v.tags || []).filter(t => t.id !== tagId) } : v
             ));
         } catch {
             toast.error('Etiket silinemedi');
@@ -1092,28 +1207,28 @@ export const MyShopPage: React.FC = () => {
                                     </div>
                                     <input
                                         type="file"
-                                        id="videoInput"
+                                        id="promoVideoInput"
                                         className="hidden"
                                         accept="video/mp4,video/quicktime,video/x-msvideo,video/x-matroska,video/webm"
-                                        onChange={handleShopVideoUpload}
+                                        onChange={handlePromoVideoUpload}
                                     />
-                                    {watchedVideos.length === 0 && (
+                                    {!watchedPromoVideo && (
                                         <Button
                                             type="button"
                                             variant="outline"
                                             size="sm"
-                                            disabled={uploadingVideo}
-                                            onClick={() => document.getElementById('videoInput')?.click()}
+                                            disabled={uploadingPromoVideo}
+                                            onClick={() => document.getElementById('promoVideoInput')?.click()}
                                         >
                                             <Video className="w-4 h-4 mr-1.5" />
-                                            {uploadingVideo ? 'Yükleniyor...' : 'Video Ekle'}
+                                            {uploadingPromoVideo ? 'Yükleniyor...' : 'Video Ekle'}
                                         </Button>
                                     )}
                                 </div>
-                                {watchedVideos.length > 0 && (
+                                {watchedPromoVideo && (
                                     <div className="bg-gray-50 p-4 rounded-xl flex flex-col md:flex-row items-center gap-4">
                                         <div className="w-full md:w-1/2 aspect-video bg-black rounded-lg overflow-hidden relative flex items-center justify-center">
-                                            {videoError ? (
+                                            {promoVideoError ? (
                                                 <div className="absolute inset-0 flex flex-col items-center justify-center p-4 text-center bg-gray-900/90 z-10">
                                                     <span className="text-red-500 mb-2">
                                                         <svg className="w-10 h-10 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1125,18 +1240,17 @@ export const MyShopPage: React.FC = () => {
                                                 </div>
                                             ) : null}
                                             <video 
-                                                key={watchedVideos[0].id}
-                                                src={getImageUrl(watchedVideos[0].url)}
+                                                src={getImageUrl(watchedPromoVideo)}
                                                 controls 
-                                                className={`w-full h-full object-cover ${videoError ? 'opacity-0' : 'opacity-100'}`}
+                                                className={`w-full h-full object-cover ${promoVideoError ? 'opacity-0' : 'opacity-100'}`}
                                                 preload="metadata"
                                                 playsInline
                                                 onError={(e) => {
                                                     const v = e.currentTarget;
                                                     console.error('Video oynatma hatası:', v.error?.code, v.error?.message, v.src);
-                                                    setVideoError(true);
+                                                    setPromoVideoError(true);
                                                 }}
-                                                onLoadStart={() => setVideoError(false)}
+                                                onLoadStart={() => setPromoVideoError(false)}
                                             >
                                                 Tarayıcınız video etiketini desteklemiyor.
                                             </video>
@@ -1146,8 +1260,8 @@ export const MyShopPage: React.FC = () => {
                                                 type="button"
                                                 variant="outline"
                                                 size="sm"
-                                                disabled={uploadingVideo}
-                                                onClick={() => setDeleteVideoConfirm(true)}
+                                                disabled={uploadingPromoVideo}
+                                                onClick={() => setDeletePromoConfirm(true)}
                                                 className="text-red-600 border-red-200 hover:bg-red-50"
                                             >
                                                 <Trash2 className="w-4 h-4 mr-1.5" />
@@ -1156,6 +1270,117 @@ export const MyShopPage: React.FC = () => {
                                         </div>
                                     </div>
                                 )}
+                            </div>
+
+                            {/* Salon Videoları */}
+                            <div className="border-t border-gray-100 pt-4 mb-6">
+                                <div className="flex justify-between items-center mb-3">
+                                    <div>
+                                        <label className="block text-sm font-semibold text-gray-700">Salon Videoları</label>
+                                        <p className="text-xs text-gray-400">Sınırsız video ekleyebilirsiniz • Maks 150MB • Maks 90 sn</p>
+                                    </div>
+                                    <input
+                                        type="file"
+                                        id="videoInput"
+                                        className="hidden"
+                                        accept="video/mp4,video/quicktime,video/x-msvideo,video/x-matroska,video/webm"
+                                        onChange={handleShopVideoUpload}
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        disabled={uploadingVideo}
+                                        onClick={() => document.getElementById('videoInput')?.click()}
+                                    >
+                                        <Video className="w-4 h-4 mr-1.5" />
+                                        {uploadingVideo ? 'Yükleniyor...' : 'Video Ekle'}
+                                    </Button>
+                                </div>
+                                <div className="columns-1 md:columns-2 gap-4">
+                                    {watchedVideos.map((video, index) => (
+                                        <div key={video.id || index} className="break-inside-avoid mb-4">
+                                            <div className="rounded-xl border border-gray-200 overflow-hidden bg-white">
+                                                <div className="relative group overflow-hidden bg-black aspect-video flex items-center justify-center">
+                                                    <video 
+                                                        src={getImageUrl(video.url)}
+                                                        controls 
+                                                        className="w-full h-full object-cover"
+                                                        preload="metadata"
+                                                        playsInline
+                                                    >
+                                                        Tarayıcınız video etiketini desteklemiyor.
+                                                    </video>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setDeleteVideoConfirm(video.id)}
+                                                        className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                                                    >
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                    </button>
+                                                </div>
+                                                {/* Etiketler */}
+                                                <div className="p-2.5 space-y-2">
+                                                    <div className="flex flex-wrap gap-1.5">
+                                                        {(video.tags || []).map(tag => (
+                                                            <span key={tag.id} className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-100 text-purple-700 rounded-full text-xs font-medium">
+                                                                {editingVideoTag?.tagId === tag.id ? (
+                                                                    <input
+                                                                        autoFocus
+                                                                        className="w-16 bg-transparent outline-none text-xs text-purple-800"
+                                                                        value={editingVideoTag.name}
+                                                                        onChange={e => setEditingVideoTag({ tagId: tag.id, name: e.target.value })}
+                                                                        onKeyDown={e => {
+                                                                            if (e.key === 'Enter') handleUpdateVideoTag(video.id, tag.id, editingVideoTag.name);
+                                                                            if (e.key === 'Escape') setEditingVideoTag(null);
+                                                                        }}
+                                                                        onBlur={() => handleUpdateVideoTag(video.id, tag.id, editingVideoTag.name)}
+                                                                    />
+                                                                ) : (
+                                                                    <span
+                                                                        className="cursor-pointer"
+                                                                        onClick={() => setEditingVideoTag({ tagId: tag.id, name: tag.name })}
+                                                                    >
+                                                                        {tag.name}
+                                                                    </span>
+                                                                )}
+                                                                <button
+                                                                    type="button"
+                                                                    onClick={() => handleDeleteVideoTag(video.id, tag.id)}
+                                                                    className="text-purple-400 hover:text-red-500 leading-none shrink-0 text-sm"
+                                                                >
+                                                                    ×
+                                                                </button>
+                                                            </span>
+                                                        ))}
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        <input
+                                                            type="text"
+                                                            placeholder="Etiket ekle..."
+                                                            value={videoTagInputs[video.id] || ''}
+                                                            onChange={e => setVideoTagInputs(prev => ({ ...prev, [video.id]: e.target.value }))}
+                                                            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddVideoTag(video.id); } }}
+                                                            className="min-w-0 flex-1 text-xs px-2 py-1 rounded-lg border border-gray-200 focus:border-purple-400 outline-none bg-white"
+                                                        />
+                                                        <button
+                                                            type="button"
+                                                            onClick={() => handleAddVideoTag(video.id)}
+                                                            className="shrink-0 w-7 h-7 flex items-center justify-center bg-purple-500 text-white rounded-lg hover:bg-purple-600 transition-colors text-base leading-none"
+                                                        >
+                                                            +
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {watchedVideos.length === 0 && (
+                                        <div className="py-10 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 text-center text-gray-400 text-sm">
+                                            Henüz salon videosu yüklenmemiş.
+                                        </div>
+                                    )}
+                                </div>
                             </div>
 
                             {/* Galeri */}
@@ -2094,7 +2319,7 @@ export const MyShopPage: React.FC = () => {
             )}
 
             {/* ── Tanıtım Videosu Silme Onay Modalı ── */}
-            {deleteVideoConfirm && createPortal(
+            {deletePromoConfirm && createPortal(
                 <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
                     <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
                         <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-100">
@@ -2113,15 +2338,51 @@ export const MyShopPage: React.FC = () => {
                         </div>
                         <div className="flex gap-3 px-6 pb-5">
                             <button
-                                onClick={() => setDeleteVideoConfirm(false)}
+                                onClick={() => setDeletePromoConfirm(false)}
                                 className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 rounded-xl transition-colors"
                             >
                                 Vazgeç
                             </button>
                             <button
                                 onClick={async () => {
-                                    setDeleteVideoConfirm(false);
-                                    await handleDeleteShopVideo(watchedVideos[0].id);
+                                    setDeletePromoConfirm(false);
+                                    await handleDeletePromoVideo();
+                                }}
+                                className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors"
+                            >
+                                Evet, Sil
+                            </button>
+                        </div>
+                    </div>
+                </div>,
+                document.body
+            )}
+
+            {/* ─── Salon Videosu Silme Onay Modalı ─── */}
+            {deleteVideoConfirm && createPortal(
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
+                        <div className="flex items-center gap-3 px-6 py-5 border-b border-gray-100">
+                            <div className="p-2.5 bg-red-50 text-red-600 rounded-xl shrink-0">
+                                <Trash2 className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h3 className="text-base font-bold text-gray-900">Salon Videosu Silinecek</h3>
+                                <p className="text-xs text-gray-500 mt-0.5">Bu işlem geri alınamaz</p>
+                            </div>
+                        </div>
+                        <div className="flex gap-3 px-6 pb-5 pt-5">
+                            <button
+                                onClick={() => setDeleteVideoConfirm(null)}
+                                className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-200 hover:bg-gray-50 rounded-xl transition-colors"
+                            >
+                                Vazgeç
+                            </button>
+                            <button
+                                onClick={async () => {
+                                    const id = deleteVideoConfirm;
+                                    setDeleteVideoConfirm(null);
+                                    if (id) await handleDeleteShopVideo(id);
                                 }}
                                 className="flex-1 px-4 py-2.5 text-sm font-semibold text-white bg-red-600 hover:bg-red-700 rounded-xl transition-colors"
                             >
