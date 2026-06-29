@@ -239,7 +239,8 @@ const SalonOwnerLayoutInner: React.FC = () => {
                             </div>
                         </div>
                     </div>
-                </aside>
+                </div>
+            </aside>
 
             {/* Main Content */}
             <div className="flex-1 flex flex-col min-w-0">
