@@ -105,17 +105,6 @@ export const AdminLayout: React.FC = () => {
                         </button>
                     </div>
                 </nav>
-
-                {/* Bottom: Sadece Çıkış */}
-                <div className="p-4 border-t border-gray-100 space-y-1 shrink-0">
-                    <button
-                        onClick={() => setShowLogoutConfirm(true)}
-                        className="flex items-center w-full px-4 py-3 text-sm font-medium text-red-600 rounded-lg hover:bg-red-50 transition-colors"
-                    >
-                        <LogOut className="h-5 w-5 mr-3" />
-                        Çıkış Yap
-                    </button>
-                </div>
             </div>
 
             {/* Overlay */}
