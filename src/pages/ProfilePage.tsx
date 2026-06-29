@@ -5,7 +5,8 @@ import { appointmentService } from '../api/appointment.service';
 import { authService } from '../api/auth.service';
 import type { AppointmentDto } from '../types/appointment';
 
-import { Lock, Heart, ChevronRight, MessageSquare, Camera, Edit2, Store, UserX } from 'lucide-react';
+import { Button } from '../components/Button';
+import { Calendar, User, LogOut, CheckCircle, Clock, XCircle, AlertCircle, Trash2, Lock, Heart, ChevronRight, MessageSquare, Camera, Edit2, Store, UserX } from 'lucide-react';
 import { favoriteService } from '../services/favorite.service';
 import { ShopCard } from '../components/ShopCard';
 import type { Shop } from '../types/shop';
@@ -599,7 +600,7 @@ export const ProfilePage: React.FC = () => {
                                             <p className="text-sm font-medium text-red-600 mb-2">Tehlikeli Bölge</p>
                                             <Button
                                                 variant="danger"
-                                                onClick={() => setConfirmData({ title: 'Hesabı Sil', message: 'Hesabınızı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.', onConfirm: handleDeleteAccount })}
+                                                onClick={() => setShowDeleteConfirm(true)}
                                             >
                                                 Hesabımı Sil
                                             </Button>
