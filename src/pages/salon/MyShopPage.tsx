@@ -792,10 +792,10 @@ export const MyShopPage: React.FC = () => {
         const uploadVideoFile = async () => {
             try {
                 setUploadingVideo(true);
-                const toastId = toast.loading('Tanıtım videosu yükleniyor, bu işlem biraz sürebilir...');
+                const toastId = toast.loading('Salon videosu yükleniyor, bu işlem biraz sürebilir...');
                 await shopService.uploadShopVideo(shopId, file);
                 toast.dismiss(toastId);
-                toast.success('Tanıtım videosu başarıyla yüklendi!');
+                toast.success('Salon videosu başarıyla yüklendi!');
                 setRefreshImages(prev => prev + 1);
             } catch (err) {
                 toast.error(getApiError(err, 'Video yüklenemedi.'));

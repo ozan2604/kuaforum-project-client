@@ -7,7 +7,7 @@ import type { Shop } from '../types/shop';
 import { ShopCategoryLabels, ShopCategory, TargetGenderLabels } from '../types/shop';
 import type { ServiceCategoryDto, ShopServiceDto } from '../types/service';
 import type { PublicEmployeeScheduleDto } from '../types/employee';
-import { MapPin, Star, Clock, Calendar, ChevronDown, Heart, Grid, Info, Image, MessageCircle, Users, ArrowLeft, Phone, User, ExternalLink, CheckCircle, Map, Share2, Play, X, Send, Check, Eye } from 'lucide-react';
+import { MapPin, Star, Clock, Calendar, ChevronDown, Heart, Grid, Info, Image, MessageCircle, Users, ArrowLeft, Phone, User, ExternalLink, CheckCircle, Map, Share2, Play, X, Send, Check } from 'lucide-react';
 import { mediaLikeService } from '../api/mediaLike.service';
 import { Button } from '../components/Button';
 import { LoadingSpinner } from '../components/LoadingSpinner';
@@ -154,11 +154,6 @@ export const ShopDetailsPage: React.FC = () => {
     const [showPromoVideo, setShowPromoVideo] = useState(false);
     const [showStickyHeader, setShowStickyHeader] = useState(false);
     const tabsRef = useRef<HTMLDivElement>(null);
-    const videoViewRecordedRef = useRef(false);
-
-    const [videoLiked, setVideoLiked] = useState(false);
-    const [videoLikeCount, setVideoLikeCount] = useState(0);
-    const [videoViewCount, setVideoViewCount] = useState(0);
 
 
     useEffect(() => {
@@ -234,11 +229,6 @@ export const ShopDetailsPage: React.FC = () => {
                     employeeService.getPublicShopSchedules(id).catch(() => [])
                 ]);
                 setShop(shopData);
-                if (shopData.videos?.[0]) {
-                    setVideoLiked(shopData.videos[0].isLikedByCurrentUser ?? false);
-                    setVideoLikeCount(shopData.videos[0].likeCount ?? 0);
-                    setVideoViewCount(shopData.videos[0].viewCount ?? 0);
-                }
                 setCategories(servicesData);
                 const initExpanded: Record<string, boolean> = {};
                 servicesData.forEach(cat => { initExpanded[cat.id] = false; });
@@ -435,12 +425,6 @@ export const ShopDetailsPage: React.FC = () => {
                                         autoPlay
                                         className="w-full h-full object-contain"
                                         playsInline
-                                        onPlay={() => {
-                                            if (!videoViewRecordedRef.current && shop.videos?.[0]?.id) {
-                                                videoViewRecordedRef.current = true;
-                                                shopService.recordVideoView(shop.videos[0].id).catch(() => {});
-                                            }
-                                        }}
                                     />
                                 ) : (
                                     <>
@@ -957,69 +941,61 @@ export const ShopDetailsPage: React.FC = () => {
                             {activeTab === 'gallery' && (
                                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8 animate-fadeIn">
                                     {/* Tanıtım Videosu */}
-                                    {(() => {
-                                        const videoUrl = shop.videos?.[0]?.url ?? shop.promoVideoUrl;
-                                        if (!videoUrl) return null;
-                                        return (
-                                            <div className="mb-8">
-                                                <div className="flex items-center gap-2.5 mb-4">
-                                                    <div className="w-9 h-9 rounded-xl bg-primary-50 flex items-center justify-center shrink-0">
-                                                        <Play className="w-4 h-4 text-primary-600 fill-primary-600" />
-                                                    </div>
-                                                    <h2 className="text-lg font-bold text-gray-900">Tanıtım Videosu</h2>
+                                    {shop.promoVideoUrl && (
+                                        <div className="mb-8">
+                                            <div className="flex items-center gap-2.5 mb-4">
+                                                <div className="w-9 h-9 rounded-xl bg-primary-50 flex items-center justify-center shrink-0">
+                                                    <Play className="w-4 h-4 text-primary-600 fill-primary-600" />
                                                 </div>
-                                                <div className="rounded-2xl overflow-hidden bg-black shadow-lg max-w-2xl mx-auto" style={{ aspectRatio: '16/9' }}>
-                                                    <video
-                                                        src={videoUrl}
-                                                        controls
-                                                        className="w-full h-full object-contain"
-                                                        preload="metadata"
-                                                        playsInline
-                                                        onPlay={() => {
-                                                            if (!videoViewRecordedRef.current && shop.videos?.[0]?.id) {
-                                                                videoViewRecordedRef.current = true;
-                                                                shopService.recordVideoView(shop.videos[0].id).then(n => setVideoViewCount(n)).catch(() => {});
-                                                            }
-                                                        }}
-                                                    />
-                                                </div>
-                                                {/* Video: beğeni + izlenme */}
-                                                <div className="flex items-center justify-end gap-4 mt-3 px-1">
-                                                    <div className="flex items-center gap-1.5 text-gray-500">
-                                                        <Eye className="w-4 h-4" />
-                                                        <span className="text-sm font-semibold">{videoViewCount}</span>
-                                                    </div>
-                                                    {isAuthenticated ? (
-                                                        <button
-                                                            onClick={async () => {
-                                                                if (!shop.videos?.[0]?.id) return;
-                                                                const newLiked = !videoLiked;
-                                                                setVideoLiked(newLiked);
-                                                                setVideoLikeCount(prev => prev + (newLiked ? 1 : -1));
-                                                                try {
-                                                                    const serverLiked = await mediaLikeService.toggle(shop.videos![0].id, 'video');
-                                                                    setVideoLiked(serverLiked);
-                                                                    setVideoLikeCount(serverLiked ? (shop.videos![0].likeCount ?? 0) + 1 : (shop.videos![0].likeCount ?? 0));
-                                                                } catch {
-                                                                    setVideoLiked(!newLiked);
-                                                                    setVideoLikeCount(shop.videos![0].likeCount ?? 0);
-                                                                }
-                                                            }}
-                                                            className="flex items-center gap-1.5 active:scale-90 transition-transform"
-                                                        >
-                                                            <Heart className={`w-4 h-4 transition-colors ${videoLiked ? 'text-red-500 fill-red-500' : 'text-gray-400 hover:text-red-400'}`} />
-                                                            <span className="text-sm font-semibold text-gray-500">{videoLikeCount}</span>
-                                                        </button>
-                                                    ) : (
-                                                        <div className="flex items-center gap-1.5">
-                                                            <Heart className="w-4 h-4 text-gray-300" />
-                                                            <span className="text-sm font-semibold text-gray-400">{videoLikeCount}</span>
-                                                        </div>
-                                                    )}
-                                                </div>
+                                                <h2 className="text-lg font-bold text-gray-900">Tanıtım Videosu</h2>
                                             </div>
-                                        );
-                                    })()}
+                                            <div className="rounded-2xl overflow-hidden bg-black shadow-lg max-w-2xl mx-auto" style={{ aspectRatio: '16/9' }}>
+                                                <video
+                                                    src={getImageUrl(shop.promoVideoUrl)}
+                                                    controls
+                                                    className="w-full h-full object-contain"
+                                                    preload="metadata"
+                                                    playsInline
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Salon Videoları */}
+                                    {(shop.videos && shop.videos.length > 0) && (
+                                        <div className="mb-8">
+                                            <div className="flex items-center gap-2.5 mb-4">
+                                                <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
+                                                    <Play className="w-4 h-4 text-blue-600" />
+                                                </div>
+                                                <h2 className="text-lg font-bold text-gray-900">Salon Videoları</h2>
+                                            </div>
+                                            <div className="columns-1 md:columns-2 gap-4">
+                                                {shop.videos.map((video) => (
+                                                    <div key={video.id} className="break-inside-avoid mb-4">
+                                                        <div className="rounded-xl overflow-hidden bg-black aspect-video flex items-center justify-center shadow-sm">
+                                                            <video
+                                                                src={getImageUrl(video.url)}
+                                                                controls
+                                                                className="w-full h-full object-cover"
+                                                                preload="metadata"
+                                                                playsInline
+                                                            />
+                                                        </div>
+                                                        {video.tags && video.tags.length > 0 && (
+                                                            <div className="mt-2 flex flex-wrap gap-1.5">
+                                                                {video.tags.map(tag => (
+                                                                    <span key={tag.id} className="px-2 py-0.5 rounded-md bg-gray-100 text-gray-600 text-xs font-medium">
+                                                                        #{tag.name}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
 
                                     {/* Fotoğraf Galerisi */}
                                     {(shop.images && shop.images.length > 0) && (
@@ -1043,7 +1019,7 @@ export const ShopDetailsPage: React.FC = () => {
                                             ))}
                                         </div>
                                     ) : (
-                                        !(shop.videos?.[0]?.url ?? shop.promoVideoUrl) && (
+                                        !shop.promoVideoUrl && (!shop.videos || shop.videos.length === 0) && (
                                             <div className="text-center py-12 bg-white rounded-xl border border-dashed border-gray-200">
                                                 <p className="text-gray-500 italic">Henüz görsel yüklenmemiş.</p>
                                             </div>
