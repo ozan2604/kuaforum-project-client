@@ -171,7 +171,8 @@ export const MyShopPage: React.FC = () => {
     const [tagInputs, setTagInputs] = useState<Record<string, string>>({});
     const watchedImages = watch('images') || [];
     const watchedVideos = watch('videos') || [];
-    const watchedPromoVideo = watch('promoVideoUrl');
+    const promoVideo = watchedVideos.find(v => v.displayOrder === 0);
+    const salonVideos = watchedVideos.filter(v => v.displayOrder !== 0);
     const [editingTag, setEditingTag] = useState<{ tagId: string; name: string } | null>(null);
     const [videoTagInputs, setVideoTagInputs] = useState<Record<string, string>>({});
     const [editingVideoTag, setEditingVideoTag] = useState<{ tagId: string; name: string } | null>(null);
@@ -730,7 +731,8 @@ export const MyShopPage: React.FC = () => {
                 setUploadingPromoVideo(true);
                 const toastId = toast.loading('Tanıtım videosu yükleniyor, bu işlem biraz sürebilir...');
                 const res = await shopService.uploadPromoVideo(shopId, file);
-                setValue('promoVideoUrl', res.path);
+                const currentVideos = getValues('videos') || [];
+                setValue('videos', [res, ...currentVideos.filter(v => v.displayOrder !== 0)]);
                 toast.dismiss(toastId);
                 toast.success('Tanıtım videosu başarıyla yüklendi!');
                 setRefreshImages(prev => prev + 1);
@@ -767,7 +769,8 @@ export const MyShopPage: React.FC = () => {
         try {
             const toastId = toast.loading('Video siliniyor...');
             await shopService.deletePromoVideo(shopId);
-            setValue('promoVideoUrl', '');
+            const currentVideos = getValues('videos') || [];
+            setValue('videos', currentVideos.filter(v => v.displayOrder !== 0));
             toast.dismiss(toastId);
             toast.success('Tanıtım videosu silindi.');
             setRefreshImages(prev => prev + 1);
@@ -1211,7 +1214,7 @@ export const MyShopPage: React.FC = () => {
                                         accept="video/mp4,video/quicktime,video/x-msvideo,video/x-matroska,video/webm"
                                         onChange={handlePromoVideoUpload}
                                     />
-                                    {!watchedPromoVideo && (
+                                    {!promoVideo && (
                                         <Button
                                             type="button"
                                             variant="outline"
@@ -1224,7 +1227,7 @@ export const MyShopPage: React.FC = () => {
                                         </Button>
                                     )}
                                 </div>
-                                {watchedPromoVideo && (
+                                {promoVideo && (
                                     <div className="bg-gray-50 p-4 rounded-xl flex flex-col md:flex-row items-center gap-4">
                                         <div className="w-full md:w-1/2 aspect-video bg-black rounded-lg overflow-hidden relative flex items-center justify-center">
                                             {promoVideoError ? (
@@ -1239,11 +1242,17 @@ export const MyShopPage: React.FC = () => {
                                                 </div>
                                             ) : null}
                                             <video 
-                                                src={getImageUrl(watchedPromoVideo)}
+                                                src={`${getImageUrl(promoVideo.url)}#t=0.1`}
                                                 controls 
                                                 className={`w-full h-full object-cover ${promoVideoError ? 'opacity-0' : 'opacity-100'}`}
                                                 preload="metadata"
                                                 playsInline
+                                                onPlay={(e) => {
+                                                    const videos = document.getElementsByTagName('video');
+                                                    Array.from(videos).forEach(v => {
+                                                        if (v !== e.target) v.pause();
+                                                    });
+                                                }}
                                                 onError={(e) => {
                                                     const v = e.currentTarget;
                                                     console.error('Video oynatma hatası:', v.error?.code, v.error?.message, v.src);
@@ -1297,16 +1306,22 @@ export const MyShopPage: React.FC = () => {
                                     </Button>
                                 </div>
                                 <div className="columns-1 md:columns-2 gap-4">
-                                    {watchedVideos.map((video, index) => (
+                                    {salonVideos.map((video, index) => (
                                         <div key={video.id || index} className="break-inside-avoid mb-4">
                                             <div className="rounded-xl border border-gray-200 overflow-hidden bg-white">
                                                 <div className="relative group overflow-hidden bg-black aspect-video flex items-center justify-center">
                                                     <video 
-                                                        src={getImageUrl(video.url)}
+                                                        src={`${getImageUrl(video.url)}#t=0.1`}
                                                         controls 
                                                         className="w-full h-full object-cover"
                                                         preload="metadata"
                                                         playsInline
+                                                        onPlay={(e) => {
+                                                            const videos = document.getElementsByTagName('video');
+                                                            Array.from(videos).forEach(v => {
+                                                                if (v !== e.target) v.pause();
+                                                            });
+                                                        }}
                                                     >
                                                         Tarayıcınız video etiketini desteklemiyor.
                                                     </video>
@@ -1374,7 +1389,7 @@ export const MyShopPage: React.FC = () => {
                                             </div>
                                         </div>
                                     ))}
-                                    {watchedVideos.length === 0 && (
+                                    {salonVideos.length === 0 && (
                                         <div className="py-10 bg-gray-50 rounded-xl border-2 border-dashed border-gray-200 text-center text-gray-400 text-sm">
                                             Henüz salon videosu yüklenmemiş.
                                         </div>

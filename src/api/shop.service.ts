@@ -82,10 +82,10 @@ export const shopService = {
         await api.delete(`/shop/${id}/cover-image`);
     },
 
-    uploadPromoVideo: async (id: string, file: File): Promise<{ path: string }> => {
+    uploadPromoVideo: async (id: string, file: File): Promise<import('../types/shop').ShopVideo> => {
         const formData = new FormData();
         formData.append('file', file);
-        const response = await api.post<{ path: string }>(`/shop/${id}/promo-video`, formData, {
+        const response = await api.post<import('../types/shop').ShopVideo>(`/shop/${id}/promo-video`, formData, {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
         return response.data;
