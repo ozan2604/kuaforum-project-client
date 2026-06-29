@@ -329,12 +329,17 @@ export const ManualBookingModal: React.FC<ManualBookingModalProps> = ({
             });
             onSuccess?.();
         } catch (error: any) {
-            const msg =
-                error.response?.data?.Message ||
-                error.response?.data?.message ||
-                (typeof error.response?.data === 'string' ? error.response.data : null) ||
-                error.message ||
-                'Randevu oluşturulamadı.';
+            let msg = 'Randevu oluşturulamadı.';
+            const data = error.response?.data;
+            if (data?.errors && typeof data.errors === 'object') {
+                msg = Object.values(data.errors).flat()[0] as string;
+            } else if (data?.Message || data?.message) {
+                msg = data.Message || data.message;
+            } else if (typeof data === 'string') {
+                msg = data;
+            } else if (error.message) {
+                msg = error.message;
+            }
             setBookingError(msg);
         } finally {
             setSubmitting(false);
@@ -345,7 +350,13 @@ export const ManualBookingModal: React.FC<ManualBookingModalProps> = ({
         const stepOrder = STEPS.map(s => s.id);
         const idx = stepOrder.indexOf(currentStep);
         if (currentStep === 'customer') {
-            if (customerMode === 'named' && !guestName.trim()) { toast.error('Müşteri adını girin.'); return; }
+            if (customerMode === 'named') {
+                if (!guestName.trim()) { toast.error('Müşteri adını girin.'); return; }
+                if (guestPhone.trim() && !/^05[0-9]{9}$/.test(guestPhone.trim())) {
+                    toast.error('Telefon numarası 05 ile başlamalı ve 11 hane olmalıdır.');
+                    return;
+                }
+            }
         } else if (currentStep === 'personnel') {
             if (!selectedEmployeeId) { toast.error('Lütfen bir personel seçin.'); return; }
         } else if (currentStep === 'service') {
