@@ -184,7 +184,6 @@ export const MyShopPage: React.FC = () => {
     const [deleteCoverConfirm, setDeleteCoverConfirm] = useState(false);
 
     const [uploadingVideo, setUploadingVideo] = useState(false);
-    const [videoError, setVideoError] = useState(false);
     const [deleteVideoConfirm, setDeleteVideoConfirm] = useState<string | null>(null);
 
     const [uploadingPromoVideo, setUploadingPromoVideo] = useState(false);
