@@ -5,8 +5,7 @@ import { appointmentService } from '../api/appointment.service';
 import { authService } from '../api/auth.service';
 import type { AppointmentDto } from '../types/appointment';
 
-import { Button } from '../components/Button';
-import { Calendar, User, LogOut, CheckCircle, Clock, XCircle, AlertCircle, Trash2, Lock, Heart, ChevronRight, MessageSquare, Camera, Edit2, Store, UserX } from 'lucide-react';
+import { Lock, Heart, ChevronRight, MessageSquare, Camera, Edit2, Store, UserX } from 'lucide-react';
 import { favoriteService } from '../services/favorite.service';
 import { ShopCard } from '../components/ShopCard';
 import type { Shop } from '../types/shop';
@@ -123,9 +122,6 @@ export const ProfilePage: React.FC = () => {
     const [updatingProfile, setUpdatingProfile] = useState(false);
     const [uploadingImage, setUploadingImage] = useState(false);
 
-    const [currentPassword, setCurrentPassword] = useState('');
-    const [newPassword, setNewPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
     const [favorites, setFavorites] = useState<Shop[]>([]);
     const [favLoading, setFavLoading] = useState(false);
     const [myReviews, setMyReviews] = useState<Review[]>([]);
@@ -200,16 +196,6 @@ export const ProfilePage: React.FC = () => {
 
 
 
-    const handleChangePassword = async (e: React.FormEvent) => {
-        e.preventDefault();
-        if (newPassword !== confirmPassword) { showResult('error', 'Yeni şifreler birbiriyle eşleşmiyor.'); return; }
-        try {
-            await authService.changePassword({ currentPassword, newPassword, confirmPassword });
-            showResult('success', 'Şifreniz başarıyla değiştirildi.');
-            setCurrentPassword(''); setNewPassword(''); setConfirmPassword('');
-        }
-        catch (err: any) { showResult('error', getApiError(err, 'Şifre değiştirilemedi.')); }
-    };
 
     const handleDeleteAccount = async () => {
         try { await authService.deleteAccount(); logout(); navigate('/'); }
@@ -605,21 +591,20 @@ export const ProfilePage: React.FC = () => {
 
                                 {/* ── SECURITY ── */}
                                 {section.id === 'security' && (
-                                    <form onSubmit={handleChangePassword} className="space-y-4">
-                                        <div>
-                                            <label className="block text-xs font-medium text-gray-600 mb-1">Mevcut Şifre</label>
-                                            <input type="password" value={currentPassword} onChange={e => setCurrentPassword(e.target.value)} className={inputCls} required />
+                                    <div className="space-y-4">
+                                        <p className="text-sm text-gray-500">
+                                            Hesabınıza giriş telefon numaranıza gönderilen doğrulama kodu ile yapılmaktadır. Şifre gerekmez.
+                                        </p>
+                                        <div className="border-t pt-4">
+                                            <p className="text-sm font-medium text-red-600 mb-2">Tehlikeli Bölge</p>
+                                            <Button
+                                                variant="danger"
+                                                onClick={() => setConfirmData({ title: 'Hesabı Sil', message: 'Hesabınızı silmek istediğinizden emin misiniz? Bu işlem geri alınamaz.', onConfirm: handleDeleteAccount })}
+                                            >
+                                                Hesabımı Sil
+                                            </Button>
                                         </div>
-                                        <div>
-                                            <label className="block text-xs font-medium text-gray-600 mb-1">Yeni Şifre</label>
-                                            <input type="password" value={newPassword} onChange={e => setNewPassword(e.target.value)} className={inputCls} required minLength={6} />
-                                        </div>
-                                        <div>
-                                            <label className="block text-xs font-medium text-gray-600 mb-1">Yeni Şifre (Tekrar)</label>
-                                            <input type="password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className={inputCls} required minLength={6} />
-                                        </div>
-                                        <Button type="submit" className="w-full sm:w-auto">Şifreyi Değiştir</Button>
-                                    </form>
+                                    </div>
                                 )}
                             </div>
                         )}

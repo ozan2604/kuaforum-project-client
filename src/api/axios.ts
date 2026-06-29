@@ -36,7 +36,8 @@ api.interceptors.response.use(
         }
 
         // Auth endpoint'leri kendi hatalarını kendisi yönetir — interceptor müdahale etmemeli
-        const authOnlyEndpoints = ['/auth/login', '/auth/register', '/auth/forgot-password'];
+        const authOnlyEndpoints = ['/auth/login', '/auth/register'];
+
         if (authOnlyEndpoints.some(ep => originalRequest.url?.includes(ep))) {
             return Promise.reject(error);
         }

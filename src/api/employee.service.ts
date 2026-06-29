@@ -9,8 +9,8 @@ export const employeeService = {
         return response.data;
     },
 
-    addEmployee: async (shopId: string, data: CreateEmployeeDto): Promise<{ message: string, temporaryPassword?: string, isNewUser: boolean }> => {
-        const response = await api.post<{ message: string, temporaryPassword?: string, isNewUser: boolean }>(`/employee?shopId=${shopId}`, data);
+    addEmployee: async (shopId: string, data: CreateEmployeeDto): Promise<{ message: string, isNewUser: boolean }> => {
+        const response = await api.post<{ message: string, isNewUser: boolean }>(`/employee?shopId=${shopId}`, data);
         return response.data;
     },
 

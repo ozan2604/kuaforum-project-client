@@ -12,11 +12,10 @@ const TEMPLATES = [
   { name: 'AppointmentCompleted',           label: 'Randevu Tamamlandı',            desc: 'Müşteriye → hizmet bitti, teşekkürler' },
   { name: 'SalonApplicationApproved',       label: 'Salon Başvurusu Onaylandı',     desc: 'Başvuru sahibine → tebrik' },
   { name: 'SalonApplicationRejected',       label: 'Salon Başvurusu Reddedildi',    desc: 'Başvuru sahibine → red bildirimi' },
-  { name: 'EmployeeAdded',                  label: 'Çalışan Eklendi (Yeni)',        desc: 'Yeni çalışana → geçici şifresiyle' },
+  { name: 'EmployeeAdded',                  label: 'Çalışan Eklendi (Yeni)',        desc: 'Yeni çalışana → OTP giriş bilgisi' },
   { name: 'EmployeeAddedExisting',          label: 'Çalışan Eklendi (Mevcut)',      desc: 'Var olan kullanıcıya → eklendi bildirimi' },
   { name: 'EmployeeRemoved',                label: 'Çalışan Silindi',               desc: 'Çalışana → kaydı sonlandırıldı' },
   { name: 'EmployeeRestored',               label: 'Çalışan Geri Yüklendi',         desc: 'Çalışana → yeniden aktif edildi' },
-  { name: 'PasswordChanged',               label: 'Şifre Değiştirildi',             desc: 'Kullanıcıya → güvenlik bildirimi' },
 ] as const;
 
 type TemplateStatus = 'idle' | 'loading' | 'success' | 'error';

@@ -18,7 +18,6 @@ import { ShopDetailsPage } from './pages/ShopDetailsPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
-import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { SalonApplicationPage } from './pages/SalonApplicationPage';
 import { CreateShopPage } from './pages/CreateShopPage';
 import { MyAppointmentsPage } from './pages/MyAppointmentsPage';
@@ -95,7 +94,6 @@ function App() {
         <Route element={<AuthLayout />}>
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
         </Route>
 
         {/* ── Giriş Gerekli (herhangi bir kullanıcı) ── */}

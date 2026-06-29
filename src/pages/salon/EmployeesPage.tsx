@@ -30,7 +30,7 @@ export const EmployeesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fal
     const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
     const [availableServices, setAvailableServices] = useState<ServiceCategoryDto[]>([]);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
-    const [createdEmployeeInfo, setCreatedEmployeeInfo] = useState<{ name: string, phone: string, password?: string, isNewUser: boolean } | null>(null);
+    const [createdEmployeeInfo, setCreatedEmployeeInfo] = useState<{ name: string, phone: string, isNewUser: boolean } | null>(null);
     
     const [activeTab, setActiveTab] = useState<'active' | 'deleted'>('active');
     
@@ -159,20 +159,13 @@ export const EmployeesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fal
             setIsSubmitting(true);
             try {
                 const result = await employeeService.addEmployee(shopId, data);
-                
-                if (result.temporaryPassword) {
-                    setCreatedEmployeeInfo({
-                        name: `${data.firstName} ${data.lastName}`,
-                        phone: data.phoneNumber,
-                        password: result.temporaryPassword,
-                        isNewUser: result.isNewUser
-                    });
-                    setShowSuccessModal(true);
-                    setIsAddModalOpen(false);
-                } else {
-                    toast.success(result.message, { duration: 6000 });
-                    setIsAddModalOpen(false);
-                }
+                setCreatedEmployeeInfo({
+                    name: `${data.firstName} ${data.lastName}`,
+                    phone: data.phoneNumber,
+                    isNewUser: result.isNewUser
+                });
+                setShowSuccessModal(true);
+                setIsAddModalOpen(false);
                 
                 reset();
                 loadEmployees();
@@ -534,41 +527,25 @@ export const EmployeesPage: React.FC<{ embedded?: boolean }> = ({ embedded = fal
                                 <span className="font-semibold text-gray-900">{createdEmployeeInfo.name}</span> başarıyla sisteme kaydedildi.
                             </p>
 
-                            {createdEmployeeInfo.password ? (
-                                <div className="w-full space-y-4 bg-gray-50 p-4 rounded-xl border border-gray-100 mb-6">
-                                    <div className="text-left">
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Giriş Telefonu</label>
-                                        <div className="flex justify-between items-center bg-white border border-gray-200 rounded-lg px-3 py-2">
-                                            <span className="text-sm font-mono text-gray-700">{createdEmployeeInfo.phone}</span>
-                                            <button 
-                                                onClick={() => { navigator.clipboard.writeText(createdEmployeeInfo.phone); toast.success('Telefon kopyalandı'); }}
-                                                className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-primary-600 transition-colors"
-                                            >
-                                                <Copy className="h-4 w-4" />
-                                            </button>
-                                        </div>
+                            <div className="w-full bg-blue-50 border border-blue-100 rounded-xl p-4 mb-6 text-left">
+                                <div className="mb-3">
+                                    <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Giriş Telefonu</label>
+                                    <div className="flex justify-between items-center bg-white border border-gray-200 rounded-lg px-3 py-2">
+                                        <span className="text-sm font-mono text-gray-700">{createdEmployeeInfo.phone}</span>
+                                        <button
+                                            onClick={() => { navigator.clipboard.writeText(createdEmployeeInfo.phone); toast.success('Telefon kopyalandı'); }}
+                                            className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-primary-600 transition-colors"
+                                        >
+                                            <Copy className="h-4 w-4" />
+                                        </button>
                                     </div>
-                                    <div className="text-left">
-                                        <label className="text-[10px] font-bold text-gray-400 uppercase tracking-widest block mb-1">Geçici Şifre</label>
-                                        <div className="flex justify-between items-center bg-white border border-gray-200 rounded-lg px-3 py-2">
-                                            <span className="text-sm font-mono font-bold text-primary-600">{createdEmployeeInfo.password}</span>
-                                            <button 
-                                                onClick={() => { navigator.clipboard.writeText(createdEmployeeInfo.password!); toast.success('Şifre kopyalandı'); }}
-                                                className="p-1 hover:bg-gray-100 rounded text-gray-400 hover:text-primary-600 transition-colors"
-                                            >
-                                                <Copy className="h-4 w-4" />
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <p className="text-[11px] text-amber-600 font-medium text-center">
-                                        Lütfen bu şifreyi çalışanınıza iletin. İlk girişte şifresini değiştirmesi önerilir.
-                                    </p>
                                 </div>
-                            ) : (
-                                <p className="text-sm text-blue-600 bg-blue-50 p-3 rounded-lg mb-6">
-                                    Bu kullanıcı zaten sistemde kayıtlı olduğu için mevcut şifresiyle giriş yapabilir.
+                                <p className="text-xs text-blue-700">
+                                    Çalışana giriş bilgilerini içeren bir SMS gönderildi.
+                                    Giriş için <strong>salonbir.com</strong> adresine gidip telefon numarasına gelecek kodu kullanması yeterli.
                                 </p>
-                            )}
+                            </div>
+
 
                             <Button 
                                 className="w-full py-3 text-base font-bold shadow-lg shadow-primary-200" 
