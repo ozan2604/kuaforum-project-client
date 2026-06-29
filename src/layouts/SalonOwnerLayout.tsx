@@ -9,7 +9,6 @@ import {
     Store,
     Calendar,
     Settings,
-    LogOut,
     Menu,
     X,
     Bell,
@@ -33,7 +32,7 @@ const POLL_INTERVAL_MS = 60_000;
 // ─── Inner layout (has access to SalonContext) ────────────────────────────────
 
 const SalonOwnerLayoutInner: React.FC = () => {
-    const { user, logout, isLoading: authLoading } = useAuth();
+    const { user, isLoading: authLoading } = useAuth();
     const { currentShop, allShops, isLoading: shopLoading, switchShop } = useSalon();
     const navigate = useNavigate();
     const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
