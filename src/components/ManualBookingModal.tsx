@@ -24,7 +24,7 @@ interface ManualBookingModalProps {
     onSuccess?: () => void;
 }
 
-type CustomerMode = 'named' | 'guest';
+type CustomerMode = 'named' | 'guest' | 'registered';
 type Step = 'customer' | 'personnel' | 'service' | 'datetime' | 'confirm';
 
 function minutesToHHMM(minutes: number): string {
@@ -108,6 +108,14 @@ export const ManualBookingModal: React.FC<ManualBookingModalProps> = ({
     const [customerMode, setCustomerMode] = useState<CustomerMode>('named');
     const [guestName, setGuestName] = useState('');
     const [guestPhone, setGuestPhone] = useState('');
+    
+    // Registered Customer States
+    const [searchTerm, setSearchTerm] = useState('');
+    const [debouncedSearch, setDebouncedSearch] = useState('');
+    const [searchResults, setSearchResults] = useState<import('../types/shop').ShopCustomerDto[]>([]);
+    const [searching, setSearching] = useState(false);
+    const [selectedCustomer, setSelectedCustomer] = useState<import('../types/shop').ShopCustomerDto | null>(null);
+
     const [selectedServices, setSelectedServices] = useState<ShopServiceDto[]>([]);
     const [selectedEmployeeId, setSelectedEmployeeId] = useState(lockedEmployeeId || '');
     const [selectedDate, setSelectedDate] = useState(getTodayIstanbul());
@@ -128,6 +136,25 @@ export const ManualBookingModal: React.FC<ManualBookingModalProps> = ({
         selectionErrorTimerRef.current = setTimeout(() => setSelectionError(null), 5000);
         return () => { if (selectionErrorTimerRef.current) clearTimeout(selectionErrorTimerRef.current); };
     }, [selectionError]);
+
+    useEffect(() => {
+        const timer = setTimeout(() => setDebouncedSearch(searchTerm), 300);
+        return () => clearTimeout(timer);
+    }, [searchTerm]);
+
+    useEffect(() => {
+        if (customerMode !== 'registered' || debouncedSearch.trim().length < 2) {
+            setSearchResults([]);
+            return;
+        }
+        setSearching(true);
+        import('../api/shop.service').then(({ shopService }) => {
+            shopService.getShopCustomers(shopId, debouncedSearch)
+                .then(setSearchResults)
+                .catch(() => setSearchResults([]))
+                .finally(() => setSearching(false));
+        });
+    }, [debouncedSearch, customerMode, shopId]);
 
     useEffect(() => {
         const el = scrollRef.current;
@@ -167,6 +194,10 @@ export const ManualBookingModal: React.FC<ManualBookingModalProps> = ({
         setCustomerMode('named');
         setGuestName('');
         setGuestPhone('');
+        setSearchTerm('');
+        setDebouncedSearch('');
+        setSearchResults([]);
+        setSelectedCustomer(null);
         setSelectedEmployeeId(lockedEmployeeId || '');
         setSelectedServices([]);
         setSelectedDate(getTodayIstanbul());
@@ -318,8 +349,8 @@ export const ManualBookingModal: React.FC<ManualBookingModalProps> = ({
                 shopEmployeeId: selectedEmployeeId,
                 startTime: new Date(`${selectedDate}T${selectedTime}:00`).toISOString(),
                 note: note || undefined,
-                guestCustomerName: guestName.trim() ? guestName.trim() : undefined,
-                guestCustomerPhone: customerMode === 'named' && guestPhone.trim() ? guestPhone.trim() : undefined,
+                guestCustomerName: customerMode === 'guest' && !guestName.trim() ? undefined : guestName.trim(),
+                guestCustomerPhone: (customerMode === 'named' || customerMode === 'registered') && guestPhone.trim() ? guestPhone.trim() : undefined,
             });
             const emp = employees.find(e => e.id === selectedEmployeeId);
             setBookingSuccess({
@@ -356,6 +387,9 @@ export const ManualBookingModal: React.FC<ManualBookingModalProps> = ({
                     toast.error('Telefon numarası 05 ile başlamalı ve 11 hane olmalıdır.');
                     return;
                 }
+            } else if (customerMode === 'registered') {
+                if (!selectedCustomer) { toast.error('Lütfen bir müşteri seçin.'); return; }
+                // Set name and phone to match selected customer to be passed in handleSubmit
             }
         } else if (currentStep === 'personnel') {
             if (!selectedEmployeeId) { toast.error('Lütfen bir personel seçin.'); return; }
@@ -544,7 +578,7 @@ export const ManualBookingModal: React.FC<ManualBookingModalProps> = ({
                                     </p>
 
                                     {/* Seçim kartları */}
-                                    <div className="grid grid-cols-2 gap-3">
+                                    <div className="grid grid-cols-3 gap-3">
                                         <button
                                             onClick={() => setCustomerMode('named')}
                                             className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${customerMode === 'named'
@@ -580,7 +614,92 @@ export const ManualBookingModal: React.FC<ManualBookingModalProps> = ({
                                                 {customerMode === 'guest' && <Check className="w-3 h-3 text-white" />}
                                             </div>
                                         </button>
+
+                                        <button
+                                            onClick={() => setCustomerMode('registered')}
+                                            className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${customerMode === 'registered'
+                                                    ? 'border-primary-500 bg-primary-50'
+                                                    : 'border-gray-100 bg-white hover:border-gray-300'
+                                                }`}
+                                        >
+                                            <BookUser className={`w-7 h-7 ${customerMode === 'registered' ? 'text-primary-600' : 'text-gray-400'}`} />
+                                            <div className="text-center">
+                                                <p className={`font-bold text-sm ${customerMode === 'registered' ? 'text-primary-900' : 'text-gray-700'}`}>Kayıtlı</p>
+                                                <p className="text-[11px] text-gray-400 mt-0.5">Geçmiş müşteri</p>
+                                            </div>
+                                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${customerMode === 'registered' ? 'bg-primary-500 border-primary-500' : 'border-gray-300'
+                                                }`}>
+                                                {customerMode === 'registered' && <Check className="w-3 h-3 text-white" />}
+                                            </div>
+                                        </button>
                                     </div>
+
+                                    {/* Kayıtlı Müşteri Formu */}
+                                    {customerMode === 'registered' && (
+                                        <div className="space-y-3 pt-1 relative">
+                                            {selectedCustomer ? (
+                                                <div className="p-4 bg-primary-50 border-2 border-primary-500 rounded-xl flex items-center justify-between">
+                                                    <div>
+                                                        <p className="font-bold text-primary-900">{selectedCustomer.name}</p>
+                                                        {selectedCustomer.phone && <p className="text-sm text-primary-600 mt-0.5">{selectedCustomer.phone}</p>}
+                                                    </div>
+                                                    <button 
+                                                        onClick={() => {
+                                                            setSelectedCustomer(null);
+                                                            setGuestName('');
+                                                            setGuestPhone('');
+                                                        }}
+                                                        className="p-2 text-primary-600 hover:bg-primary-100 rounded-lg transition-colors"
+                                                    >
+                                                        <X className="w-5 h-5" />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div>
+                                                    <label className="block text-xs font-semibold text-gray-600 mb-1.5">
+                                                        Kayıtlı Müşteri Ara <span className="text-red-500">*</span>
+                                                    </label>
+                                                    <input
+                                                        type="text"
+                                                        value={searchTerm}
+                                                        onChange={e => setSearchTerm(e.target.value)}
+                                                        placeholder="İsim veya telefon yazın..."
+                                                        className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-300 focus:border-primary-400 text-sm"
+                                                    />
+                                                    
+                                                    {/* Arama Sonuçları */}
+                                                    {searchTerm.trim().length >= 2 && (
+                                                        <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-gray-100 shadow-xl rounded-xl max-h-60 overflow-y-auto z-10 p-2">
+                                                            {searching ? (
+                                                                <p className="text-center text-sm text-gray-400 py-4">Aranıyor...</p>
+                                                            ) : searchResults.length > 0 ? (
+                                                                searchResults.map((customer, idx) => (
+                                                                    <button
+                                                                        key={customer.userId || customer.phone || idx}
+                                                                        onClick={() => {
+                                                                            setSelectedCustomer(customer);
+                                                                            setGuestName(customer.name);
+                                                                            setGuestPhone(customer.phone || '');
+                                                                            setSearchTerm('');
+                                                                        }}
+                                                                        className="w-full flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors text-left"
+                                                                    >
+                                                                        <div>
+                                                                            <p className="font-semibold text-gray-900 text-sm">{customer.name}</p>
+                                                                            {customer.phone && <p className="text-xs text-gray-500 mt-0.5">{customer.phone}</p>}
+                                                                        </div>
+                                                                        <ChevronRight className="w-4 h-4 text-gray-300" />
+                                                                    </button>
+                                                                ))
+                                                            ) : (
+                                                                <p className="text-center text-sm text-gray-400 py-4">Sonuç bulunamadı.</p>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+                                        </div>
+                                    )}
 
                                     {/* İsimli müşteri formu */}
                                     {customerMode === 'named' && (

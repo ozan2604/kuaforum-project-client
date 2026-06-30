@@ -1,5 +1,5 @@
 import api from './axios';
-import type { Shop, CreateShopDto, ShopClosureDateDto, MediaHighlight, ShopType } from '../types/shop';
+import type { Shop, CreateShopDto, ShopClosureDateDto, MediaHighlight, ShopType, ShopCustomerDto } from '../types/shop';
 
 export const shopService = {
     create: async (data: CreateShopDto): Promise<void> => {
@@ -18,6 +18,11 @@ export const shopService = {
 
     getDashboardStats: async (shopId: string): Promise<any> => {
         const response = await api.get<any>(`/shop/${shopId}/dashboard-stats`);
+        return response.data;
+    },
+
+    getShopCustomers: async (shopId: string, search: string = ''): Promise<ShopCustomerDto[]> => {
+        const response = await api.get<ShopCustomerDto[]>(`/shop/${shopId}/customers?search=${encodeURIComponent(search)}`);
         return response.data;
     },
 

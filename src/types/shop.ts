@@ -157,3 +157,9 @@ export interface CreateShopDto {
     shopType?: ShopType;
     serviceAreas?: ServiceAreaDto[];
 }
+
+export interface ShopCustomerDto {
+    userId?: string;
+    name: string;
+    phone?: string;
+}
