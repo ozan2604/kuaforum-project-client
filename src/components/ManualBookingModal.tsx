@@ -24,7 +24,7 @@ interface ManualBookingModalProps {
     onSuccess?: () => void;
 }
 
-type CustomerMode = 'named' | 'guest' | 'registered';
+type CustomerMode = 'named' | 'registered';
 type Step = 'customer' | 'personnel' | 'service' | 'datetime' | 'confirm';
 
 function minutesToHHMM(minutes: number): string {
@@ -105,7 +105,7 @@ export const ManualBookingModal: React.FC<ManualBookingModalProps> = ({
         ];
 
     const [currentStep, setCurrentStep] = useState<Step>('customer');
-    const [customerMode, setCustomerMode] = useState<CustomerMode>('named');
+    const [customerMode, setCustomerMode] = useState<CustomerMode>('registered');
     const [guestName, setGuestName] = useState('');
     const [guestPhone, setGuestPhone] = useState('');
     
@@ -191,7 +191,7 @@ export const ManualBookingModal: React.FC<ManualBookingModalProps> = ({
     useEffect(() => {
         if (!isOpen || !shopId) return;
         setCurrentStep('customer');
-        setCustomerMode('named');
+        setCustomerMode('registered');
         setGuestName('');
         setGuestPhone('');
         setSearchTerm('');
@@ -349,8 +349,8 @@ export const ManualBookingModal: React.FC<ManualBookingModalProps> = ({
                 shopEmployeeId: selectedEmployeeId,
                 startTime: new Date(`${selectedDate}T${selectedTime}:00`).toISOString(),
                 note: note || undefined,
-                guestCustomerName: customerMode === 'guest' && !guestName.trim() ? undefined : guestName.trim(),
-                guestCustomerPhone: (customerMode === 'named' || customerMode === 'registered') && guestPhone.trim() ? guestPhone.trim() : undefined,
+                guestCustomerName: guestName.trim() ? guestName.trim() : undefined,
+                guestCustomerPhone: guestPhone.trim() ? guestPhone.trim() : undefined,
             });
             const emp = employees.find(e => e.id === selectedEmployeeId);
             setBookingSuccess({
@@ -578,43 +578,7 @@ export const ManualBookingModal: React.FC<ManualBookingModalProps> = ({
                                     </p>
 
                                     {/* Seçim kartları */}
-                                    <div className="grid grid-cols-3 gap-3">
-                                        <button
-                                            onClick={() => setCustomerMode('named')}
-                                            className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${customerMode === 'named'
-                                                    ? 'border-primary-500 bg-primary-50'
-                                                    : 'border-gray-100 bg-white hover:border-gray-300'
-                                                }`}
-                                        >
-                                            <UserCheck className={`w-7 h-7 ${customerMode === 'named' ? 'text-primary-600' : 'text-gray-400'}`} />
-                                            <div className="text-center">
-                                                <p className={`font-bold text-sm ${customerMode === 'named' ? 'text-primary-900' : 'text-gray-700'}`}>İsimli Müşteri</p>
-                                                <p className="text-[11px] text-gray-400 mt-0.5">Ad ve telefon gir</p>
-                                            </div>
-                                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${customerMode === 'named' ? 'bg-primary-500 border-primary-500' : 'border-gray-300'
-                                                }`}>
-                                                {customerMode === 'named' && <Check className="w-3 h-3 text-white" />}
-                                            </div>
-                                        </button>
-
-                                        <button
-                                            onClick={() => setCustomerMode('guest')}
-                                            className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${customerMode === 'guest'
-                                                    ? 'border-primary-500 bg-primary-50'
-                                                    : 'border-gray-100 bg-white hover:border-gray-300'
-                                                }`}
-                                        >
-                                            <Users className={`w-7 h-7 ${customerMode === 'guest' ? 'text-primary-600' : 'text-gray-400'}`} />
-                                            <div className="text-center">
-                                                <p className={`font-bold text-sm ${customerMode === 'guest' ? 'text-primary-900' : 'text-gray-700'}`}>Misafir</p>
-                                                <p className="text-[11px] text-gray-400 mt-0.5">İsim isteğe bağlı</p>
-                                            </div>
-                                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${customerMode === 'guest' ? 'bg-primary-500 border-primary-500' : 'border-gray-300'
-                                                }`}>
-                                                {customerMode === 'guest' && <Check className="w-3 h-3 text-white" />}
-                                            </div>
-                                        </button>
-
+                                    <div className="grid grid-cols-2 gap-3">
                                         <button
                                             onClick={() => setCustomerMode('registered')}
                                             className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${customerMode === 'registered'
@@ -630,6 +594,24 @@ export const ManualBookingModal: React.FC<ManualBookingModalProps> = ({
                                             <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${customerMode === 'registered' ? 'bg-primary-500 border-primary-500' : 'border-gray-300'
                                                 }`}>
                                                 {customerMode === 'registered' && <Check className="w-3 h-3 text-white" />}
+                                            </div>
+                                        </button>
+
+                                        <button
+                                            onClick={() => setCustomerMode('named')}
+                                            className={`flex flex-col items-center gap-2 p-4 rounded-2xl border-2 transition-all ${customerMode === 'named'
+                                                    ? 'border-primary-500 bg-primary-50'
+                                                    : 'border-gray-100 bg-white hover:border-gray-300'
+                                                }`}
+                                        >
+                                            <UserCheck className={`w-7 h-7 ${customerMode === 'named' ? 'text-primary-600' : 'text-gray-400'}`} />
+                                            <div className="text-center">
+                                                <p className={`font-bold text-sm ${customerMode === 'named' ? 'text-primary-900' : 'text-gray-700'}`}>İsimli Müşteri</p>
+                                                <p className="text-[11px] text-gray-400 mt-0.5">Ad ve telefon gir</p>
+                                            </div>
+                                            <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-all ${customerMode === 'named' ? 'bg-primary-500 border-primary-500' : 'border-gray-300'
+                                                }`}>
+                                                {customerMode === 'named' && <Check className="w-3 h-3 text-white" />}
                                             </div>
                                         </button>
                                     </div>
@@ -743,7 +725,7 @@ export const ManualBookingModal: React.FC<ManualBookingModalProps> = ({
                                             </div>
                                             <div>
                                                 <label className="block text-xs font-semibold text-gray-600 mb-1.5">
-                                                    Telefon <span className="text-gray-400 font-normal">(İsteğe Bağlı)</span>
+                                                    Telefon <span className="text-gray-400 font-normal ml-1">(Randevu sms'i gitmesini istiyorsanız telefon no giriniz)</span>
                                                 </label>
                                                 <input
                                                     type="tel"
@@ -757,42 +739,7 @@ export const ManualBookingModal: React.FC<ManualBookingModalProps> = ({
                                         </div>
                                     )}
 
-                                    {customerMode === 'guest' && (
-                                        <div className="space-y-3 pt-1">
-                                            {isContactPickerSupported && (
-                                                <button
-                                                    type="button"
-                                                    onClick={handlePickContact}
-                                                    className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-primary-300 text-primary-600 bg-primary-50 hover:bg-primary-100 rounded-xl text-sm font-semibold transition-colors"
-                                                >
-                                                    <BookUser className="w-4 h-4" />
-                                                    Rehberden Seç
-                                                </button>
-                                            )}
-                                            <div>
-                                                <label className="block text-xs font-semibold text-gray-600 mb-1.5">
-                                                    Ad Soyad <span className="text-gray-400 font-normal">(İsteğe Bağlı)</span>
-                                                </label>
-                                                <input
-                                                    type="text"
-                                                    value={guestName}
-                                                    onChange={e => setGuestName(e.target.value)}
-                                                    placeholder="Girilmezse 'Misafir' olarak kaydedilir"
-                                                    className="w-full px-3 py-2.5 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-300 focus:border-primary-400 text-sm"
-                                                />
-                                            </div>
-                                            <div className="p-3.5 bg-amber-50 border border-amber-200 rounded-xl text-sm text-amber-700 flex items-start gap-2">
-                                                <AlertCircle className="w-4 h-4 mt-0.5 shrink-0" />
-                                                <span>
-                                                    Telefon bilgisi kaydedilmeyecek.{' '}
-                                                    {guestName.trim()
-                                                        ? <><strong>"{guestName.trim()}"</strong> adıyla kaydedilecek.</>
-                                                        : <>İsim girilmezse <strong>"Misafir"</strong> olarak kaydedilecek.</>
-                                                    }
-                                                </span>
-                                            </div>
-                                        </div>
-                                    )}
+
                                 </div>
                             )}
 
