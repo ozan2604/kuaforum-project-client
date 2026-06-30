@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { authService } from '../api/auth.service';
 import { getApiError } from '../utils/storage';
-import { useLocation } from 'react-router-dom';
 
-type Step = 'phone' | 'otp';
+type Step = 'phone' | 'register_info' | 'otp';
 
 export const LoginPage: React.FC = () => {
     const { completeAuth } = useAuth();
@@ -16,6 +15,14 @@ export const LoginPage: React.FC = () => {
     const [step, setStep] = useState<Step>('phone');
     const [phone, setPhone] = useState('');
     const [otp, setOtp] = useState('');
+    
+    // Register Info
+    const [firstName, setFirstName] = useState('');
+    const [lastName, setLastName] = useState('');
+    const [kvkkAccepted, setKvkkAccepted] = useState(false);
+    
+    const [isLoginMode, setIsLoginMode] = useState(true);
+
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [otpExpiry, setOtpExpiry] = useState(0);
@@ -34,9 +41,41 @@ export const LoginPage: React.FC = () => {
         try {
             const res = await authService.sendLoginOtp({ phoneNumber: phone });
             setOtpExpiry(res.expiresInSeconds);
+            setIsLoginMode(true);
+            setStep('otp');
+        } catch (err: any) {
+            // Eğer "hesap bulunamadı" hatası gelirse, register_info adımına geç
+            if (err.response?.status === 401 || getApiError(err, '').toLowerCase().includes('bulunamadı')) {
+                setIsLoginMode(false);
+                setStep('register_info');
+            } else {
+                setError(getApiError(err, 'Bu telefon numarasına kayıtlı hesap bulunamadı.'));
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleRegisterInfoSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setError('');
+
+        if (!firstName.trim()) { setError('Ad alanı zorunludur.'); return; }
+        if (!lastName.trim()) { setError('Soyad alanı zorunludur.'); return; }
+        if (!kvkkAccepted) { setError('Devam etmek için KVKK Aydınlatma Metnini onaylamalısınız.'); return; }
+
+        setLoading(true);
+        try {
+            const res = await authService.sendRegisterOtp({
+                firstName: firstName.trim(),
+                lastName: lastName.trim(),
+                phoneNumber: phone
+            });
+            setOtpExpiry(res.expiresInSeconds);
+            setIsLoginMode(false);
             setStep('otp');
         } catch (err) {
-            setError(getApiError(err, 'Bu telefon numarasına kayıtlı hesap bulunamadı.'));
+            setError(getApiError(err, 'Kod gönderilemedi. Lütfen bilgilerinizi kontrol edin.'));
         } finally {
             setLoading(false);
         }
@@ -53,7 +92,17 @@ export const LoginPage: React.FC = () => {
 
         setLoading(true);
         try {
-            const response = await authService.verifyLoginOtp({ phoneNumber: phone, otpCode: otp });
+            let response;
+            if (isLoginMode) {
+                response = await authService.verifyLoginOtp({ phoneNumber: phone, otpCode: otp });
+            } else {
+                response = await authService.verifyRegisterOtp({
+                    firstName: firstName.trim(),
+                    lastName: lastName.trim(),
+                    phoneNumber: phone,
+                    otpCode: otp
+                });
+            }
             const role = completeAuth(response);
             const roles = Array.isArray(role) ? role : [role];
             if (roles.includes('Admin')) navigate('/admin');
@@ -72,7 +121,16 @@ export const LoginPage: React.FC = () => {
         setOtp('');
         setLoading(true);
         try {
-            const res = await authService.sendLoginOtp({ phoneNumber: phone });
+            let res;
+            if (isLoginMode) {
+                res = await authService.sendLoginOtp({ phoneNumber: phone });
+            } else {
+                res = await authService.sendRegisterOtp({
+                    firstName: firstName.trim(),
+                    lastName: lastName.trim(),
+                    phoneNumber: phone
+                });
+            }
             setOtpExpiry(res.expiresInSeconds);
         } catch (err) {
             setError(getApiError(err, 'Kod gönderilemedi.'));
@@ -92,12 +150,14 @@ export const LoginPage: React.FC = () => {
                         </svg>
                     </div>
                     <h1 className="text-2xl font-bold text-gray-900">
-                        {step === 'phone' ? 'Hesabınıza Giriş Yapın' : 'Doğrulama Kodu'}
+                        {step === 'phone' ? 'Giriş / Kayıt' : step === 'register_info' ? 'Kayıt Ol' : 'Doğrulama Kodu'}
                     </h1>
                     <p className="text-sm text-gray-500 mt-1">
                         {step === 'phone'
-                            ? 'Telefon numaranıza doğrulama kodu göndereceğiz'
-                            : `${phone} numarasına gönderilen kodu girin`}
+                            ? 'Telefon numaranızı girin'
+                            : step === 'register_info'
+                                ? 'Kayıt olmak için bilgilerinizi tamamlayın'
+                                : `${phone} numarasına gönderilen kodu girin`}
                     </p>
                 </div>
 
@@ -119,7 +179,7 @@ export const LoginPage: React.FC = () => {
                         </div>
                     )}
 
-                    {step === 'phone' ? (
+                    {step === 'phone' && (
                         <form onSubmit={handleSendOtp} className="space-y-5">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1.5">Telefon Numarası</label>
@@ -151,12 +211,70 @@ export const LoginPage: React.FC = () => {
                                             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                                             <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                                         </svg>
-                                        Kod Gönderiliyor…
+                                        Doğrulanıyor…
                                     </>
-                                ) : 'Doğrulama Kodu Gönder'}
+                                ) : 'Devam Et'}
                             </button>
                         </form>
-                    ) : (
+                    )}
+
+                    {step === 'register_info' && (
+                        <form onSubmit={handleRegisterInfoSubmit} className="space-y-5">
+                            <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-700">
+                                Bu telefon numarası sistemde kayıtlı değil. Lütfen bilgilerinizi tamamlayın.
+                            </div>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Ad</label>
+                                    <input
+                                        type="text"
+                                        value={firstName}
+                                        onChange={e => setFirstName(e.target.value)}
+                                        placeholder="Adınız"
+                                        required
+                                        className="w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Soyad</label>
+                                    <input
+                                        type="text"
+                                        value={lastName}
+                                        onChange={e => setLastName(e.target.value)}
+                                        placeholder="Soyadınız"
+                                        required
+                                        className="w-full px-4 py-3 border border-gray-200 rounded-xl text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all"
+                                    />
+                                </div>
+                            </div>
+
+                            <label className="flex items-start gap-3 cursor-pointer p-3 border border-gray-100 rounded-xl hover:bg-gray-50 transition-colors">
+                                <input
+                                    type="checkbox"
+                                    checked={kvkkAccepted}
+                                    onChange={e => setKvkkAccepted(e.target.checked)}
+                                    className="mt-1 w-4 h-4 text-primary-600 rounded border-gray-300 focus:ring-primary-500"
+                                />
+                                <span className="text-sm text-gray-600 leading-snug">
+                                    <a href="#" className="text-primary-600 hover:underline" onClick={e => { e.preventDefault(); e.stopPropagation(); }}>
+                                        KVKK Aydınlatma Metnini
+                                    </a> okudum ve kabul ediyorum.
+                                </span>
+                            </label>
+
+                            <button type="submit" disabled={loading}
+                                className="w-full bg-primary-600 hover:bg-primary-700 disabled:opacity-60 text-white font-semibold py-3 rounded-xl transition-all duration-200 flex items-center justify-center gap-2 shadow-sm hover:shadow-md">
+                                {loading ? 'İşleniyor...' : 'Kayıt Ol ve Kod Gönder'}
+                            </button>
+
+                            <button type="button" onClick={() => { setStep('phone'); setError(''); }}
+                                className="w-full text-center text-sm text-gray-500 hover:text-gray-700 mt-2">
+                                ← Geri dön
+                            </button>
+                        </form>
+                    )}
+
+                    {step === 'otp' && (
                         <form onSubmit={handleVerifyOtp} className="space-y-5">
                             <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-sm text-blue-700">
                                 {phone} numarasına {otpExpiry} saniyelik doğrulama kodu gönderildi.
@@ -186,7 +304,7 @@ export const LoginPage: React.FC = () => {
                                         </svg>
                                         Doğrulanıyor…
                                     </>
-                                ) : 'Giriş Yap'}
+                                ) : 'Doğrula'}
                             </button>
 
                             <div className="flex items-center justify-between text-sm">
@@ -202,13 +320,6 @@ export const LoginPage: React.FC = () => {
                         </form>
                     )}
                 </div>
-
-                <p className="text-center text-sm text-gray-600 mt-6">
-                    Hesabınız yok mu?{' '}
-                    <Link to="/register" className="font-semibold text-primary-600 hover:text-primary-700">
-                        Ücretsiz Kayıt Olun
-                    </Link>
-                </p>
             </div>
         </div>
     );
