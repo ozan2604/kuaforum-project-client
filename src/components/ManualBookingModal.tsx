@@ -687,8 +687,23 @@ export const ManualBookingModal: React.FC<ManualBookingModalProps> = ({
                                                                         <div>
                                                                             <p className="font-semibold text-gray-900 text-sm">{customer.name}</p>
                                                                             {customer.phone && <p className="text-xs text-gray-500 mt-0.5">{customer.phone}</p>}
+                                                                            {(customer.totalAppointments || customer.lastAppointmentDate) && (
+                                                                                <div className="flex items-center gap-2 mt-1">
+                                                                                    {customer.totalAppointments && (
+                                                                                        <span className="inline-flex items-center gap-1 text-[10px] bg-primary-50 text-primary-600 px-1.5 py-0.5 rounded font-medium">
+                                                                                            <Calendar className="w-3 h-3" />
+                                                                                            {customer.totalAppointments} Randevu
+                                                                                        </span>
+                                                                                    )}
+                                                                                    {customer.lastAppointmentDate && (
+                                                                                        <span className="text-[10px] text-gray-400 font-medium">
+                                                                                            Son: {format(new Date(customer.lastAppointmentDate), 'd MMM yyyy', { locale: tr })}
+                                                                                        </span>
+                                                                                    )}
+                                                                                </div>
+                                                                            )}
                                                                         </div>
-                                                                        <ChevronRight className="w-4 h-4 text-gray-300" />
+                                                                        <ChevronRight className="w-4 h-4 text-gray-300 shrink-0" />
                                                                     </button>
                                                                 ))
                                                             ) : (

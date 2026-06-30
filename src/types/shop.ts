@@ -162,4 +162,6 @@ export interface ShopCustomerDto {
     userId?: string;
     name: string;
     phone?: string;
+    totalAppointments?: number;
+    lastAppointmentDate?: string;
 }
