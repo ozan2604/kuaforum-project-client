@@ -33,6 +33,7 @@ import { ShopListPage } from './pages/admin/ShopListPage';
 import { UserListPage } from './pages/admin/UserListPage';
 import { SmsTestPage } from './pages/admin/SmsTestPage';
 import { AdminCreateSalonPage } from './pages/admin/AdminCreateSalonPage';
+import AdminPasswordsPage from './pages/admin/AdminPasswordsPage';
 
 import { SalonDashboard } from './pages/salon/SalonDashboard';
 import { SalonAppointmentsPage } from './pages/salon/SalonAppointmentsPage';
@@ -115,6 +116,7 @@ function App() {
             <Route path="/admin/users" element={<UserListPage />} />
             <Route path="/admin/sms-test" element={<SmsTestPage />} />
             <Route path="/admin/shops/create" element={<AdminCreateSalonPage />} />
+            <Route path="/admin/passwords" element={<AdminPasswordsPage />} />
           </Route>
           <Route path="/admin/shops/:shopId/panel" element={<AdminSalonLayout />}>
             <Route index element={<SalonDashboard />} />
