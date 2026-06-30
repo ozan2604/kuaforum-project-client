@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { X, User, Clock, Check, ChevronRight, ChevronLeft, Scissors, Star, Plus, Minus, AlertCircle, Calendar, UserCheck, Users, BookUser } from 'lucide-react';
+import { X, User, Clock, Check, ChevronRight, ChevronLeft, Scissors, Star, Plus, Minus, AlertCircle, Calendar, UserCheck, BookUser } from 'lucide-react';
 import { Button } from './Button';
 import { employeeService } from '../api/employee.service';
 import { appointmentService } from '../api/appointment.service';
@@ -1010,12 +1010,11 @@ export const ManualBookingModal: React.FC<ManualBookingModalProps> = ({
                                     <p className="text-sm font-semibold text-gray-500 uppercase tracking-wide text-center">Randevu Özeti</p>
 
                                     {/* Müşteri özeti */}
-                                    <div className={`flex items-center gap-3 p-3.5 rounded-2xl border ${customerMode === 'named' ? 'bg-green-50 border-green-100' : 'bg-gray-50 border-gray-100'}`}>
-                                        {customerMode === 'named' ? <UserCheck className="w-5 h-5 text-green-600 shrink-0" /> : <Users className="w-5 h-5 text-gray-400 shrink-0" />}
+                                    <div className={`flex items-center gap-3 p-3.5 rounded-2xl border bg-green-50 border-green-100`}>
+                                        <UserCheck className="w-5 h-5 text-green-600 shrink-0" />
                                         <div>
-                                            <p className="font-bold text-gray-900 text-sm">{guestName.trim() || 'Misafir'}</p>
-                                            {customerMode === 'named' && guestPhone && <p className="text-xs text-gray-500 mt-0.5">{guestPhone}</p>}
-                                            {customerMode === 'guest' && <p className="text-xs text-gray-400 mt-0.5">Telefon kaydedilmedi</p>}
+                                            <p className="font-bold text-gray-900 text-sm">{guestName.trim() || 'İsimsiz Müşteri'}</p>
+                                            {guestPhone && <p className="text-xs text-gray-500 mt-0.5">{guestPhone}</p>}
                                         </div>
                                     </div>
 
