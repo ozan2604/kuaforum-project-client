@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, Store, Users, LogOut, Scissors, Menu, X, MessageSquare, Home, AlertTriangle, Plus, Key } from 'lucide-react';
+import { LayoutDashboard, Store, Users, LogOut, Scissors, Menu, X, MessageSquare, Home, AlertTriangle, Plus, Key, Lock } from 'lucide-react';
+import { adminPasswordService } from '../api/adminPassword.service';
 
 const LogoutConfirmModal: React.FC<{ onConfirm: () => void; onCancel: () => void }> = ({ onConfirm, onCancel }) =>
     createPortal(
@@ -42,6 +43,60 @@ export const AdminLayout: React.FC = () => {
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
     const [showHomeModal, setShowHomeModal] = useState(false);
 
+    // Password 1 Logic
+    const [password1Set, setPassword1Set] = useState<boolean>(false);
+    const [password1Verified, setPassword1Verified] = useState<boolean>(() => {
+        return sessionStorage.getItem('admin_sifre_1_verified') === 'true';
+    });
+    const [isLoadingPassword, setIsLoadingPassword] = useState(true);
+    const [passwordInput, setPasswordInput] = useState('');
+    const [passwordError, setPasswordError] = useState('');
+    const [isVerifying, setIsVerifying] = useState(false);
+
+    useEffect(() => {
+        const checkPasswordStatus = async () => {
+            try {
+                const statuses = await adminPasswordService.getAllStatuses();
+                const pass1 = statuses.find(s => s.key === 'Şifre 1');
+                if (pass1 && pass1.isSet) {
+                    setPassword1Set(true);
+                } else {
+                    setPassword1Set(false);
+                }
+            } catch (error) {
+                console.error("Şifre 1 durumu alınamadı:", error);
+            } finally {
+                setIsLoadingPassword(false);
+            }
+        };
+
+        if (!password1Verified) {
+            checkPasswordStatus();
+        } else {
+            setIsLoadingPassword(false);
+        }
+    }, [password1Verified]);
+
+    const handleVerifyPassword = async () => {
+        if (!passwordInput.trim()) {
+            setPasswordError('Lütfen şifreyi girin');
+            return;
+        }
+
+        setIsVerifying(true);
+        setPasswordError('');
+
+        try {
+            await adminPasswordService.verifyPassword({ key: 'Şifre 1', password: passwordInput });
+            sessionStorage.setItem('admin_sifre_1_verified', 'true');
+            setPassword1Verified(true);
+        } catch (error) {
+            setPasswordError('Hatalı şifre');
+        } finally {
+            setIsVerifying(false);
+        }
+    };
+
     const handleLogoutConfirm = () => {
         logout();
         navigate('/login');
@@ -56,6 +111,52 @@ export const AdminLayout: React.FC = () => {
         { path: '/admin/sms-test',     label: 'SMS Test',     icon: MessageSquare },
         { path: '/admin/passwords',    label: 'Şifreler',     icon: Key },
     ];
+
+    if (isLoadingPassword) {
+        return <div className="flex h-screen items-center justify-center bg-gray-50">Yükleniyor...</div>;
+    }
+
+    if (password1Set && !password1Verified) {
+        return (
+            <div className="flex h-screen items-center justify-center bg-gray-50 p-4">
+                <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-8 text-center border border-gray-100">
+                    <div className="w-16 h-16 rounded-full bg-primary-50 flex items-center justify-center mx-auto mb-6">
+                        <Lock className="h-8 w-8 text-primary-600" />
+                    </div>
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Yönetici Doğrulaması</h2>
+                    <p className="text-gray-500 text-sm mb-8">
+                        Admin paneline erişmek için lütfen "Şifre 1" bilginizi girin.
+                    </p>
+
+                    <div className="space-y-4">
+                        <div className="relative">
+                            <input
+                                type="password"
+                                value={passwordInput}
+                                onChange={(e) => setPasswordInput(e.target.value)}
+                                onKeyDown={(e) => e.key === 'Enter' && handleVerifyPassword()}
+                                placeholder="Şifrenizi girin"
+                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all text-center text-lg tracking-widest font-medium"
+                                autoFocus
+                            />
+                        </div>
+                        
+                        {passwordError && (
+                            <p className="text-red-500 text-sm font-medium">{passwordError}</p>
+                        )}
+
+                        <button
+                            onClick={handleVerifyPassword}
+                            disabled={isVerifying || !passwordInput.trim()}
+                            className="w-full py-3 px-4 bg-primary-600 hover:bg-primary-700 text-white font-semibold rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            {isVerifying ? 'Doğrulanıyor...' : 'Giriş Yap'}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="flex h-screen bg-gray-50">

@@ -5,7 +5,8 @@ import type { Shop } from '../../types/shop';
 import { ShopCategoryLabels, TargetGenderLabels, type ShopCategory } from '../../types/shop';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { MapPin, Phone, Mail, User, Trash2, Search, Store, ChevronLeft, ChevronRight, Tags, Users, FileX, Calendar, Loader2, Eye } from 'lucide-react';
+import { MapPin, Phone, Mail, User, Trash2, Search, Store, ChevronLeft, ChevronRight, Tags, Users, FileX, Calendar, Loader2, Eye, Lock } from 'lucide-react';
+import { adminPasswordService } from '../../api/adminPassword.service';
 
 export const ShopListPage: React.FC = () => {
     const [shops, setShops] = useState<Shop[]>([]);
@@ -17,6 +18,27 @@ export const ShopListPage: React.FC = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [debouncedSearchTerm, setDebouncedSearchTerm] = useState('');
     const pageSize = 12;
+
+    const [password2Set, setPassword2Set] = useState<boolean>(false);
+    const [showPasswordModal, setShowPasswordModal] = useState(false);
+    const [passwordInput, setPasswordInput] = useState('');
+    const [passwordError, setPasswordError] = useState('');
+    const [isVerifying, setIsVerifying] = useState(false);
+
+    useEffect(() => {
+        const checkPasswordStatus = async () => {
+            try {
+                const statuses = await adminPasswordService.getAllStatuses();
+                const pass2 = statuses.find(s => s.key === 'Şifre 2');
+                if (pass2 && pass2.isSet) {
+                    setPassword2Set(true);
+                }
+            } catch (error) {
+                console.error("Şifre durumu alınamadı:", error);
+            }
+        };
+        checkPasswordStatus();
+    }, []);
 
     useEffect(() => {
         const handler = setTimeout(() => setDebouncedSearchTerm(searchTerm), 400);
@@ -39,6 +61,34 @@ export const ShopListPage: React.FC = () => {
     };
 
     useEffect(() => { fetchShops(); }, [page, debouncedSearchTerm]);
+
+    const handleDeleteClick = (id: string, name: string) => {
+        if (password2Set) {
+            setShopToDelete({ id, name });
+            setShowPasswordModal(true);
+            setPasswordInput('');
+            setPasswordError('');
+        } else {
+            setShopToDelete({ id, name });
+        }
+    };
+
+    const handleVerifyPassword = async () => {
+        if (!passwordInput.trim()) {
+            setPasswordError('Lütfen şifreyi girin');
+            return;
+        }
+        setIsVerifying(true);
+        setPasswordError('');
+        try {
+            await adminPasswordService.verifyPassword({ key: 'Şifre 2', password: passwordInput });
+            setShowPasswordModal(false);
+        } catch (error) {
+            setPasswordError('Hatalı şifre');
+        } finally {
+            setIsVerifying(false);
+        }
+    };
 
     const executeDelete = async (id: string) => {
         setDeleteLoading(true);
@@ -181,7 +231,7 @@ export const ShopListPage: React.FC = () => {
                                                     <Eye className="w-5 h-5" />
                                                 </Link>
                                                 <button
-                                                    onClick={() => setShopToDelete({ id: shop.id, name: shop.name })}
+                                                    onClick={() => handleDeleteClick(shop.id, shop.name)}
                                                     className="text-red-600 hover:text-red-900 p-2 rounded-full hover:bg-red-50 transition-colors"
                                                     title="Salonu Sil"
                                                 >
@@ -226,33 +276,75 @@ export const ShopListPage: React.FC = () => {
                 </div>
             )}
 
-            {/* Silme Onay Modalı */}
+            {/* Silme Onay Modalı veya Şifre Modalı */}
             {shopToDelete && typeof document !== 'undefined' && createPortal(
                 <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50">
-                    <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
-                        <h3 className="text-xl font-bold text-gray-900 mb-3">Salonu Sil</h3>
-                        <p className="text-gray-600 mb-6">
-                            <strong>"{shopToDelete.name}"</strong> isimli salonu silmek istediğinize emin misiniz?
-                            Bu işlem geri alınamaz; salonla ilişkili tüm veriler (hizmetler, çalışanlar, randevular) kalıcı olarak silinecektir.
-                        </p>
-                        <div className="flex justify-end gap-3">
-                            <button
-                                onClick={() => setShopToDelete(null)}
-                                disabled={deleteLoading}
-                                className="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
-                            >
-                                İptal
-                            </button>
-                            <button
-                                onClick={() => executeDelete(shopToDelete.id)}
-                                disabled={deleteLoading}
-                                className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
-                            >
-                                {deleteLoading && <Loader2 className="w-4 h-4 animate-spin" />}
-                                Evet, Sil
-                            </button>
+                    {showPasswordModal ? (
+                        <div className="bg-white rounded-xl shadow-2xl max-w-sm w-full p-6 text-center">
+                            <div className="w-12 h-12 rounded-full bg-red-50 flex items-center justify-center mx-auto mb-4">
+                                <Lock className="h-6 w-6 text-red-600" />
+                            </div>
+                            <h3 className="text-xl font-bold text-gray-900 mb-2">Güvenlik Doğrulaması</h3>
+                            <p className="text-gray-500 text-sm mb-6">
+                                Silme işlemi için lütfen <strong>"Şifre 2"</strong> bilginizi girin.
+                            </p>
+                            <div className="space-y-4">
+                                <input
+                                    type="password"
+                                    value={passwordInput}
+                                    onChange={(e) => setPasswordInput(e.target.value)}
+                                    onKeyDown={(e) => e.key === 'Enter' && handleVerifyPassword()}
+                                    placeholder="Şifrenizi girin"
+                                    className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-red-500 transition-all text-center text-lg tracking-widest font-medium"
+                                    autoFocus
+                                />
+                                {passwordError && (
+                                    <p className="text-red-500 text-sm font-medium">{passwordError}</p>
+                                )}
+                                <div className="flex justify-end gap-3 mt-4">
+                                    <button
+                                        onClick={() => { setShowPasswordModal(false); setShopToDelete(null); }}
+                                        disabled={isVerifying}
+                                        className="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                                    >
+                                        İptal
+                                    </button>
+                                    <button
+                                        onClick={handleVerifyPassword}
+                                        disabled={isVerifying || !passwordInput.trim()}
+                                        className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                                    >
+                                        {isVerifying ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Doğrula'}
+                                    </button>
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    ) : (
+                        <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+                            <h3 className="text-xl font-bold text-gray-900 mb-3">Salonu Sil</h3>
+                            <p className="text-gray-600 mb-6">
+                                <strong>"{shopToDelete.name}"</strong> isimli salonu silmek istediğinize emin misiniz?
+                                Bu işlem geri alınamaz; salonla ilişkili tüm veriler (hizmetler, çalışanlar, randevular) kalıcı olarak silinecektir.
+                            </p>
+                            <div className="flex justify-end gap-3">
+                                <button
+                                    onClick={() => setShopToDelete(null)}
+                                    disabled={deleteLoading}
+                                    className="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                                >
+                                    İptal
+                                </button>
+                                <button
+                                    onClick={() => executeDelete(shopToDelete.id)}
+                                    disabled={deleteLoading}
+                                    className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                                >
+                                    {deleteLoading && <Loader2 className="w-4 h-4 animate-spin" />}
+                                    Evet, Sil
+                                </button>
+                            </div>
+                        </div>
+                    )}
                 </div>,
                 document.body
             )}

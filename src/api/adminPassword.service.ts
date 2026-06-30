@@ -22,6 +22,11 @@ export const adminPasswordService = {
         return response.data;
     },
 
+    verifyPassword: async (data: SetAdminPasswordRequest): Promise<any> => {
+        const response = await api.post('/AdminPasswords/verify', data);
+        return response.data;
+    },
+
     deletePassword: async (key: string): Promise<any> => {
         const response = await api.delete(`/AdminPasswords/${key}`);
         return response.data;
