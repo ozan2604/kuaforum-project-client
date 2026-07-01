@@ -446,11 +446,19 @@ export const ShopDetailsPage: React.FC = () => {
 
     // --- Çalışma Saatleri Mantığı ---
     const getTodayStatus = () => {
+        if (!shop) return null;
+
+        const todayNum = new Date().getDay();
+        
+        // Haftalık tatil kontrolü
+        if (shop.weeklyOffDays?.includes(todayNum)) {
+            return { open: '', close: '', isOpen: false, isHoliday: true };
+        }
+
         let open = shop.openTime;
         let close = shop.closeTime;
 
         if (!open && shop.weeklySchedule) {
-            const todayNum = new Date().getDay();
             const todaySchedule = shop.weeklySchedule.find(s => s.dayOfWeek === todayNum);
             if (todaySchedule && !todaySchedule.isClosed) {
                 open = todaySchedule.openingTime || undefined;
@@ -458,7 +466,7 @@ export const ShopDetailsPage: React.FC = () => {
             }
         }
 
-        if (!open || !close) return null;
+        if (!open || !close) return { open: '', close: '', isOpen: false, isHoliday: false };
 
         const now = new Date();
         const [oh, om] = open.split(':').map(Number);
@@ -466,7 +474,7 @@ export const ShopDetailsPage: React.FC = () => {
         const cur = now.getHours() * 60 + now.getMinutes();
         const isOpen = cur >= (oh * 60 + om) && cur < (ch * 60 + cm);
 
-        return { open, close, isOpen };
+        return { open, close, isOpen, isHoliday: false };
     };
 
     const status = getTodayStatus();
@@ -530,8 +538,8 @@ export const ShopDetailsPage: React.FC = () => {
                 {(() => {
                     const promoVideoUrl = shop.videos?.find(v => v.displayOrder === 0)?.url;
                     return (
-                        <div className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl group aspect-video">
-                            <div className="absolute inset-0 bg-black">
+                        <div className="relative w-full rounded-2xl sm:rounded-3xl shadow-2xl group aspect-video">
+                            <div className="absolute inset-0 bg-black rounded-2xl sm:rounded-3xl overflow-hidden">
                                 {showPromoVideo && promoVideoUrl ? (
                                     <video
                                         key={promoVideoUrl}
@@ -607,14 +615,33 @@ export const ShopDetailsPage: React.FC = () => {
                                             {isMenuOpen && (
                                                 <>
                                                     <div className="fixed inset-0 z-40" onClick={() => setIsMenuOpen(false)} />
-                                                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-2xl border border-gray-100 py-1 z-50 animate-in fade-in slide-in-from-top-2">
+                                                    <div className="absolute right-0 mt-2 w-48 sm:w-56 bg-white rounded-xl shadow-2xl border border-gray-100 py-1 z-50 animate-in fade-in slide-in-from-top-2">
+                                                        {status && (
+                                                            <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                                                                <div className="flex items-center gap-2">
+                                                                    <Clock className="h-4 w-4 text-gray-400" />
+                                                                    {status.isHoliday ? (
+                                                                        <span className="text-sm font-bold text-red-500">Kapalı (Tatil)</span>
+                                                                    ) : (
+                                                                        <span className={`text-sm font-bold ${status.isOpen ? 'text-green-600' : 'text-red-500'}`}>
+                                                                            {status.isOpen ? 'Açık' : 'Kapalı'}
+                                                                        </span>
+                                                                    )}
+                                                                </div>
+                                                                {!status.isHoliday && status.open && status.close && (
+                                                                    <span className="text-xs font-medium text-gray-500 bg-gray-50 px-2 py-0.5 rounded-md">
+                                                                        {status.open}-{status.close}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        )}
                                                         {shop.latitude && shop.longitude && (
                                                             <button
                                                                 onClick={() => {
                                                                     setIsMenuOpen(false);
                                                                     navigate(`/?mapLat=${shop.latitude}&mapLng=${shop.longitude}&mapShopId=${shop.id}`);
                                                                 }}
-                                                                className="flex items-center w-full gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 transition-colors"
+                                                                className="flex items-center w-full gap-2.5 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-primary-600 transition-colors"
                                                             >
                                                                 <Map className="h-4 w-4" />
                                                                 Haritada Gör
@@ -625,7 +652,7 @@ export const ShopDetailsPage: React.FC = () => {
                                                                 setIsMenuOpen(false);
                                                                 handleShare();
                                                             }}
-                                                            className="flex items-center w-full gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 transition-colors"
+                                                            className="flex items-center w-full gap-2.5 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-primary-600 transition-colors"
                                                         >
                                                             <Share2 className="h-4 w-4" />
                                                             Paylaşma Linki
@@ -636,7 +663,7 @@ export const ShopDetailsPage: React.FC = () => {
                                                                     setIsMenuOpen(false);
                                                                     setShowPromoVideo(true);
                                                                 }}
-                                                                className="flex items-center w-full gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 transition-colors"
+                                                                className="flex items-center w-full gap-2.5 px-4 py-2.5 text-sm font-medium text-gray-700 hover:bg-gray-50 hover:text-primary-600 transition-colors"
                                                             >
                                                                 <Play className="h-4 w-4" />
                                                                 Tanıtım Videosu
@@ -655,24 +682,14 @@ export const ShopDetailsPage: React.FC = () => {
                                 <div className="absolute bottom-0 left-0 right-0 p-3 sm:p-6 z-20">
                                     <div className="flex items-end justify-between gap-3">
 
-                                        {/* Sol kolon: konum + puan + açık/kapalı */}
+                                        {/* Sol kolon: konum */}
                                         <div className="flex flex-col gap-2 min-w-0">
                                             <div className="flex flex-wrap items-center gap-1.5">
-                                                <span className="flex items-center gap-1 text-white/95 text-[10px] sm:text-xs font-medium bg-black/40 px-2 sm:px-2.5 py-1 rounded-full backdrop-blur-md border border-white/10 whitespace-nowrap">
-                                                    <MapPin className="h-3 w-3 text-rose-300 shrink-0" />
+                                                <span className="flex items-center gap-1 text-white/95 text-[11px] sm:text-sm font-semibold bg-black/50 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl backdrop-blur-md border border-white/20 whitespace-nowrap shadow-lg">
+                                                    <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-rose-300 shrink-0" />
                                                     {shop.district}, {shop.city}
                                                 </span>
                                             </div>
-                                            {status && (
-                                                <div className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl backdrop-blur-md border shadow-lg whitespace-nowrap self-start ${status.isOpen
-                                                        ? 'bg-green-700/35 text-white border-green-500/40'
-                                                        : 'bg-black/50 text-white/95 border-white/20'
-                                                    }`}>
-                                                    <span className={`w-2 h-2 rounded-full shrink-0 ${status.isOpen ? 'bg-green-400 animate-pulse' : 'bg-red-500'}`} />
-                                                    <span className="font-black">{status.isOpen ? 'AÇIK' : 'KAPALI'}</span>
-                                                    <span className="opacity-75 font-semibold text-[11px]">{status.open}–{status.close}</span>
-                                                </div>
-                                            )}
                                         </div>
 
                                         {/* Sağ kolon: Randevu Al */}
