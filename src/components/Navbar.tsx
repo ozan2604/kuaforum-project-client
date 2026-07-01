@@ -1,14 +1,13 @@
 
 import React, { useState } from 'react';
-import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './Button';
-import { Search, Heart, User } from 'lucide-react';
+import { Search } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
-    const { user, isAuthenticated } = useAuth();
+    const { isAuthenticated } = useAuth();
     const navigate = useNavigate();
-    const location = useLocation();
     const [searchParams, setSearchParams] = useSearchParams();
     const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
 

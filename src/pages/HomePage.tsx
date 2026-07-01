@@ -7,7 +7,7 @@ import { ShopCard } from '../components/ShopCard';
 import { MediaStrip } from '../components/MediaStrip';
 import { useAuth } from '../context/AuthContext';
 import { createPortal } from 'react-dom';
-import { MapPin, ChevronDown, ChevronLeft, ChevronRight, Map, XCircle, Navigation, Search, Sliders } from 'lucide-react';
+import { MapPin, ChevronLeft, ChevronRight, Map, XCircle, Navigation, Search, Sliders } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';

@@ -35,16 +35,22 @@ export const MobileBottomNav: React.FC = () => {
         <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] flex sm:hidden">
             {tabs.map(({ id, icon: Icon, path }) => {
                 const active = isActive(id, path);
+                const isFav = id === 'favoriler';
+                const textColor = isFav 
+                    ? (active ? 'text-red-600' : 'text-red-500 hover:text-red-600')
+                    : (active ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700');
+                const bgColor = isFav 
+                    ? (active ? 'bg-red-50' : 'bg-transparent')
+                    : (active ? 'bg-gray-200' : 'bg-transparent');
+
                 return (
                     <button
                         key={id}
                         onClick={() => handleClick(id, path)}
-                        className={`flex-1 flex flex-col items-center justify-center py-2.5 transition-colors active:scale-95 ${
-                            active ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700'
-                        }`}
+                        className={`flex-1 flex flex-col items-center justify-center py-2.5 transition-colors active:scale-95 ${textColor}`}
                     >
-                        <div className={`flex items-center justify-center w-12 h-8 rounded-full transition-all duration-300 ${active ? 'bg-gray-200' : 'bg-transparent'}`}>
-                            <Icon className={`w-[22px] h-[22px] ${active ? 'stroke-[2.5]' : 'stroke-2'}`} />
+                        <div className={`flex items-center justify-center w-12 h-8 rounded-full transition-all duration-300 ${bgColor}`}>
+                            <Icon className={`w-[22px] h-[22px] ${active ? 'stroke-[2.5]' : 'stroke-2'} ${isFav && active ? 'fill-current text-red-500' : ''}`} />
                         </div>
                     </button>
                 );
