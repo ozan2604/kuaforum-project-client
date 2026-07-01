@@ -60,27 +60,8 @@ export const Navbar: React.FC = () => {
                     </div>
 
                     {/* Right: Actions */}
-                    <div className="flex items-center shrink-0 gap-2 sm:gap-4">
-
-                        {isAuthenticated ? (
-                            <>
-                                <Link to="/favorites" className={`px-4 py-2 rounded-full flex items-center gap-2 transition-colors border ${location.pathname === '/favorites' ? 'bg-red-50 text-red-600 border-red-200' : 'bg-gray-100 text-gray-700 hover:bg-gray-200 border-gray-200'}`} title="Favorilerim">
-                                    <Heart className={`h-5 w-5 text-red-500 ${location.pathname === '/favorites' ? 'fill-current' : ''}`} />
-                                    <span className="text-sm font-medium hidden md:block">Favorilerim</span>
-                                </Link>
-
-                                <div className="relative group">
-                                    <Link to="/profile" className="px-4 py-2 bg-gray-100 rounded-full flex items-center gap-2 text-gray-700 hover:bg-gray-200 transition-colors border border-gray-200">
-                                        <User className="h-5 w-5" />
-                                        <span className="text-sm font-medium hidden md:block">{[user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Profil'}</span>
-                                    </Link>
-
-                                    {/* Dropdown can go here later */}
-                                </div>
-
-
-                            </>
-                        ) : (
+                    <div id="navbar-right-actions" className="flex items-center shrink-0 gap-2 sm:gap-4">
+                        {!isAuthenticated && (
                             <div className="flex items-center gap-2">
                                 <Link to="/login">
                                     <Button variant="ghost" size="sm">Giriş</Button>

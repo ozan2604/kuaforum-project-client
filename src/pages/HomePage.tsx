@@ -6,7 +6,8 @@ import { useSearchParams } from 'react-router-dom';
 import { ShopCard } from '../components/ShopCard';
 import { MediaStrip } from '../components/MediaStrip';
 import { useAuth } from '../context/AuthContext';
-import { MapPin, ChevronDown, ChevronLeft, ChevronRight, Map, XCircle, Navigation } from 'lucide-react';
+import { createPortal } from 'react-dom';
+import { MapPin, ChevronDown, ChevronLeft, ChevronRight, Map, XCircle, Navigation, Search, Sliders } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -450,31 +451,44 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
 
     return (
         <div className="min-h-screen bg-gray-50 flex flex-col pt-0">
-            {/* Sub-Navbar for Quick Filters */}
-            <div className="bg-white border-b border-gray-100 sticky top-14 sm:top-24 z-40">
-                <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8">
-                    <div className="flex items-center justify-between sm:justify-start h-12 text-sm font-medium select-none w-full">
+            {/* Action Icons in Navbar Portal */}
+            {document.getElementById('navbar-right-actions') && createPortal(
+                <div className="flex items-center gap-1 sm:gap-2 ml-auto">
+                    <button
+                        onClick={() => setIsLocationDropdownOpen(!isLocationDropdownOpen)}
+                        className={`p-2 rounded-full transition-colors ${isLocationDropdownOpen || selectedProvince ? 'bg-primary-50 text-primary-600' : 'text-gray-600 hover:bg-gray-100'}`}
+                        title="Konum Seç"
+                    >
+                        <MapPin className="w-5 h-5" />
+                    </button>
+                    <button
+                        onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
+                        className={`p-2 rounded-full transition-colors sm:hidden ${isMobileSearchOpen || searchTerm ? 'bg-primary-50 text-primary-600' : 'text-gray-600 hover:bg-gray-100'}`}
+                        title="Arama"
+                    >
+                        <Search className="w-5 h-5" />
+                    </button>
+                    <button
+                        onClick={() => setIsMobileFiltersOpen(true)}
+                        className={`p-2 rounded-full transition-colors relative ${activeTags.length > 0 || activeSortTag || minRating || selectedShopType ? 'bg-primary-50 text-primary-600' : 'text-gray-600 hover:bg-gray-100'}`}
+                        title="Filtreler"
+                    >
+                        <Sliders className="w-5 h-5" />
+                        {(activeTags.length > 0 || activeSortTag || minRating || selectedShopType) && (
+                            <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
+                        )}
+                    </button>
+                </div>,
+                document.getElementById('navbar-right-actions')!
+            )}
 
-                        {/* ── Location Button — pinned left, outside scroll container ── */}
-                        <div className="relative h-full flex items-center justify-center flex-1 sm:flex-none sm:pr-5 sm:mr-5 sm:border-r sm:border-gray-100 pr-2">
-                            <button
-                                onClick={() => setIsLocationDropdownOpen(!isLocationDropdownOpen)}
-                                className={`flex items-center gap-1 sm:gap-2 hover:text-primary-700 transition-colors py-3 border-b-2 whitespace-nowrap ${isLocationDropdownOpen || selectedProvince ? 'text-primary-700 border-primary-600' : 'text-gray-600 border-transparent'}`}
-                            >
-                                <MapPin className="h-4 w-4 shrink-0" />
-                                <span className="max-w-[75px] sm:max-w-none truncate">
-                                    {selectedNeighborhood || selectedDistrict || selectedProvince || 'Konum'}
-                                </span>
-                                <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${isLocationDropdownOpen ? 'rotate-180' : ''}`} />
-                            </button>
-
-                            {isLocationDropdownOpen && (
+            {isLocationDropdownOpen && (
                                 <>
                                     {/* Transparent backdrop */}
                                     <div className="fixed inset-0 z-[90]" onClick={() => setIsLocationDropdownOpen(false)} />
 
                                     {/* Dropdown */}
-                                    <div className="fixed inset-x-4 top-[15%] sm:absolute sm:inset-x-auto sm:top-full sm:left-0 sm:mt-3 w-auto sm:w-80 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.2)] rounded-2xl overflow-hidden border border-gray-100 z-[100] animate-in fade-in slide-in-from-top-4 duration-200">
+                                    <div className="fixed inset-x-4 top-[15%] sm:top-16 sm:inset-x-auto sm:right-4 sm:left-auto sm:mt-3 w-auto sm:w-80 bg-white shadow-[0_20px_50px_rgba(0,0,0,0.2)] rounded-2xl overflow-hidden border border-gray-100 z-[100] animate-in fade-in slide-in-from-top-4 duration-200">
                                         {/* Header */}
                                         <div className="flex justify-between items-center px-5 py-4 border-b border-gray-50">
                                             <h4 className="font-bold text-gray-900 text-base">Konum Seç</h4>
@@ -609,61 +623,12 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                                     <style dangerouslySetInnerHTML={{ __html: `.custom-scrollbar::-webkit-scrollbar{width:4px}.custom-scrollbar::-webkit-scrollbar-track{background:transparent}.custom-scrollbar::-webkit-scrollbar-thumb{background:#e5e7eb;border-radius:10px}.custom-scrollbar::-webkit-scrollbar-thumb:hover{background:#d1d5db}` }} />
                                 </>
                             )}
-                        </div>
 
-                        {/* ── Desktop Filter Tabs ── */}
-                        <div className="hidden sm:flex flex-1 items-center overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] min-w-0 justify-evenly">
-                            {[
-                                { label: 'Kadın', active: activeTags.includes('kadin'), onClick: () => toggleTag('kadin') },
-                                { label: 'Erkek', active: activeTags.includes('erkek'), onClick: () => toggleTag('erkek') },
-                                { label: 'Pet', active: activeTags.includes('pet'), onClick: () => toggleTag('pet') },
-                                { label: 'Düşük Fiyatlar', active: activeSortTag === 'low-price', onClick: () => toggleSortTag('low-price') },
-                                { label: 'Yüksek Fiyatlar', active: activeSortTag === 'high-price', onClick: () => toggleSortTag('high-price') },
-                                { label: 'En Yüksek Puanlılar', active: activeSortTag === 'rating', onClick: () => toggleSortTag('rating') },
-                                { label: '4★ ve Üzeri', active: minRating === 4, onClick: () => setMinRating(prev => prev === 4 ? null : 4) },
-                                { label: 'En Çok Yorum Alanlar', active: activeSortTag === 'reviews', onClick: () => toggleSortTag('reviews') },
-                                { label: 'En Yeniler', active: activeSortTag === 'newest', onClick: () => toggleSortTag('newest') },
-                            ].map((tab) => (
-                                <button key={tab.label} onClick={tab.onClick}
-                                    className={`transition-colors py-3 border-b-2 shrink-0 whitespace-nowrap text-[13px] sm:text-sm px-2 sm:px-3 ${tab.active ? 'text-primary-700 border-primary-600 font-bold' : 'text-gray-600 hover:text-primary-700 border-transparent'}`}>
-                                    {tab.label}
-                                </button>
-                            ))}
-                        </div>
-
-                        {/* ── Mobile Search Button ── */}
-                        <div className="flex-1 flex items-center justify-center sm:hidden h-full">
-                            <button
-                                onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
-                                className={`flex items-center justify-center gap-1.5 transition-colors py-3 font-bold w-full h-full ${isMobileSearchOpen || searchTerm ? 'text-primary-700' : 'text-gray-700 hover:text-primary-700'}`}
-                            >
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-                                Arama
-                            </button>
-                        </div>
-
-                        {/* ── Mobile Filter Button ── */}
-                        <div className="flex-1 flex items-center justify-center sm:hidden h-full">
-                            <button
-                                onClick={() => setIsMobileFiltersOpen(true)}
-                                className="flex items-center justify-center gap-1.5 hover:text-primary-700 transition-colors py-3 text-gray-700 font-bold w-full h-full"
-                            >
-                                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" /></svg>
-                                Filtreler
-                                {(activeTags.length > 0 || activeSortTag || minRating) && (
-                                    <span className="w-2 h-2 bg-red-500 rounded-full ml-0.5"></span>
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            {/* Mobile Filters Modal */}
+            {/* Global Filters Modal */}
             {isMobileFiltersOpen && (
-                <div className="fixed inset-0 z-[100] sm:hidden flex flex-col justify-end">
+                <div className="fixed inset-0 z-[100] flex flex-col justify-end sm:justify-center sm:items-center">
                     <div className="absolute inset-0 bg-black/50 transition-opacity" onClick={() => setIsMobileFiltersOpen(false)} />
-                    <div className="relative bg-white w-full rounded-t-3xl shadow-xl flex flex-col max-h-[85vh] animate-in slide-in-from-bottom-full">
+                    <div className="relative bg-white w-full sm:w-[500px] sm:rounded-3xl rounded-t-3xl shadow-xl flex flex-col max-h-[85vh] sm:max-h-[90vh] animate-in slide-in-from-bottom-full sm:zoom-in-95">
                         <div className="flex justify-between items-center p-5 border-b border-gray-100">
                             <h3 className="font-bold text-lg text-gray-900">Filtrele</h3>
                             <button onClick={() => setIsMobileFiltersOpen(false)} className="text-gray-400 hover:text-gray-600 p-1"><XCircle className="w-6 h-6" /></button>
