@@ -1,13 +1,14 @@
 
 import React, { useState } from 'react';
-import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './Button';
-import { Search } from 'lucide-react';
+import { Search, MapPin, Sliders } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
     const { isAuthenticated } = useAuth();
     const navigate = useNavigate();
+    const location = useLocation();
     const [searchParams, setSearchParams] = useSearchParams();
     const [searchTerm, setSearchTerm] = useState(searchParams.get('search') || '');
 
@@ -60,6 +61,31 @@ export const Navbar: React.FC = () => {
 
                     {/* Right: Actions */}
                     <div id="navbar-right-actions" className="flex items-center shrink-0 gap-2 sm:gap-4">
+                        {location.pathname !== '/' && (
+                            <div className="flex items-center gap-1 sm:gap-2 ml-auto">
+                                <button
+                                    onClick={() => navigate('/?openLocation=1')}
+                                    className="p-2 rounded-full text-gray-600 hover:bg-gray-100 transition-colors"
+                                    title="Konum Seç"
+                                >
+                                    <MapPin className="w-5 h-5" />
+                                </button>
+                                <button
+                                    onClick={() => navigate('/?openSearch=1')}
+                                    className="p-2 rounded-full text-gray-600 hover:bg-gray-100 transition-colors sm:hidden"
+                                    title="Arama"
+                                >
+                                    <Search className="w-5 h-5" />
+                                </button>
+                                <button
+                                    onClick={() => navigate('/?openFilters=1')}
+                                    className="p-2 rounded-full text-gray-600 hover:bg-gray-100 transition-colors"
+                                    title="Filtreler"
+                                >
+                                    <Sliders className="w-5 h-5" />
+                                </button>
+                            </div>
+                        )}
                         {!isAuthenticated && (
                             <div className="flex items-center gap-2">
                                 <Link to="/login">

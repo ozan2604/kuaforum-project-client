@@ -133,6 +133,21 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
     const searchTerm = searchParams.get('search') || '';
 
     useEffect(() => {
+        if (searchParams.get('openLocation')) {
+            setIsLocationDropdownOpen(true);
+            setSearchParams(params => { params.delete('openLocation'); return params; }, { replace: true });
+        }
+        if (searchParams.get('openSearch')) {
+            setIsMobileSearchOpen(true);
+            setSearchParams(params => { params.delete('openSearch'); return params; }, { replace: true });
+        }
+        if (searchParams.get('openFilters')) {
+            setIsMobileFiltersOpen(true);
+            setSearchParams(params => { params.delete('openFilters'); return params; }, { replace: true });
+        }
+    }, [searchParams, setSearchParams]);
+
+    useEffect(() => {
         const lat = searchParams.get('mapLat');
         const lng = searchParams.get('mapLng');
         const shopId = searchParams.get('mapShopId');

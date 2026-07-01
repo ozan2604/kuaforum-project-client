@@ -7,7 +7,7 @@ import type { Shop } from '../types/shop';
 import { ShopCategoryLabels, ShopCategory, TargetGenderLabels } from '../types/shop';
 import type { ServiceCategoryDto, ShopServiceDto } from '../types/service';
 import type { PublicEmployeeScheduleDto } from '../types/employee';
-import { MapPin, Star, Clock, Calendar, ChevronDown, Heart, Grid, Info, Image, MessageCircle, Users, ArrowLeft, Phone, User, ExternalLink, CheckCircle, Map, Share2, Play, X, Send, Check, Eye } from 'lucide-react';
+import { MapPin, Star, Clock, Calendar, ChevronDown, Heart, Grid, Info, Image, MessageCircle, Users, ArrowLeft, Phone, User, ExternalLink, CheckCircle, Map, Share2, Play, X, Send, Check, Eye, MoreVertical } from 'lucide-react';
 import { mediaLikeService } from '../api/mediaLike.service';
 import { Button } from '../components/Button';
 import { LoadingSpinner } from '../components/LoadingSpinner';
@@ -249,6 +249,7 @@ export const ShopDetailsPage: React.FC = () => {
     const { isAuthenticated } = useAuth();
 
     const [shop, setShop] = useState<Shop | null>(null);
+    const [isMenuOpen, setIsMenuOpen] = useState(false);
     const [categories, setCategories] = useState<ServiceCategoryDto[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -529,7 +530,7 @@ export const ShopDetailsPage: React.FC = () => {
                 {(() => {
                     const promoVideoUrl = shop.videos?.find(v => v.displayOrder === 0)?.url;
                     return (
-                        <div className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl group" style={{ height: 'clamp(240px, 42vw, 500px)' }}>
+                        <div className="relative w-full rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl group aspect-video">
                             <div className="absolute inset-0 bg-black">
                                 {showPromoVideo && promoVideoUrl ? (
                                     <video
@@ -570,45 +571,81 @@ export const ShopDetailsPage: React.FC = () => {
                                     >
                                         <X className="h-5 w-5 sm:h-7 sm:w-7 text-gray-700" />
                                     </button>
-                                ) : <div />}
+                                ) : (
+                                    <div className="flex items-center gap-1.5 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full bg-black/40 backdrop-blur-md border border-white/20 text-white shadow-xl">
+                                        <Star className="h-3.5 w-3.5 sm:h-4 sm:w-4 fill-yellow-400 text-yellow-400 shrink-0" />
+                                        <span className="font-bold text-xs sm:text-sm">{shop.averageRating?.toFixed(1) || 'Yeni'}</span>
+                                        <span className="text-white/80 text-[10px] sm:text-xs">({shop.reviewCount})</span>
+                                    </div>
+                                )}
 
                                 {/* Sağ grup — video modunda gizli */}
                                 {!showPromoVideo && (
                                     <div className="flex items-center gap-2">
-                                        {/* Paylaş */}
-                                        <button
-                                            onClick={handleShare}
-                                            title="Paylaş"
-                                            className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-3 rounded-full border bg-white/95 text-gray-700 border-white/60 hover:bg-white text-sm sm:text-base font-bold shadow-xl backdrop-blur-md transition-all duration-200 hover:scale-105 active:scale-95"
-                                        >
-                                            <Share2 className="h-4 w-4 sm:h-5 sm:w-5 text-primary-600" />
-                                            <span className="hidden sm:inline text-primary-600">Paylaş</span>
-                                        </button>
-
-                                        {/* Video — sadece video varsa */}
-                                        {promoVideoUrl && (
-                                            <button
-                                                onClick={() => setShowPromoVideo(true)}
-                                                title="Tanıtım Videosu"
-                                                className="flex items-center gap-1.5 px-3 sm:px-4 py-1.5 sm:py-3 rounded-full border bg-white/95 border-white/60 hover:bg-white text-sm sm:text-base font-bold shadow-xl backdrop-blur-md transition-all duration-200 hover:scale-105 active:scale-95"
-                                            >
-                                                <Play className="h-4 w-4 sm:h-5 sm:w-5 text-primary-600 fill-primary-600" />
-                                                <span className="hidden sm:inline text-primary-600">Video</span>
-                                            </button>
-                                        )}
-
                                         {/* Favori */}
                                         <button
                                             onClick={handleToggleFavorite}
                                             disabled={favLoading}
                                             title={isFavorite ? 'Favorilerden çıkar' : 'Favorilere ekle'}
-                                            className={`flex items-center gap-2 px-3 sm:px-5 py-1.5 sm:py-3.5 rounded-full border text-sm sm:text-lg font-bold shadow-xl backdrop-blur-md transition-all duration-200 hover:scale-105 active:scale-95 ${isFavorite
+                                            className={`flex items-center justify-center w-8 h-8 sm:w-11 sm:h-11 rounded-full border shadow-xl backdrop-blur-md transition-all duration-200 hover:scale-105 active:scale-95 ${isFavorite
                                                     ? 'bg-rose-50 text-rose-600 border-rose-200'
                                                     : 'bg-white/95 text-gray-700 border-white/60 hover:bg-white'
                                                 }`}
                                         >
-                                            <Heart className={`h-4 w-4 sm:h-6 sm:w-6 text-rose-500 drop-shadow-[0_0_8px_rgba(244,63,94,0.4)] ${isFavorite ? 'fill-current' : ''}`} />
+                                            <Heart className={`h-4 w-4 sm:h-5 sm:w-5 text-rose-500 drop-shadow-[0_0_8px_rgba(244,63,94,0.4)] ${isFavorite ? 'fill-current' : ''}`} />
                                         </button>
+
+                                        {/* 3-Dot Menu */}
+                                        <div className="relative">
+                                            <button
+                                                onClick={() => setIsMenuOpen(!isMenuOpen)}
+                                                className="flex items-center justify-center w-8 h-8 sm:w-11 sm:h-11 rounded-full border bg-white/95 text-gray-700 border-white/60 hover:bg-white shadow-xl backdrop-blur-md transition-all duration-200 hover:scale-105 active:scale-95"
+                                            >
+                                                <MoreVertical className="h-4 w-4 sm:h-5 sm:w-5" />
+                                            </button>
+
+                                            {isMenuOpen && (
+                                                <>
+                                                    <div className="fixed inset-0 z-40" onClick={() => setIsMenuOpen(false)} />
+                                                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-2xl border border-gray-100 py-1 z-50 animate-in fade-in slide-in-from-top-2">
+                                                        {shop.latitude && shop.longitude && (
+                                                            <button
+                                                                onClick={() => {
+                                                                    setIsMenuOpen(false);
+                                                                    navigate(`/?mapLat=${shop.latitude}&mapLng=${shop.longitude}&mapShopId=${shop.id}`);
+                                                                }}
+                                                                className="flex items-center w-full gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 transition-colors"
+                                                            >
+                                                                <Map className="h-4 w-4" />
+                                                                Haritada Gör
+                                                            </button>
+                                                        )}
+                                                        <button
+                                                            onClick={() => {
+                                                                setIsMenuOpen(false);
+                                                                handleShare();
+                                                            }}
+                                                            className="flex items-center w-full gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 transition-colors"
+                                                        >
+                                                            <Share2 className="h-4 w-4" />
+                                                            Paylaşma Linki
+                                                        </button>
+                                                        {promoVideoUrl && (
+                                                            <button
+                                                                onClick={() => {
+                                                                    setIsMenuOpen(false);
+                                                                    setShowPromoVideo(true);
+                                                                }}
+                                                                className="flex items-center w-full gap-2 px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 hover:text-primary-600 transition-colors"
+                                                            >
+                                                                <Play className="h-4 w-4" />
+                                                                Tanıtım Videosu
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -625,11 +662,6 @@ export const ShopDetailsPage: React.FC = () => {
                                                     <MapPin className="h-3 w-3 text-rose-300 shrink-0" />
                                                     {shop.district}, {shop.city}
                                                 </span>
-                                                <span className="flex items-center gap-1 text-white/95 text-[10px] sm:text-xs font-medium bg-black/40 px-2 sm:px-2.5 py-1 rounded-full backdrop-blur-md border border-white/10 whitespace-nowrap">
-                                                    <Star className="h-3 w-3 fill-yellow-400 text-yellow-400 shrink-0" />
-                                                    <span className="font-bold">{shop.averageRating?.toFixed(1) || 'Yeni'}</span>
-                                                    <span className="text-white/75">({shop.reviewCount})</span>
-                                                </span>
                                             </div>
                                             {status && (
                                                 <div className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl backdrop-blur-md border shadow-lg whitespace-nowrap self-start ${status.isOpen
@@ -643,17 +675,8 @@ export const ShopDetailsPage: React.FC = () => {
                                             )}
                                         </div>
 
-                                        {/* Sağ kolon: Haritada Gör + Randevu Al üst üste */}
+                                        {/* Sağ kolon: Randevu Al */}
                                         <div className="flex flex-col gap-2 shrink-0">
-                                            {shop.latitude && shop.longitude && (
-                                                <button
-                                                    onClick={() => navigate(`/?mapLat=${shop.latitude}&mapLng=${shop.longitude}&mapShopId=${shop.id}`)}
-                                                    className="flex items-center justify-center gap-1 text-[10px] sm:text-xs font-bold px-2.5 sm:px-4 py-1 sm:py-1.5 rounded-full bg-white/20 hover:bg-white/30 text-white backdrop-blur-md border border-white/30 shadow-lg transition-all active:scale-95 whitespace-nowrap"
-                                                >
-                                                    <Map className="h-3 w-3 sm:h-3.5 sm:w-3.5 shrink-0" />
-                                                    <span>Haritada Gör</span>
-                                                </button>
-                                            )}
                                             <Button
                                                 variant="secondary"
                                                 className="shadow-lg text-white border-0 px-2 sm:px-4 py-0.5 sm:py-1.5 text-[10px] sm:text-xs font-bold rounded-full transition-transform active:scale-95 flex items-center justify-center whitespace-nowrap"
