@@ -1,10 +1,10 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, Clapperboard, MapPinned, Heart, User } from 'lucide-react';
+import { Home, LayoutGrid, MapPinned, Heart, User } from 'lucide-react';
 
 const tabs = [
     { id: 'home',      label: 'Ana Sayfa', icon: Home,        path: '/' },
-    { id: 'kolaj',     label: 'Kolaj',     icon: Clapperboard, path: '/kolaj' },
+    { id: 'kolaj',     label: 'Kolaj',     icon: LayoutGrid, path: '/kolaj' },
     { id: 'harita',    label: 'Harita',    icon: MapPinned,    path: null },
     { id: 'favoriler', label: 'Favoriler', icon: Heart,        path: '/favorites' },
     { id: 'profil',    label: 'Profil',    icon: User,         path: '/profile' },
@@ -39,11 +39,13 @@ export const MobileBottomNav: React.FC = () => {
                     <button
                         key={id}
                         onClick={() => handleClick(id, path)}
-                        className={`flex-1 flex flex-col items-center justify-center py-4 transition-colors active:scale-95 ${
-                            active ? 'text-primary-600' : 'text-gray-400 hover:text-gray-600'
+                        className={`flex-1 flex flex-col items-center justify-center py-3 transition-colors active:scale-95 ${
+                            active ? 'text-primary-600' : 'text-gray-600 hover:text-gray-800'
                         }`}
                     >
-                        <Icon className={`w-6 h-6 ${active ? 'stroke-[2.5]' : 'stroke-2'}`} />
+                        <div className={`flex items-center justify-center w-[60px] h-9 rounded-full transition-all duration-300 ${active ? 'bg-primary-50' : 'bg-transparent'}`}>
+                            <Icon className={`w-6 h-6 ${active ? 'stroke-[2.5]' : 'stroke-2'}`} />
+                        </div>
                     </button>
                 );
             })}
