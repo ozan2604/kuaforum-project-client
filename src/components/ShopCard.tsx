@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { MapPin, Star, Heart, Car } from 'lucide-react';
 import { ShopCategoryLabels, ShopType, type Shop, type ShopCategory } from '../types/shop';
 import { useAuth } from '../context/AuthContext';
@@ -15,7 +15,6 @@ interface ShopCardProps {
 
 export const ShopCard: React.FC<ShopCardProps> = ({ shop, initialIsFavorite = false, onToggleFavorite }) => {
     const { isAuthenticated } = useAuth();
-    const navigate = useNavigate();
     const [isFavorite, setIsFavorite] = useState(initialIsFavorite);
     const [isLoading, setIsLoading] = useState(false);
 
