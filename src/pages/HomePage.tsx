@@ -1055,7 +1055,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                     )}
 
                     {loading ? (
-                        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-5 w-full">
+                        <div className="grid grid-cols-1 md:max-w-2xl md:mx-auto gap-3 sm:gap-4 lg:gap-5 w-full">
                             {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
                                 <div key={i} className="bg-white rounded-xl sm:rounded-2xl h-[260px] sm:h-[320px] animate-pulse shadow-sm border border-gray-100 p-3 sm:p-4">
                                     <div className="bg-gray-200 h-[260px] rounded-3xl mb-6"></div>
@@ -1074,7 +1074,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                                         {stripItems.length > 0 && (
                                             <MediaStrip items={stripItems} />
                                         )}
-                                        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-5 w-full">
+                                        <div className="grid grid-cols-1 md:max-w-2xl md:mx-auto gap-3 sm:gap-4 lg:gap-5 w-full">
                                             {chunkShops.map((shop) => (
                                                 <ShopCard
                                                     key={shop.id}

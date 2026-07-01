@@ -189,7 +189,7 @@ export const FavoritesPage: React.FC = () => {
                             </button>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4">
+                        <div className="grid grid-cols-1 md:max-w-2xl md:mx-auto gap-3 sm:gap-4">
                             {favShops.map(shop => (
                                 <ShopCard
                                     key={shop.id}

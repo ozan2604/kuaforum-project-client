@@ -62,7 +62,7 @@ export const ShopCard: React.FC<ShopCardProps> = ({ shop, initialIsFavorite = fa
         <div className="group bg-white rounded-xl sm:rounded-2xl overflow-hidden hover:shadow-xl hover:shadow-primary-900/8 hover:-translate-y-1 transition-all duration-400 border border-gray-100 flex flex-col h-full relative">
 
             {/* ── Görsel Bölümü ── */}
-            <Link to={`/shop/${shop.id}`} className="block relative w-full aspect-[9/16] overflow-hidden shrink-0">
+            <Link to={`/shop/${shop.id}`} className="block relative w-full aspect-video overflow-hidden shrink-0">
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent z-10" />
                 <img
                     src={getImageUrl(shop.coverImagePath)}
