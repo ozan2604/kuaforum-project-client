@@ -16,6 +16,7 @@ const AdminPasswordsPage: React.FC = () => {
     }>({ isOpen: false, type: null, key: '' });
     
     const [inputValue, setInputValue] = useState('');
+    const [oldPassword, setOldPassword] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
@@ -36,12 +37,14 @@ const AdminPasswordsPage: React.FC = () => {
 
     const openModal = (type: 'set' | 'update' | 'delete', key: string) => {
         setInputValue('');
+        setOldPassword('');
         setModalConfig({ isOpen: true, type, key });
     };
 
     const closeModal = () => {
         setModalConfig({ isOpen: false, type: null, key: '' });
         setInputValue('');
+        setOldPassword('');
     };
 
     const handleConfirm = async () => {
@@ -49,6 +52,21 @@ const AdminPasswordsPage: React.FC = () => {
         
         setIsSubmitting(true);
         try {
+            // If updating or deleting, verify old password first
+            if (modalConfig.type === 'update' || modalConfig.type === 'delete') {
+                if (!oldPassword.trim()) {
+                    alert('Lütfen mevcut şifrenizi girin.');
+                    setIsSubmitting(false);
+                    return;
+                }
+                const isVerified = await adminPasswordService.verifyPassword({ key: modalConfig.key, password: oldPassword });
+                if (!isVerified) {
+                    alert('Mevcut şifre hatalı!');
+                    setIsSubmitting(false);
+                    return;
+                }
+            }
+
             if (modalConfig.type === 'delete') {
                 await adminPasswordService.deletePassword(modalConfig.key);
             } else {
@@ -167,12 +185,27 @@ const AdminPasswordsPage: React.FC = () => {
                             </p>
                         </div>
 
+                        {/* Eski şifre girişi (Sadece update veya delete için) */}
+                        {(modalConfig.type === 'update' || modalConfig.type === 'delete') && (
+                            <div className="mb-6">
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Mevcut Şifre</label>
+                                <input
+                                    type="password"
+                                    autoFocus
+                                    value={oldPassword}
+                                    onChange={(e) => setOldPassword(e.target.value)}
+                                    placeholder="Mevcut şifreniz"
+                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
+                                />
+                            </div>
+                        )}
+
                         {modalConfig.type !== 'delete' && (
                             <div className="mb-6">
                                 <label className="block text-sm font-medium text-gray-700 mb-2">Yeni Şifre</label>
                                 <input
                                     type="password"
-                                    autoFocus
+                                    autoFocus={modalConfig.type === 'set'}
                                     value={inputValue}
                                     onChange={(e) => setInputValue(e.target.value)}
                                     placeholder="••••••••"

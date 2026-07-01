@@ -57,7 +57,7 @@ export const AdminLayout: React.FC = () => {
         const checkPasswordStatus = async () => {
             try {
                 const statuses = await adminPasswordService.getAllStatuses();
-                const pass1 = statuses.find(s => s.key === 'Şifre 1');
+                const pass1 = statuses.find(s => s.key === 'Admin Panel Giriş Şifresi');
                 if (pass1 && pass1.isSet) {
                     setPassword1Set(true);
                 } else {
@@ -87,7 +87,7 @@ export const AdminLayout: React.FC = () => {
         setPasswordError('');
 
         try {
-            await adminPasswordService.verifyPassword({ key: 'Şifre 1', password: passwordInput });
+            await adminPasswordService.verifyPassword({ key: 'Admin Panel Giriş Şifresi', password: passwordInput });
             sessionStorage.setItem('admin_sifre_1_verified', 'true');
             setPassword1Verified(true);
         } catch (error) {
@@ -125,7 +125,7 @@ export const AdminLayout: React.FC = () => {
                     </div>
                     <h2 className="text-2xl font-bold text-gray-900 mb-2">Yönetici Doğrulaması</h2>
                     <p className="text-gray-500 text-sm mb-8">
-                        Admin paneline erişmek için lütfen "Şifre 1" bilginizi girin.
+                        Admin paneline erişmek için lütfen "Admin Panel Giriş Şifresi" bilginizi girin.
                     </p>
 
                     <div className="space-y-4">

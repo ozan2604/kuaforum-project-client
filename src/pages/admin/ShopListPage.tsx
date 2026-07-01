@@ -29,7 +29,7 @@ export const ShopListPage: React.FC = () => {
         const checkPasswordStatus = async () => {
             try {
                 const statuses = await adminPasswordService.getAllStatuses();
-                const pass2 = statuses.find(s => s.key === 'Şifre 2');
+                const pass2 = statuses.find(s => s.key === 'Salon Silme Şifresi');
                 if (pass2 && pass2.isSet) {
                     setPassword2Set(true);
                 }
@@ -81,7 +81,7 @@ export const ShopListPage: React.FC = () => {
         setIsVerifying(true);
         setPasswordError('');
         try {
-            await adminPasswordService.verifyPassword({ key: 'Şifre 2', password: passwordInput });
+            await adminPasswordService.verifyPassword({ key: 'Salon Silme Şifresi', password: passwordInput });
             setShowPasswordModal(false);
         } catch (error) {
             setPasswordError('Hatalı şifre');
@@ -286,7 +286,7 @@ export const ShopListPage: React.FC = () => {
                             </div>
                             <h3 className="text-xl font-bold text-gray-900 mb-2">Güvenlik Doğrulaması</h3>
                             <p className="text-gray-500 text-sm mb-6">
-                                Silme işlemi için lütfen <strong>"Şifre 2"</strong> bilginizi girin.
+                                Silme işlemi için lütfen <strong>"Salon Silme Şifresi"</strong> bilginizi girin.
                             </p>
                             <div className="space-y-4">
                                 <input
