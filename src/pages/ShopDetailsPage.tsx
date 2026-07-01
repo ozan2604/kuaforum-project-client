@@ -569,7 +569,7 @@ export const ShopDetailsPage: React.FC = () => {
                             </div>
 
                             {/* Üst Bar */}
-                            <div className="absolute top-3 sm:top-6 left-3 sm:left-6 right-3 sm:right-6 z-20 flex items-center justify-between">
+                            <div className="absolute top-3 sm:top-6 left-3 sm:left-6 right-3 sm:right-6 z-30 flex items-center justify-between">
                                 {/* Sol: sadece video modunda kapat butonu */}
                                 {showPromoVideo ? (
                                     <button
@@ -685,10 +685,17 @@ export const ShopDetailsPage: React.FC = () => {
                                         {/* Sol kolon: konum */}
                                         <div className="flex flex-col gap-2 min-w-0">
                                             <div className="flex flex-wrap items-center gap-1.5">
-                                                <span className="flex items-center gap-1 text-white/95 text-[11px] sm:text-sm font-semibold bg-black/50 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl backdrop-blur-md border border-white/20 whitespace-nowrap shadow-lg">
+                                                <button 
+                                                    onClick={() => {
+                                                        if (shop.latitude && shop.longitude) {
+                                                            navigate(`/?mapLat=${shop.latitude}&mapLng=${shop.longitude}&mapShopId=${shop.id}`);
+                                                        }
+                                                    }}
+                                                    className="flex items-center gap-1 text-white/95 text-[11px] sm:text-sm font-semibold bg-black/50 hover:bg-black/70 transition-colors px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl backdrop-blur-md border border-white/20 whitespace-nowrap shadow-lg"
+                                                >
                                                     <MapPin className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-rose-300 shrink-0" />
                                                     {shop.district}, {shop.city}
-                                                </span>
+                                                </button>
                                             </div>
                                         </div>
 
@@ -720,33 +727,7 @@ export const ShopDetailsPage: React.FC = () => {
                 })()}
             </div>
 
-            {/* ── Kart Altı: Kategoriler ── */}
-            <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 mt-3 sm:mt-4">
-                {shop.categories && shop.categories.length > 0 && (
-                    <div className="flex flex-wrap items-center gap-2">
-                        {shop.categories.map((catId, idx) => {
-                            const bgs = [
-                                'bg-violet-50 border-violet-200',
-                                'bg-rose-50 border-rose-200',
-                                'bg-amber-50 border-amber-200',
-                                'bg-emerald-50 border-emerald-200',
-                                'bg-sky-50 border-sky-200',
-                                'bg-fuchsia-50 border-fuchsia-200',
-                            ];
-                            const bg = bgs[idx % bgs.length];
-                            return (
-                                <span
-                                    key={catId}
-                                    className={`inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-[11px] sm:text-xs font-semibold border text-gray-700 ${bg} shadow-sm`}
-                                >
-                                    <span className="w-1.5 h-1.5 rounded-full bg-gray-400" />
-                                    {ShopCategoryLabels[catId as ShopCategory] ?? 'Diğer'}
-                                </span>
-                            );
-                        })}
-                    </div>
-                )}
-            </div>
+
 
             <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 mt-6 sm:mt-10">
                 <div>
