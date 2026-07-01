@@ -33,7 +33,7 @@ export const MobileBottomNav: React.FC = () => {
 
     return (
         <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.06)] flex sm:hidden">
-            {tabs.map(({ id, label, icon: Icon, path }) => {
+            {tabs.map(({ id, icon: Icon, path }) => {
                 const active = isActive(id, path);
                 return (
                     <button
