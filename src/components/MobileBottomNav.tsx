@@ -39,12 +39,12 @@ export const MobileBottomNav: React.FC = () => {
                     <button
                         key={id}
                         onClick={() => handleClick(id, path)}
-                        className={`flex-1 flex flex-col items-center justify-center py-3 transition-colors active:scale-95 ${
-                            active ? 'text-primary-600' : 'text-gray-600 hover:text-gray-800'
+                        className={`flex-1 flex flex-col items-center justify-center py-2.5 transition-colors active:scale-95 ${
+                            active ? 'text-gray-900' : 'text-gray-500 hover:text-gray-700'
                         }`}
                     >
-                        <div className={`flex items-center justify-center w-[60px] h-9 rounded-full transition-all duration-300 ${active ? 'bg-primary-50' : 'bg-transparent'}`}>
-                            <Icon className={`w-6 h-6 ${active ? 'stroke-[2.5]' : 'stroke-2'}`} />
+                        <div className={`flex items-center justify-center w-12 h-8 rounded-full transition-all duration-300 ${active ? 'bg-gray-200' : 'bg-transparent'}`}>
+                            <Icon className={`w-[22px] h-[22px] ${active ? 'stroke-[2.5]' : 'stroke-2'}`} />
                         </div>
                     </button>
                 );
