@@ -729,7 +729,7 @@ export const ShopDetailsPage: React.FC = () => {
 
 
 
-            <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 mt-6 sm:mt-10">
+            <div className="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 mt-2 sm:mt-4">
                 <div>
                     {/* Content with Tabs */}
                     <div className="space-y-5">
@@ -933,26 +933,7 @@ export const ShopDetailsPage: React.FC = () => {
                                             )}
                                         </div>
 
-                                        {/* Değerlendirme */}
-                                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                                            <div className="flex items-center gap-2 mb-3">
-                                                <div className="w-8 h-8 rounded-lg bg-yellow-50 flex items-center justify-center shrink-0">
-                                                    <Star className="w-4 h-4 text-yellow-500" />
-                                                </div>
-                                                <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Değerlendirme</span>
-                                            </div>
-                                            <div className="flex items-center gap-3">
-                                                <span className="text-3xl font-black text-gray-900 leading-none">{shop.averageRating?.toFixed(1) || '—'}</span>
-                                                <div>
-                                                    <div className="flex gap-0.5">
-                                                        {[1, 2, 3, 4, 5].map(s => (
-                                                            <Star key={s} className={`w-3.5 h-3.5 ${s <= Math.round(shop.averageRating || 0) ? 'fill-yellow-400 text-yellow-400' : 'text-gray-200'}`} />
-                                                        ))}
-                                                    </div>
-                                                    <p className="text-xs text-gray-500 mt-0.5">{shop.reviewCount} yorum</p>
-                                                </div>
-                                            </div>
-                                        </div>
+
 
                                         {/* Hedef Kitle */}
                                         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
@@ -978,20 +959,7 @@ export const ShopDetailsPage: React.FC = () => {
                                             </div>
                                         )}
 
-                                        {/* Katılım Tarihi */}
-                                        {shop.createdAt && (
-                                            <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-                                                <div className="flex items-center gap-2 mb-3">
-                                                    <div className="w-8 h-8 rounded-lg bg-sky-50 flex items-center justify-center shrink-0">
-                                                        <Calendar className="w-4 h-4 text-sky-500" />
-                                                    </div>
-                                                    <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide">Katılım Tarihi</span>
-                                                </div>
-                                                <p className="font-semibold text-gray-900 text-sm">
-                                                    {new Date(shop.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
-                                                </p>
-                                            </div>
-                                        )}
+
 
                                         {/* Haftalık Tatil */}
                                         {shop.weeklyOffDays && shop.weeklyOffDays.length > 0 && (
@@ -1076,53 +1044,39 @@ export const ShopDetailsPage: React.FC = () => {
                                             </div>
                                         </div>
                                     </div>
+
+                                    {/* Katılım Tarihi */}
+                                    {shop.createdAt && (
+                                        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5 sm:p-6">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 rounded-xl bg-sky-50 flex items-center justify-center shrink-0">
+                                                    <Calendar className="w-5 h-5 text-sky-500" />
+                                                </div>
+                                                <div>
+                                                    <p className="font-semibold text-gray-900 text-sm">Katılım Tarihi</p>
+                                                    <p className="text-xs font-semibold text-gray-600 mt-0.5">
+                                                        {new Date(shop.createdAt).toLocaleDateString('tr-TR', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
                             {activeTab === 'gallery' && (
                                 <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8 animate-fadeIn">
-                                    {/* Tanıtım Videosu */}
-                                    {(() => {
-                                        const promoVideo = shop.videos?.find(v => v.displayOrder === 0);
-                                        if (!promoVideo) return null;
-                                        return (
-                                            <div className="mb-8">
-                                                <div className="flex items-center gap-2.5 mb-4">
-                                                    <div className="w-9 h-9 rounded-xl bg-primary-50 flex items-center justify-center shrink-0">
-                                                        <Play className="w-4 h-4 text-primary-600 fill-primary-600" />
-                                                    </div>
-                                                    <h2 className="text-lg font-bold text-gray-900">Tanıtım Videosu</h2>
-                                                </div>
-                                                <div className="rounded-2xl overflow-hidden bg-black shadow-lg max-w-2xl mx-auto" style={{ aspectRatio: '16/9' }}>
-                                                    <video
-                                                        src={`${getImageUrl(promoVideo.url)}#t=0.1`}
-                                                        controls
-                                                        className="w-full h-full object-contain"
-                                                        preload="metadata"
-                                                        playsInline
-                                                        onPlay={(e) => {
-                                                            const videos = document.getElementsByTagName('video');
-                                                            Array.from(videos).forEach(v => {
-                                                                if (v !== e.target) v.pause();
-                                                            });
-                                                        }}
-                                                    />
-                                                </div>
-                                            </div>
-                                        );
-                                    })()}
-
                                     {/* Salon Videoları */}
                                     {(shop.videos && shop.videos.length > 0) && (
                                         <div className="mb-8">
                                             <div className="flex items-center gap-2.5 mb-4">
                                                 <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
-                                                    <Play className="w-4 h-4 text-blue-600" />
+                                                    <Play className="w-4 h-4 text-blue-600 fill-blue-600" />
                                                 </div>
                                                 <h2 className="text-lg font-bold text-gray-900">Salon Videoları</h2>
                                             </div>
                                             <div className="columns-1 md:columns-2 gap-4">
-                                                {shop.videos.map((video) => (
+                                                {[...shop.videos].sort((a, b) => a.displayOrder - b.displayOrder).map((video) => (
                                                     <GalleryVideoCard
                                                         key={video.id}
                                                         video={{ ...video, url: getImageUrl(video.url) }}
