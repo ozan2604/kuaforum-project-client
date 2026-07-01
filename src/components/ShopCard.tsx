@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { MapPin, Star, Heart, Map, ArrowRight, Car } from 'lucide-react';
+import { MapPin, Star, Heart, Car } from 'lucide-react';
 import { ShopCategoryLabels, ShopType, type Shop, type ShopCategory } from '../types/shop';
 import { useAuth } from '../context/AuthContext';
 import { favoriteService } from '../services/favorite.service';
@@ -13,23 +13,11 @@ interface ShopCardProps {
     onToggleFavorite?: (newStatus: boolean) => void;
 }
 
-function isOpenNow(openTime?: string, closeTime?: string): boolean | null {
-    if (!openTime || !closeTime) return null;
-    const now = new Date();
-    const [oh, om] = openTime.split(':').map(Number);
-    const [ch, cm] = closeTime.split(':').map(Number);
-    const currentMinutes = now.getHours() * 60 + now.getMinutes();
-    const openMinutes = oh * 60 + om;
-    const closeMinutes = ch * 60 + cm;
-    return currentMinutes >= openMinutes && currentMinutes < closeMinutes;
-}
-
 export const ShopCard: React.FC<ShopCardProps> = ({ shop, initialIsFavorite = false, onToggleFavorite }) => {
     const { isAuthenticated } = useAuth();
     const navigate = useNavigate();
     const [isFavorite, setIsFavorite] = useState(initialIsFavorite);
     const [isLoading, setIsLoading] = useState(false);
-    const openStatus = isOpenNow(shop.openTime, shop.closeTime);
 
     useEffect(() => {
         setIsFavorite(initialIsFavorite);
@@ -63,11 +51,7 @@ export const ShopCard: React.FC<ShopCardProps> = ({ shop, initialIsFavorite = fa
         }
     };
 
-    const handleMapClick = (e: React.MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        navigate(`/?mapLat=${shop.latitude}&mapLng=${shop.longitude}&mapShopId=${shop.id}`);
-    };
+
 
     const getImageUrl = (path: string | undefined) => {
         if (!path) return DEFAULT_SALON_COVER;
@@ -79,7 +63,7 @@ export const ShopCard: React.FC<ShopCardProps> = ({ shop, initialIsFavorite = fa
         <div className="group bg-white rounded-xl sm:rounded-2xl overflow-hidden hover:shadow-xl hover:shadow-primary-900/8 hover:-translate-y-1 transition-all duration-400 border border-gray-100 flex flex-col h-full relative">
 
             {/* ── Görsel Bölümü ── */}
-            <Link to={`/shop/${shop.id}`} className="block relative w-full h-[170px] sm:h-[230px] overflow-hidden shrink-0">
+            <Link to={`/shop/${shop.id}`} className="block relative w-full aspect-[9/16] overflow-hidden shrink-0">
                 <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent z-10" />
                 <img
                     src={getImageUrl(shop.coverImagePath)}
@@ -112,16 +96,7 @@ export const ShopCard: React.FC<ShopCardProps> = ({ shop, initialIsFavorite = fa
                     </span>
                 </div>
 
-                {/* Haritada Gör — sol alt (sadece sabit salonlar) */}
-                {shop.shopType !== ShopType.Mobile && shop.latitude && shop.longitude && (
-                    <button
-                        onClick={handleMapClick}
-                        className="absolute bottom-2 sm:bottom-3 left-2 sm:left-3 z-20 bg-white/90 backdrop-blur-sm px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md sm:rounded-lg shadow-sm flex items-center gap-0.5 sm:gap-1 hover:bg-white transition-colors"
-                    >
-                        <Map className="h-3 w-3 sm:h-3.5 sm:w-3.5 text-primary-600" />
-                        <span className="text-[9px] sm:text-[10px] font-semibold text-primary-600">Haritada Gör</span>
-                    </button>
-                )}
+
                 {/* Seyyar Berber badge — sol alt */}
                 {shop.shopType === ShopType.Mobile && (
                     <div className="absolute bottom-2 sm:bottom-3 left-2 sm:left-3 z-20 bg-purple-600/90 backdrop-blur-sm px-1.5 sm:px-2 py-0.5 sm:py-1 rounded-md sm:rounded-lg shadow-sm flex items-center gap-0.5 sm:gap-1">
@@ -165,30 +140,6 @@ export const ShopCard: React.FC<ShopCardProps> = ({ shop, initialIsFavorite = fa
                     </div>
                 )}
 
-                {/* Alt satır: Açık/Kapalı + Salona Git */}
-                <div className="flex items-center justify-between pt-2 sm:pt-3 border-t border-gray-100 mt-auto gap-2">
-                    <div className="flex items-center">
-                        {openStatus === null ? null : openStatus ? (
-                            <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 bg-green-50 text-green-700 rounded-md">
-                                <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-green-500 animate-pulse"></span>
-                                Açık
-                            </span>
-                        ) : (
-                            <span className="inline-flex items-center gap-1 text-[10px] sm:text-[11px] font-semibold px-1.5 sm:px-2 py-0.5 sm:py-1 bg-red-50 text-red-700 rounded-md">
-                                <span className="w-1 h-1 sm:w-1.5 sm:h-1.5 rounded-full bg-red-500"></span>
-                                Kapalı
-                            </span>
-                        )}
-                    </div>
-
-                    <button
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/shop/${shop.id}`); }}
-                        className="flex items-center gap-1 text-[10px] sm:text-[11px] font-bold text-primary-700 bg-primary-50 hover:bg-primary-100 px-2 sm:px-2.5 py-1 sm:py-1.5 rounded-lg transition-colors shrink-0"
-                    >
-                        Salona Git
-                        <ArrowRight className="h-2.5 w-2.5 sm:h-3 sm:w-3" />
-                    </button>
-                </div>
             </div>
         </div>
     );
