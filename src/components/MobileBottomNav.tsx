@@ -1,11 +1,11 @@
 import React from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Home, Clapperboard, Map, Heart, User } from 'lucide-react';
+import { Home, Clapperboard, MapPinned, Heart, User } from 'lucide-react';
 
 const tabs = [
     { id: 'home',      label: 'Ana Sayfa', icon: Home,        path: '/' },
     { id: 'kolaj',     label: 'Kolaj',     icon: Clapperboard, path: '/kolaj' },
-    { id: 'harita',    label: 'Harita',    icon: Map,          path: null },
+    { id: 'harita',    label: 'Harita',    icon: MapPinned,    path: null },
     { id: 'favoriler', label: 'Favoriler', icon: Heart,        path: '/favorites' },
     { id: 'profil',    label: 'Profil',    icon: User,         path: '/profile' },
 ];
@@ -39,14 +39,11 @@ export const MobileBottomNav: React.FC = () => {
                     <button
                         key={id}
                         onClick={() => handleClick(id, path)}
-                        className={`flex-1 flex flex-col items-center justify-center py-2.5 gap-0.5 transition-colors active:scale-95 ${
+                        className={`flex-1 flex flex-col items-center justify-center py-4 transition-colors active:scale-95 ${
                             active ? 'text-primary-600' : 'text-gray-400 hover:text-gray-600'
                         }`}
                     >
-                        <Icon className={`w-[22px] h-[22px] ${active ? 'stroke-[2.5]' : 'stroke-2'}`} />
-                        <span className={`text-[9px] font-semibold tracking-tight ${active ? 'text-primary-600' : 'text-gray-400'}`}>
-                            {label}
-                        </span>
+                        <Icon className={`w-6 h-6 ${active ? 'stroke-[2.5]' : 'stroke-2'}`} />
                     </button>
                 );
             })}
