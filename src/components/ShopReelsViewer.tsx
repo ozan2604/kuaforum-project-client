@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Play, Volume2, VolumeX, Heart, Send, Check, Eye, X } from 'lucide-react';
+import { Volume2, VolumeX, Heart, Send, Check, Eye, X } from 'lucide-react';
 import { shopService } from '../api/shop.service';
 import { mediaLikeService } from '../api/mediaLike.service';
 import type { MediaHighlight } from '../types/shop';
