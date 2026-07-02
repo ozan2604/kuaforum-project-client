@@ -20,7 +20,6 @@ const HEART_STYLE = `
 interface MediaCardProps {
     item: MediaHighlight;
     index: number;
-    onOpenModal: (item: MediaHighlight) => void;
     isAuthenticated: boolean;
     isFocused: boolean;
     isMuted: boolean;
@@ -28,7 +27,7 @@ interface MediaCardProps {
 }
 
 const MediaCard: React.FC<MediaCardProps> = ({
-    item, index, onOpenModal, isAuthenticated, isFocused, isMuted, onToggleMute,
+    item, index, isAuthenticated, isFocused, isMuted, onToggleMute,
 }) => {
     const navigate      = useNavigate();
     const videoRef      = useRef<HTMLVideoElement | null>(null);
@@ -161,14 +160,13 @@ const MediaCard: React.FC<MediaCardProps> = ({
     const handleClick = () => {
         if (didDblRef.current) { didDblRef.current = false; return; }
         if (isHoldRef.current) return;
-        if (item.type === 'video') onOpenModal(item);
-        else navigate(`/shop/${item.shopId}`);
+        navigate(`/kolaj?id=${item.id}`);
     };
 
     return (
         <div
             data-media-id={String(item.id)}
-            className="relative shrink-0 w-[120px] h-[210px] rounded-xl overflow-hidden cursor-pointer select-none"
+            className="relative shrink-0 w-[140px] h-[250px] rounded-xl overflow-hidden cursor-pointer select-none group"
             onPointerDown={handlePointerDown}
             onPointerUp={handlePointerUp}
             onPointerLeave={handlePointerUp}
@@ -283,7 +281,6 @@ export const MediaStrip: React.FC<MediaStripProps> = ({ items }) => {
     const { isAuthenticated } = useAuth();
     const scrollRef    = useRef<HTMLDivElement>(null);
     const navigate     = useNavigate();
-    const [videoModal, setVideoModal] = useState<MediaHighlight | null>(null);
     const [isMuted, setIsMuted]       = useState(true);
     const [focusedId, setFocusedId]   = useState<string | null>(null);
     const focusedIdRef                = useRef<string | null>(null);
@@ -340,7 +337,7 @@ export const MediaStrip: React.FC<MediaStripProps> = ({ items }) => {
                 <div className="flex items-center justify-between mb-2.5">
                     <div className="flex items-center gap-1.5">
                         <Clapperboard className="w-3.5 h-3.5 text-white/50" />
-                        <p className="text-[11px] font-semibold text-white/50 tracking-wide uppercase">Salonlardan kolaj</p>
+                        <p className="text-[11px] font-semibold text-white/50 tracking-wide uppercase">Önerilenler</p>
                     </div>
                     <button onClick={scroll} className="flex items-center gap-1 text-[11px] font-semibold text-white/40 hover:text-white/70 transition-colors">
                         Sağa kaydır <ChevronRight className="w-3.5 h-3.5" />
@@ -356,7 +353,6 @@ export const MediaStrip: React.FC<MediaStripProps> = ({ items }) => {
                             key={`${item.shopId}-${index}`}
                             item={item}
                             index={index}
-                            onOpenModal={setVideoModal}
                             isAuthenticated={isAuthenticated}
                             isFocused={focusedId !== null
                                 ? focusedId === String(item.id)
@@ -367,28 +363,6 @@ export const MediaStrip: React.FC<MediaStripProps> = ({ items }) => {
                     ))}
                 </div>
             </div>
-
-            {videoModal && (
-                <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" onClick={() => setVideoModal(null)}>
-                    <div className="relative w-full max-w-lg rounded-2xl overflow-hidden bg-black shadow-2xl" onClick={e => e.stopPropagation()}>
-                        <video src={videoModal.url} className="w-full max-h-[70vh] object-contain" controls autoPlay playsInline />
-                        <div className="flex items-center justify-between px-4 py-3 bg-gray-900">
-                            <p className="text-white font-bold text-sm">{videoModal.shopName}</p>
-                            <div className="flex items-center gap-3">
-                                <button
-                                    onClick={() => { setVideoModal(null); navigate(`/shop/${videoModal.shopId}`); }}
-                                    className="flex items-center gap-1.5 bg-white text-gray-900 text-xs font-bold px-4 py-2 rounded-xl hover:bg-gray-100 transition-colors"
-                                >
-                                    Salona Git <ArrowRight className="w-3.5 h-3.5" />
-                                </button>
-                                <button onClick={() => setVideoModal(null)} className="text-gray-400 hover:text-white transition-colors p-1">
-                                    <X className="w-5 h-5" />
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
         </>
     );
 };
