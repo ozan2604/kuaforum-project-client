@@ -1,6 +1,6 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronRight, ArrowRight, X, Heart, Send, Check, Clapperboard, Volume2, VolumeX, Eye } from 'lucide-react';
+import { ChevronRight, Heart, Send, Check, Clapperboard, Volume2, VolumeX, Eye } from 'lucide-react';
 import type { MediaHighlight } from '../types/shop';
 import { mediaLikeService } from '../api/mediaLike.service';
 import { shopService } from '../api/shop.service';
@@ -280,7 +280,6 @@ interface MediaStripProps {
 export const MediaStrip: React.FC<MediaStripProps> = ({ items }) => {
     const { isAuthenticated } = useAuth();
     const scrollRef    = useRef<HTMLDivElement>(null);
-    const navigate     = useNavigate();
     const [isMuted, setIsMuted]       = useState(true);
     const [focusedId, setFocusedId]   = useState<string | null>(null);
     const focusedIdRef                = useRef<string | null>(null);
