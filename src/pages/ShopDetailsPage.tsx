@@ -358,7 +358,7 @@ export const ShopDetailsPage: React.FC = () => {
                 {(() => {
                     const promoVideoUrl = shop.videos?.find(v => v.displayOrder === 0)?.url;
                     return (
-                        <div className="relative w-full rounded-2xl sm:rounded-3xl shadow-2xl group aspect-video">
+                        <div className="relative w-full rounded-2xl sm:rounded-3xl shadow-2xl group aspect-video z-40">
                             <div className="absolute inset-0 bg-black rounded-2xl sm:rounded-3xl overflow-hidden">
                                 {showPromoVideo && promoVideoUrl ? (
                                     <video
