@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { shopService } from '../api/shop.service';
 import { serviceManagementService } from '../api/service.service';
@@ -22,231 +22,20 @@ import { reviewService } from '../api/review.service';
 import type { Appointment } from '../types/appointment';
 import { CustomSelect } from '../components/CustomSelect';
 import { DEFAULT_SALON_COVER } from '../constants/images';
-
-interface GalleryVideoCardProps {
-    video: { id: string; url: string; tags?: { id: string; name: string }[]; likeCount?: number; isLikedByCurrentUser?: boolean; viewCount: number; displayOrder: number };
-    shopName: string;
-    shopId: string;
-    isAuthenticated: boolean;
-}
-
-const GalleryVideoCard: React.FC<GalleryVideoCardProps> = ({ video, shopName, shopId, isAuthenticated }) => {
-    const [liked, setLiked] = useState(video.isLikedByCurrentUser ?? false);
-    const [likeCount, setLikeCount] = useState(video.likeCount ?? 0);
-    const [viewCount, setViewCount] = useState(video.viewCount ?? 0);
-    const [shareState, setShareState] = useState<'idle' | 'loading' | 'copied'>('idle');
-    const videoViewRecordedRef = useRef(false);
-
-    const handleLike = async () => {
-        if (!isAuthenticated) return;
-        const newLiked = !liked;
-        setLiked(newLiked);
-        setLikeCount(prev => prev + (newLiked ? 1 : -1));
-        try {
-            const serverLiked = await mediaLikeService.toggle(video.id, 'video');
-            setLiked(serverLiked);
-            setLikeCount(serverLiked ? (video.likeCount ?? 0) + 1 : (video.likeCount ?? 0));
-        } catch {
-            setLiked(!newLiked);
-            setLikeCount(video.likeCount ?? 0);
-        }
-    };
-
-    const handleShare = async () => {
-        if (shareState === 'loading') return;
-        const shopUrl = `${window.location.origin}/shop/${shopId}`;
-        setShareState('loading');
-        try {
-            if (navigator.share) {
-                await navigator.share({ title: shopName, url: shopUrl });
-            } else {
-                await navigator.clipboard.writeText(shopUrl);
-                setShareState('copied');
-                setTimeout(() => setShareState('idle'), 2000);
-                return;
-            }
-        } catch { }
-        setShareState('idle');
-    };
-
-    return (
-        <div className="break-inside-avoid mb-4">
-            <div className="rounded-xl overflow-hidden border border-gray-100 shadow-sm bg-white group relative">
-                {video.displayOrder === 0 && (
-                    <div className="absolute top-2 left-2 z-10 bg-primary-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full shadow-md">
-                        Tanıtım Videosu
-                    </div>
-                )}
-                <div className="relative group overflow-hidden bg-black aspect-video flex items-center justify-center">
-                    <video
-                        src={`${video.url}#t=0.1`}
-                        controls
-                        className="w-full h-full object-cover"
-                        preload="metadata"
-                        playsInline
-                        onPlay={(e) => {
-                            const videos = document.getElementsByTagName('video');
-                            Array.from(videos).forEach(v => {
-                                if (v !== e.target) v.pause();
-                            });
-                            if (!videoViewRecordedRef.current) {
-                                videoViewRecordedRef.current = true;
-                                import('../api/shop.service').then(m => m.shopService.recordVideoView(video.id).then(n => setViewCount(n)).catch(() => {}));
-                            }
-                        }}
-                    >
-                        Tarayıcınız video etiketini desteklemiyor.
-                    </video>
-                </div>
-                
-                <div className="p-3 bg-white">
-                    <div className="flex items-center justify-between mb-2">
-                        <div className="flex items-center gap-3">
-                            <button
-                                onClick={handleLike}
-                                className="flex items-center gap-1.5 active:scale-90 transition-transform group/btn"
-                            >
-                                <Heart className={`w-4 h-4 transition-colors ${liked ? 'text-red-500 fill-red-500' : 'text-gray-400 group-hover/btn:text-red-400'}`} />
-                                <span className={`text-sm font-semibold ${liked ? 'text-red-600' : 'text-gray-500'}`}>{likeCount}</span>
-                            </button>
-                            <div className="flex items-center gap-1.5 text-gray-500">
-                                <Eye className="w-4 h-4" />
-                                <span className="text-sm font-semibold">{viewCount}</span>
-                            </div>
-                        </div>
-                        <button
-                            onClick={handleShare}
-                            className="text-gray-400 hover:text-primary-600 transition-colors p-1"
-                        >
-                            {shareState === 'copied' ? <Check className="w-4 h-4 text-green-500" /> : <Share2 className="w-4 h-4" />}
-                        </button>
-                    </div>
-
-                    {video.tags && video.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1.5 mt-2">
-                            {video.tags.map(tag => (
-                                <span key={tag.id} className="px-2 py-0.5 rounded-md bg-gray-100 text-gray-600 text-[10px] sm:text-xs font-medium">
-                                    #{tag.name}
-                                </span>
-                            ))}
-                        </div>
-                    )}
-                </div>
-            </div>
-        </div>
-    );
-};
-
-interface GalleryImageCardProps {
-    image: { id: string; url: string; tags: { id: string; name: string }[]; likeCount: number; isLikedByCurrentUser: boolean };
-    shopName: string;
-    shopId: string;
-    isAuthenticated: boolean;
-}
-
-const GalleryImageCard: React.FC<GalleryImageCardProps> = ({ image, shopName, shopId, isAuthenticated }) => {
-    const [liked, setLiked] = useState(image.isLikedByCurrentUser);
-    const [count, setCount] = useState(image.likeCount);
-    const [shareState, setShareState] = useState<'idle' | 'loading' | 'copied'>('idle');
-
-    const handleLike = async () => {
-        if (!isAuthenticated) return;
-        const newLiked = !liked;
-        setLiked(newLiked);
-        setCount(prev => prev + (newLiked ? 1 : -1));
-        try {
-            const serverLiked = await mediaLikeService.toggle(image.id, 'image');
-            setLiked(serverLiked);
-            setCount(serverLiked ? image.likeCount + 1 : image.likeCount);
-        } catch {
-            setLiked(!newLiked);
-            setCount(image.likeCount);
-        }
-    };
-
-    const handleShare = async () => {
-        if (shareState === 'loading') return;
-        const shopUrl = `${window.location.origin}/shop/${shopId}`;
-        setShareState('loading');
-        try {
-            if (navigator.share) {
-                await navigator.share({ title: shopName, url: shopUrl });
-            } else {
-                await navigator.clipboard.writeText(shopUrl);
-                setShareState('copied');
-                setTimeout(() => setShareState('idle'), 2000);
-                return;
-            }
-        } catch { }
-        setShareState('idle');
-    };
-
-    return (
-        <div className="break-inside-avoid mb-4">
-            <div className="rounded-xl overflow-hidden border border-gray-100 shadow-sm bg-white group">
-                <div
-                    className="relative cursor-zoom-in"
-                    onClick={() => window.open(image.url, '_blank')}
-                >
-                    <img
-                        src={image.url}
-                        alt={shopName}
-                        className="w-full h-auto block group-hover:brightness-95 transition-all duration-300"
-                        draggable={false}
-                    />
-                    <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-200 pointer-events-none" />
-                </div>
-                <div className="px-3 pt-2 pb-2.5 space-y-2">
-                    {image.tags.length > 0 && (
-                        <div className="flex flex-wrap gap-1">
-                            {image.tags.map(tag => (
-                                <span
-                                    key={tag.id}
-                                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-50 text-purple-700 border border-purple-100"
-                                >
-                                    {tag.name}
-                                </span>
-                            ))}
-                        </div>
-                    )}
-                    <div className="flex items-center justify-end gap-3">
-                        <button
-                            onClick={e => { e.stopPropagation(); handleShare(); }}
-                            disabled={shareState === 'loading'}
-                            className="active:scale-90 transition-transform disabled:opacity-50"
-                            title="Paylaş"
-                        >
-                            {shareState === 'copied'
-                                ? <Check className="w-4 h-4 text-green-500" />
-                                : shareState === 'loading'
-                                    ? <div className="w-3.5 h-3.5 border border-gray-400 border-t-transparent rounded-full animate-spin" />
-                                    : <Send className="w-4 h-4 text-gray-400 hover:text-gray-600 transition-colors" />}
-                        </button>
-                        {isAuthenticated ? (
-                            <button
-                                onClick={e => { e.stopPropagation(); handleLike(); }}
-                                className="flex items-center gap-1 active:scale-90 transition-transform"
-                            >
-                                <Heart className={`w-4 h-4 transition-colors ${liked ? 'text-red-500 fill-red-500' : 'text-gray-400 hover:text-red-400'}`} />
-                                <span className="text-xs text-gray-500 font-semibold">{count}</span>
-                            </button>
-                        ) : (
-                            <div className="flex items-center gap-1">
-                                <Heart className="w-4 h-4 text-gray-300" />
-                                <span className="text-xs text-gray-400 font-semibold">{count}</span>
-                            </div>
-                        )}
-                    </div>
-                </div>
-            </div>
-        </div>
-    );
-};
+import { ShopReelsViewer } from '../components/ShopReelsViewer';
+import type { MediaHighlight } from '../types/shop';
 
 export const ShopDetailsPage: React.FC = () => {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const { isAuthenticated } = useAuth();
+    const [viewerIndex, setViewerIndex] = useState<number | null>(null);
+
+    const getImageUrl = (path: string) => {
+        if (!path) return '';
+        if (path.startsWith('http')) return path;
+        return `http://localhost:5000${path}`;
+    };
 
     const [shop, setShop] = useState<Shop | null>(null);
     const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -296,6 +85,42 @@ export const ShopDetailsPage: React.FC = () => {
     const toggleAccordion = (setter: React.Dispatch<React.SetStateAction<Record<string, boolean>>>, id: string) => {
         setter(prev => ({ ...prev, [id]: !prev[id] }));
     };
+
+    const combinedMedia = useMemo(() => {
+        if (!shop) return [];
+        const mediaList: MediaHighlight[] = [];
+        if (shop.videos) {
+            [...shop.videos].sort((a, b) => a.displayOrder - b.displayOrder).forEach(video => {
+                mediaList.push({
+                    id: video.id,
+                    type: 'video',
+                    url: getImageUrl(video.url),
+                    shopId: shop.id,
+                    shopName: shop.name,
+                    tags: video.tags?.map(t => t.name) || [],
+                    likeCount: video.likeCount ?? 0,
+                    isLikedByCurrentUser: video.isLikedByCurrentUser ?? false,
+                    viewCount: video.viewCount ?? 0,
+                });
+            });
+        }
+        if (shop.images) {
+            shop.images.forEach(img => {
+                mediaList.push({
+                    id: img.id,
+                    type: 'image',
+                    url: getImageUrl(img.url),
+                    shopId: shop.id,
+                    shopName: shop.name,
+                    tags: img.tags?.map(t => t.name) || [],
+                    likeCount: img.likeCount ?? 0,
+                    isLikedByCurrentUser: img.isLikedByCurrentUser ?? false,
+                    viewCount: 0,
+                });
+            });
+        }
+        return mediaList;
+    }, [shop]);
 
     useEffect(() => {
         const checkFavorite = async () => {
@@ -432,11 +257,7 @@ export const ShopDetailsPage: React.FC = () => {
         }
     };
 
-    const getImageUrl = (path: string) => {
-        if (!path) return '';
-        if (path.startsWith('http')) return path;
-        return `http://localhost:5000${path}`;
-    };
+
 
 
 
@@ -1065,57 +886,60 @@ export const ShopDetailsPage: React.FC = () => {
                             )}
 
                             {activeTab === 'gallery' && (
-                                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 sm:p-8 animate-fadeIn">
-                                    {/* Salon Videoları */}
-                                    {(shop.videos && shop.videos.length > 0) && (
-                                        <div className="mb-8">
-                                            <div className="flex items-center gap-2.5 mb-4">
-                                                <div className="w-9 h-9 rounded-xl bg-blue-50 flex items-center justify-center shrink-0">
-                                                    <Play className="w-4 h-4 text-blue-600 fill-blue-600" />
-                                                </div>
-                                                <h2 className="text-lg font-bold text-gray-900">Salon Videoları</h2>
-                                            </div>
-                                            <div className="columns-1 md:columns-2 gap-4">
-                                                {[...shop.videos].sort((a, b) => a.displayOrder - b.displayOrder).map((video) => (
-                                                    <GalleryVideoCard
-                                                        key={video.id}
-                                                        video={{ ...video, url: getImageUrl(video.url) }}
-                                                        shopName={shop.name}
-                                                        shopId={shop.id}
-                                                        isAuthenticated={isAuthenticated}
-                                                    />
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
+                                <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 sm:p-6 animate-fadeIn">
+                                    {combinedMedia.length > 0 ? (
+                                        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-1.5">
+                                            {combinedMedia.map((item, index) => (
+                                                <div
+                                                    key={item.id}
+                                                    className="relative aspect-square rounded-xl overflow-hidden cursor-pointer group bg-black"
+                                                    onClick={() => setViewerIndex(index)}
+                                                >
+                                                    {item.type === 'image' ? (
+                                                        <img
+                                                            src={item.url}
+                                                            alt={item.shopName}
+                                                            className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+                                                        />
+                                                    ) : (
+                                                        <video
+                                                            src={item.url}
+                                                            className="w-full h-full object-cover opacity-90"
+                                                            muted
+                                                            playsInline
+                                                            preload="metadata"
+                                                            onLoadedMetadata={e => { e.currentTarget.currentTime = 0.1; }}
+                                                        />
+                                                    )}
 
-                                    {/* Fotoğraf Galerisi */}
-                                    {(shop.images && shop.images.length > 0) && (
-                                        <div className="flex items-center gap-2.5 mb-4">
-                                            <div className="w-9 h-9 rounded-xl bg-violet-50 flex items-center justify-center shrink-0">
-                                                <Image className="w-4 h-4 text-violet-600" />
-                                            </div>
-                                            <h2 className="text-lg font-bold text-gray-900">Fotoğraflar</h2>
-                                        </div>
-                                    )}
-                                    {shop.images && shop.images.length > 0 ? (
-                                        <div className="columns-2 md:columns-3 gap-4">
-                                            {shop.images.map((image) => (
-                                                <GalleryImageCard
-                                                    key={image.id}
-                                                    image={{ ...image, url: getImageUrl(image.url) }}
-                                                    shopName={shop.name}
-                                                    shopId={shop.id}
-                                                    isAuthenticated={isAuthenticated}
-                                                />
+                                                    {item.type === 'video' && (
+                                                        <div className="absolute top-2 right-2">
+                                                            <div className="w-6 h-6 rounded-full bg-black/50 flex items-center justify-center backdrop-blur-sm">
+                                                                <Play className="w-3 h-3 text-white fill-white ml-0.5" />
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 via-black/40 to-transparent pt-8 pb-3 px-3">
+                                                        <div className="flex items-center gap-2 text-white">
+                                                            <Heart className="w-3 h-3 fill-current text-white" />
+                                                            <span className="text-[10px] font-bold">{item.likeCount}</span>
+                                                            
+                                                            {item.type === 'video' && (
+                                                                <>
+                                                                    <Eye className="w-3 h-3 ml-2 text-white" />
+                                                                    <span className="text-[10px] font-bold">{item.viewCount}</span>
+                                                                </>
+                                                            )}
+                                                        </div>
+                                                    </div>
+                                                </div>
                                             ))}
                                         </div>
                                     ) : (
-                                        (!shop.videos || shop.videos.length === 0) && (
-                                            <div className="text-center py-12 bg-white rounded-xl border border-dashed border-gray-200">
-                                                <p className="text-gray-500 italic">Henüz görsel yüklenmemiş.</p>
-                                            </div>
-                                        )
+                                        <div className="text-center py-12 bg-white rounded-xl border border-dashed border-gray-200">
+                                            <p className="text-gray-500 italic">Henüz görsel yüklenmemiş.</p>
+                                        </div>
                                     )}
                                 </div>
                             )}
@@ -1321,6 +1145,14 @@ export const ShopDetailsPage: React.FC = () => {
                         imageUrls: editingReview.imageUrls
                     } : undefined}
                     onSubmit={handleReviewSubmit}
+                />
+            )}
+            {viewerIndex !== null && (
+                <ShopReelsViewer
+                    items={combinedMedia}
+                    initialIndex={viewerIndex}
+                    onClose={() => setViewerIndex(null)}
+                    isAuthenticated={isAuthenticated}
                 />
             )}
         </div>
