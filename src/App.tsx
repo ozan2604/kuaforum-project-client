@@ -34,6 +34,7 @@ import { UserListPage } from './pages/admin/UserListPage';
 import { SmsTestPage } from './pages/admin/SmsTestPage';
 import { AdminCreateSalonPage } from './pages/admin/AdminCreateSalonPage';
 import AdminPasswordsPage from './pages/admin/AdminPasswordsPage';
+import { AdminAppointmentsPage } from './pages/admin/AdminAppointmentsPage';
 
 import { SalonDashboard } from './pages/salon/SalonDashboard';
 import { SalonAppointmentsPage } from './pages/salon/SalonAppointmentsPage';
@@ -117,6 +118,7 @@ function App() {
             <Route path="/admin/sms-test" element={<SmsTestPage />} />
             <Route path="/admin/shops/create" element={<AdminCreateSalonPage />} />
             <Route path="/admin/passwords" element={<AdminPasswordsPage />} />
+            <Route path="/admin/appointments" element={<AdminAppointmentsPage />} />
           </Route>
           <Route path="/admin/shops/:shopId/panel" element={<AdminSalonLayout />}>
             <Route index element={<SalonDashboard />} />
