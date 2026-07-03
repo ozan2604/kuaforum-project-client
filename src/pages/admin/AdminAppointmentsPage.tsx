@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { adminService, AdminAppointmentStatsDto } from '../../api/admin.service';
+import { adminService } from '../../api/admin.service';
+import type { AdminAppointmentStatsDto } from '../../api/admin.service';
 import { toast } from 'react-hot-toast';
 import { Loader2, Calendar, Store, ArrowRight, UserCog, User } from 'lucide-react';
 import { Link } from 'react-router-dom';
