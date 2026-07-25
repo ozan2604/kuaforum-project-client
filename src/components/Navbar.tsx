@@ -63,41 +63,41 @@ export const Navbar: React.FC = () => {
                     <div id="navbar-right-actions" className="flex items-center shrink-0 gap-2 sm:gap-6">
                         
                         {/* Desktop Navigation Links */}
-                        <div className="hidden sm:flex items-center gap-5 mr-2">
+                        <div className="hidden sm:flex items-center gap-3 mr-2">
                             <button
                                 onClick={() => navigate('/')}
-                                className={`flex flex-col items-center justify-center gap-1 transition-colors hover:text-primary-600 ${location.pathname === '/' ? 'text-primary-600' : 'text-gray-600'}`}
+                                className={`p-2.5 rounded-full transition-all hover:text-primary-600 hover:bg-gray-100 ${location.pathname === '/' ? 'text-primary-600 bg-primary-50' : 'text-gray-600'}`}
+                                title="Ana Sayfa"
                             >
-                                <Home className="w-5 h-5" />
-                                <span className="text-xs font-medium">Ana Sayfa</span>
+                                <Home className="w-[22px] h-[22px]" />
                             </button>
                             <button
                                 onClick={() => navigate('/kolaj')}
-                                className={`flex flex-col items-center justify-center gap-1 transition-colors hover:text-primary-600 ${location.pathname === '/kolaj' ? 'text-primary-600' : 'text-gray-600'}`}
+                                className={`p-2.5 rounded-full transition-all hover:text-primary-600 hover:bg-gray-100 ${location.pathname === '/kolaj' ? 'text-primary-600 bg-primary-50' : 'text-gray-600'}`}
+                                title="Kolaj"
                             >
-                                <LayoutGrid className="w-5 h-5" />
-                                <span className="text-xs font-medium">Kolaj</span>
+                                <LayoutGrid className="w-[22px] h-[22px]" />
                             </button>
                             <button
                                 onClick={() => navigate('/?openMap=1')}
-                                className="flex flex-col items-center justify-center gap-1 transition-colors hover:text-primary-600 text-gray-600"
+                                className="p-2.5 rounded-full transition-all hover:text-primary-600 hover:bg-gray-100 text-gray-600"
+                                title="Konum"
                             >
-                                <MapPinned className="w-5 h-5" />
-                                <span className="text-xs font-medium">Konum</span>
+                                <MapPinned className="w-[22px] h-[22px]" />
                             </button>
                             <button
                                 onClick={() => navigate('/favorites')}
-                                className={`flex flex-col items-center justify-center gap-1 transition-colors hover:text-red-600 ${location.pathname === '/favorites' ? 'text-red-600' : 'text-gray-600'}`}
+                                className={`p-2.5 rounded-full transition-all hover:text-red-600 hover:bg-red-50 ${location.pathname === '/favorites' ? 'text-red-600 bg-red-50' : 'text-gray-600'}`}
+                                title="Favoriler"
                             >
-                                <Heart className={`w-5 h-5 ${location.pathname === '/favorites' ? 'fill-current text-red-600' : ''}`} />
-                                <span className="text-xs font-medium">Favoriler</span>
+                                <Heart className={`w-[22px] h-[22px] ${location.pathname === '/favorites' ? 'fill-current' : ''}`} />
                             </button>
                             <button
                                 onClick={() => navigate('/profile')}
-                                className={`flex flex-col items-center justify-center gap-1 transition-colors hover:text-primary-600 ${location.pathname === '/profile' ? 'text-primary-600' : 'text-gray-600'}`}
+                                className={`p-2.5 rounded-full transition-all hover:text-primary-600 hover:bg-gray-100 ${location.pathname === '/profile' ? 'text-primary-600 bg-primary-50' : 'text-gray-600'}`}
+                                title="Profil"
                             >
-                                <User className="w-5 h-5" />
-                                <span className="text-xs font-medium">Profil</span>
+                                <User className="w-[22px] h-[22px]" />
                             </button>
                         </div>
 

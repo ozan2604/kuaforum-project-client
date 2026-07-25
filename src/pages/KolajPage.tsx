@@ -6,7 +6,7 @@ import { mediaLikeService } from '../api/mediaLike.service';
 import type { MediaHighlight } from '../types/shop';
 import { useAuth } from '../context/AuthContext';
 
-const ITEM_HEIGHT = 'calc(100dvh - 56px - 56px)';
+
 
 const HEART_STYLE = `
 @keyframes heartPopBig {
@@ -17,6 +17,9 @@ const HEART_STYLE = `
     100% { transform: scale(1);   opacity: 0;    }
 }
 .heart-pop-big { animation: heartPopBig 0.75s ease-out forwards; }
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 `;
 
 interface ReelItemProps {
@@ -170,8 +173,7 @@ const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, isMutedRef, o
     return (
         <div
             ref={containerRef}
-            className="relative w-full shrink-0 snap-start snap-always overflow-hidden bg-black select-none"
-            style={{ height: ITEM_HEIGHT }}
+            className="relative w-full h-full sm:max-w-[400px] sm:rounded-xl sm:shadow-2xl overflow-hidden bg-black select-none mx-auto"
             onPointerDown={handlePointerDown}
             onPointerUp={handlePointerUp}
             onPointerLeave={handlePointerUp}
@@ -325,7 +327,7 @@ export const KolajPage: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center" style={{ height: ITEM_HEIGHT }}>
+            <div className="flex items-center justify-center bg-black sm:bg-gray-950 w-full h-[calc(100dvh-112px)] sm:h-[calc(100vh-96px)]">
                 <div className="w-8 h-8 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
             </div>
         );
@@ -333,7 +335,7 @@ export const KolajPage: React.FC = () => {
 
     if (items.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center gap-3 text-gray-400" style={{ height: ITEM_HEIGHT }}>
+            <div className="flex flex-col items-center justify-center gap-3 text-gray-400 bg-black sm:bg-gray-950 w-full h-[calc(100dvh-112px)] sm:h-[calc(100vh-96px)]">
                 <Play className="w-12 h-12" />
                 <p className="text-sm font-semibold">Henüz içerik yok</p>
             </div>
@@ -343,18 +345,24 @@ export const KolajPage: React.FC = () => {
     return (
         <>
             <style dangerouslySetInnerHTML={{ __html: HEART_STYLE }} />
-            <div ref={scrollRef} className="overflow-y-scroll snap-y snap-mandatory" style={{ height: ITEM_HEIGHT }}>
-                {items.map((item, index) => (
-                    <ReelItem
-                        key={`${item.shopId}-${index}`}
-                        item={item}
-                        index={index}
-                        isMuted={isMuted}
-                        isMutedRef={isMutedRef}
-                        onToggleMute={toggleMute}
-                        isAuthenticated={isAuthenticated}
-                    />
-                ))}
+            <div className="bg-black sm:bg-gray-950 w-full h-[calc(100dvh-112px)] sm:h-[calc(100vh-96px)]">
+                <div 
+                    ref={scrollRef} 
+                    className="overflow-y-scroll snap-y snap-mandatory h-full w-full no-scrollbar"
+                >
+                    {items.map((item, index) => (
+                        <div key={`${item.shopId}-${index}`} className="w-full h-full snap-start snap-always sm:py-6 flex items-center justify-center">
+                            <ReelItem
+                                item={item}
+                                index={index}
+                                isMuted={isMuted}
+                                isMutedRef={isMutedRef}
+                                onToggleMute={toggleMute}
+                                isAuthenticated={isAuthenticated}
+                            />
+                        </div>
+                    ))}
+                </div>
             </div>
         </>
     );
