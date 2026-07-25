@@ -38,6 +38,12 @@ export const Chatbot: React.FC = () => {
     const [showFaqs, setShowFaqs] = useState(true);
     const [inputText, setInputText] = useState('');
     const [isRadioPlaying, setIsRadioPlaying] = useState(false);
+
+    // Drag state
+    const [position, setPosition] = useState({ x: 0, y: 0 });
+    const [isDragging, setIsDragging] = useState(false);
+    const dragRef = useRef({ startX: 0, startY: 0, initialX: 0, initialY: 0, hasMoved: false });
+
     const [messages, setMessages] = useState<{ sender: 'bot' | 'user', text: React.ReactNode }[]>([
         { sender: 'bot', text: 'Size en uygun seçeneği birlikte bulalım. Aşağıdaki konulardan birini seçebilir veya sorunuzu yazabilirsiniz.' }
     ]);
@@ -49,6 +55,64 @@ export const Chatbot: React.FC = () => {
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages, showFaqs]);
+
+    useEffect(() => {
+        const handleMove = (e: PointerEvent) => {
+            if (!isDragging) return;
+            const dx = e.clientX - dragRef.current.startX;
+            const dy = e.clientY - dragRef.current.startY;
+            if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+                dragRef.current.hasMoved = true;
+            }
+            setPosition({
+                x: dragRef.current.initialX + dx,
+                y: dragRef.current.initialY + dy
+            });
+        };
+
+        const handleUp = () => {
+            setIsDragging(false);
+            // reset hasMoved after a tiny delay so click handlers can read it
+            setTimeout(() => {
+                dragRef.current.hasMoved = false;
+            }, 50);
+        };
+
+        if (isDragging) {
+            window.addEventListener('pointermove', handleMove);
+            window.addEventListener('pointerup', handleUp);
+        }
+
+        return () => {
+            window.removeEventListener('pointermove', handleMove);
+            window.removeEventListener('pointerup', handleUp);
+        };
+    }, [isDragging]);
+
+    const handlePointerDown = (e: React.PointerEvent) => {
+        dragRef.current = {
+            startX: e.clientX,
+            startY: e.clientY,
+            initialX: position.x,
+            initialY: position.y,
+            hasMoved: false
+        };
+        setIsDragging(true);
+        e.currentTarget.setPointerCapture(e.pointerId);
+    };
+
+    const handleToggleClick = (e: React.MouseEvent, action: 'radio' | 'chatbot') => {
+        if (dragRef.current.hasMoved) {
+            e.preventDefault();
+            e.stopPropagation();
+            return;
+        }
+        if (action === 'radio') {
+            toggleRadio();
+        } else {
+            setIsOpen(true);
+        }
+    };
 
     // Hide on some pages if needed, but for now show everywhere except maybe admin/employee
     if (pathname.includes('/admin') || pathname.includes('/employee')) return null;
@@ -71,7 +135,7 @@ export const Chatbot: React.FC = () => {
 
     const faqOptions = [
         { icon: <Music className="w-4 h-4" />, text: isRadioPlaying ? "Radyoyu kapatır mısın?" : "Benim için radyoyu açar mısın?" },
-        { icon: <Sparkles className="w-4 h-4 text-yellow-500" />, text: "SalonBir nedir?" },
+        { icon: <Sparkles className="w-4 h-4" />, text: "salonbir nedir?" },
         { icon: <Calendar className="w-4 h-4" />, text: "Nasıl randevu alırım?" },
         { icon: <Store className="w-4 h-4" />, text: "Salonumu nasıl ekleyebilirim?" },
         { icon: <AlertCircle className="w-4 h-4" />, text: "Randevumu nasıl iptal ederim?" },
@@ -84,7 +148,7 @@ export const Chatbot: React.FC = () => {
     const handleOptionClick = (text: string) => {
         setMessages(prev => [...prev, { sender: 'user', text }]);
         setShowFaqs(false);
-        
+
         if (text === "Benim için radyoyu açar mısın?") {
             toggleRadio(true);
         } else if (text === "Radyoyu kapatır mısın?") {
@@ -92,19 +156,19 @@ export const Chatbot: React.FC = () => {
         } else {
             playSound('send');
         }
-        
+
         setTimeout(() => {
             if (text === "Benim için radyoyu açar mısın?") {
                 setMessages(prev => [...prev, { sender: 'bot', text: 'Memnuniyetle! Siz kendinize en uygun salonu bulup randevunuzu planlarken, ben de arka planda sizi rahatlatacak dinlendirici bir müzik açıyorum. Keyifli aramalar! 🎶' }]);
             } else if (text === "Radyoyu kapatır mısın?") {
                 setMessages(prev => [...prev, { sender: 'bot', text: 'Radyoyu kapattım. Başka bir isteğiniz olursa ben buradayım!' }]);
-            } else if (text === "SalonBir nedir?") {
-                setMessages(prev => [...prev, { 
-                    sender: 'bot', 
+            } else if (text === "Salonbir nedir?") {
+                setMessages(prev => [...prev, {
+                    sender: 'bot',
                     text: (
                         <div className="flex flex-col gap-3">
                             <span className="font-semibold text-gray-800 border-b border-gray-100 pb-2">SalonBir, güzellik ve bakım dünyasını tek çatı altında toplayan yeni nesil platformdur. ✨</span>
-                            
+
                             <div className="flex flex-col gap-1.5">
                                 <span className="text-[13px] font-bold text-blue-600">Müşteriler için:</span>
                                 <span className="text-[13px] text-gray-600 leading-relaxed">Şehrinizdeki en iyi salonları keşfedebilir, gerçek yorumları okuyabilir ve 7/24 tamamen <strong>ücretsiz</strong> randevu oluşturabilirsiniz. Güzellik rutininiz artık cebinizde!</span>
@@ -114,7 +178,7 @@ export const Chatbot: React.FC = () => {
                                 <span className="text-[13px] font-bold text-purple-600">Salon Sahipleri için:</span>
                                 <span className="text-[13px] text-gray-600 leading-relaxed">İşletmenizi dijital dünyaya taşıyarak yepyeni müşterilere ulaşırsınız. Randevularınızı, personellerinizi ve kazançlarınızı tek bir ekrandan profesyonelce yönetirsiniz.</span>
                             </div>
-                            
+
                             <span className="text-[13px] text-gray-500 italic mt-1 bg-gray-50 p-2 rounded-lg text-center">
                                 Kısacası SalonBir; güzellik arayanlar ile güzellik yaratanları en güvenli ve hızlı şekilde buluşturan köprüdür.
                             </span>
@@ -122,8 +186,8 @@ export const Chatbot: React.FC = () => {
                     )
                 }]);
             } else if (text === "Nasıl randevu alırım?") {
-                setMessages(prev => [...prev, { 
-                    sender: 'bot', 
+                setMessages(prev => [...prev, {
+                    sender: 'bot',
                     text: (
                         <div className="flex flex-col gap-3">
                             <span>Randevu almak Kuaforum'da çok kolay ve <strong>tamamen ücretsizdir!</strong> Kendinize en uygun salonu bulduktan sonra işlemlerinizi hızlıca tamamlayabilirsiniz:</span>
@@ -132,7 +196,7 @@ export const Chatbot: React.FC = () => {
                                 <li>Tarih ve saat belirleyin.</li>
                                 <li>Randevunuzu oluşturun.</li>
                             </ul>
-                            
+
                             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-1 pt-3 border-t border-gray-100">
                                 <div className="flex items-center gap-1.5">
                                     <Clock className="w-3.5 h-3.5 text-gray-500" />
@@ -151,8 +215,8 @@ export const Chatbot: React.FC = () => {
                     )
                 }]);
             } else if (text === "Randevumu nasıl iptal ederim?") {
-                setMessages(prev => [...prev, { 
-                    sender: 'bot', 
+                setMessages(prev => [...prev, {
+                    sender: 'bot',
                     text: (
                         <div className="flex flex-col gap-2">
                             <span>Randevunuzu iptal etmek çok kolaydır. Bunun için şu adımları izleyebilirsiniz:</span>
@@ -164,13 +228,13 @@ export const Chatbot: React.FC = () => {
                     )
                 }]);
             } else if (text === "Salonumu nasıl ekleyebilirim?") {
-                setMessages(prev => [...prev, { 
-                    sender: 'bot', 
+                setMessages(prev => [...prev, {
+                    sender: 'bot',
                     text: (
                         <div className="flex flex-col gap-2.5">
                             <span>Harika bir karar! Salonunuzu platformumuza eklemek oldukça basit. İlgili bilgileri girerek hızlıca salon başvurusunda bulunabilirsiniz. Başvurunuz ekibimiz tarafından incelendikten sonra kısa sürede onaylanır.</span>
                             <span>Ayrıca aklınıza takılan herhangi bir şey olursa <strong>"Bize Ulaşın"</strong> sekmesinden doğrudan bizimle iletişime geçebilirsiniz.</span>
-                            <a href="/create-shop" className="inline-block mt-1 text-center bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-xl font-medium transition-colors shadow-sm">
+                            <a href="https://www.salonbir.com/salon-basvurusu" target="_blank" rel="noopener noreferrer" className="inline-block mt-1 text-center bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-xl font-medium transition-colors shadow-sm">
                                 Salon Başvurusu Yap
                             </a>
                         </div>
@@ -188,13 +252,13 @@ export const Chatbot: React.FC = () => {
             setShowFaqs(true);
         } else {
             setMessages(prev => [
-                ...prev, 
+                ...prev,
                 { sender: 'user', text: 'Bize Ulaşın' }
             ]);
             playSound('send');
             setTimeout(() => {
                 setMessages(prev => [
-                    ...prev, 
+                    ...prev,
                     { sender: 'bot', text: 'İletişim Bilgilerimiz:\n\nE-posta: salonbir26@gmail.com\nTelefon: 0531 778 85 04' }
                 ]);
                 playSound('receive');
@@ -207,12 +271,12 @@ export const Chatbot: React.FC = () => {
         if (e) e.preventDefault();
         const text = inputText.trim();
         if (!text) return;
-        
+
         setMessages(prev => [...prev, { sender: 'user', text }]);
         playSound('send');
         setInputText('');
         setShowFaqs(false);
-        
+
         setTimeout(() => {
             setMessages(prev => [...prev, { sender: 'bot', text: 'Bu konuda henüz eğitim aşamasındayım. Çok yakında size detaylı yardımcı olabileceğim!' }]);
             playSound('receive');
@@ -221,30 +285,30 @@ export const Chatbot: React.FC = () => {
 
     return (
         <div className="fixed bottom-20 sm:bottom-8 right-4 sm:right-8 z-[100] flex flex-col items-end">
-            <audio 
-                ref={radioAudioRef} 
-                loop 
-                preload="auto" 
+            <audio
+                ref={radioAudioRef}
+                loop
+                preload="auto"
                 playsInline
                 crossOrigin="anonymous"
-                src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3" 
+                src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3"
             />
-            
+
             {/* Chatbot Window */}
             {isOpen && (
                 <div className="bg-gray-50 mb-4 w-[calc(100vw-2rem)] sm:w-[380px] max-w-full h-[550px] max-h-[70vh] rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] border border-gray-200 flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 fade-in duration-200 origin-bottom-right">
-                    
+
                     {/* Header */}
                     <div className="bg-white px-5 py-4 flex items-center justify-between border-b border-gray-100 shrink-0">
                         <div className="flex items-center gap-3">
                             <div className="relative">
-                                <div 
-                                    className="w-10 h-10 rounded-full bg-white border border-gray-200 overflow-hidden" 
-                                    style={{ 
-                                        backgroundImage: "url('/logo.png')", 
-                                        backgroundPosition: "45% 50%", 
-                                        backgroundSize: "400%", 
-                                        backgroundRepeat: "no-repeat" 
+                                <div
+                                    className="w-10 h-10 rounded-full bg-white border border-gray-200 overflow-hidden"
+                                    style={{
+                                        backgroundImage: "url('/logo.png')",
+                                        backgroundPosition: "45% 50%",
+                                        backgroundSize: "400%",
+                                        backgroundRepeat: "no-repeat"
                                     }}
                                 >
                                 </div>
@@ -256,14 +320,14 @@ export const Chatbot: React.FC = () => {
                             </div>
                         </div>
                         <div className="flex items-center gap-1">
-                            <button 
+                            <button
                                 onClick={() => toggleRadio()}
                                 className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
                                 title={isRadioPlaying ? "Müziği Kapat" : "Müziği Aç"}
                             >
                                 {isRadioPlaying ? <Volume2 className="w-4 h-4 text-green-600" /> : <VolumeX className="w-4 h-4 text-gray-400" />}
                             </button>
-                            <button 
+                            <button
                                 onClick={() => setIsOpen(false)}
                                 className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
                             >
@@ -282,8 +346,8 @@ export const Chatbot: React.FC = () => {
                             <div key={idx} className="flex flex-col gap-2">
                                 <div className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
                                     <div className={`max-w-[85%] px-4 py-3 rounded-2xl text-[15px] leading-relaxed shadow-sm whitespace-pre-wrap
-                                        ${msg.sender === 'user' 
-                                            ? 'bg-blue-600 text-white rounded-br-sm' 
+                                        ${msg.sender === 'user'
+                                            ? 'bg-blue-600 text-white rounded-br-sm'
                                             : 'bg-white text-gray-800 border border-gray-100 rounded-tl-sm'
                                         }`}
                                     >
@@ -292,13 +356,13 @@ export const Chatbot: React.FC = () => {
                                 </div>
                                 {msg.sender === 'bot' && (
                                     <div className="flex gap-2 justify-start ml-1 mt-0.5">
-                                        <button 
+                                        <button
                                             onClick={() => handleActionClick('faq')}
                                             className="px-3 py-1.5 text-[13px] font-medium bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors border border-blue-100 shadow-sm"
                                         >
                                             Akıllı Sorular
                                         </button>
-                                        <button 
+                                        <button
                                             onClick={() => handleActionClick('contact')}
                                             className="px-3 py-1.5 text-[13px] font-medium bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200 shadow-sm"
                                         >
@@ -316,7 +380,7 @@ export const Chatbot: React.FC = () => {
                         <div className="p-3 pt-0 shrink-0 overflow-y-auto max-h-[40%] custom-scrollbar">
                             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
                                 {faqOptions.map((opt, idx) => (
-                                    <button 
+                                    <button
                                         key={idx}
                                         onClick={() => handleOptionClick(opt.text)}
                                         className={`w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700
@@ -334,11 +398,11 @@ export const Chatbot: React.FC = () => {
                     {/* Input Area */}
                     <div className="bg-white p-3 border-t border-gray-100 shrink-0">
                         <form onSubmit={handleSendText} className="relative flex items-center">
-                            <input 
-                                type="text" 
+                            <input
+                                type="text"
                                 value={inputText}
                                 onChange={e => setInputText(e.target.value)}
-                                placeholder="Mesajınızı yazın..." 
+                                placeholder="Mesajınızı yazın..."
                                 className="w-full bg-gray-100 border-none rounded-full py-3 pl-4 pr-12 text-sm text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
                             />
                             <button type="submit" disabled={!inputText.trim()} className="absolute right-1.5 p-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-full transition-colors shadow-sm">
@@ -350,25 +414,34 @@ export const Chatbot: React.FC = () => {
                 </div>
             )}
 
-            {/* Toggle Button */}
+            {/* Toggle Button Group */}
             {!isOpen && (
-                <div className="flex items-end gap-3 mt-4">
-                    <button 
-                        onClick={() => toggleRadio()}
-                        className="w-10 h-10 bg-white hover:bg-gray-50 text-gray-700 rounded-full shadow-[0_5px_15px_rgba(0,0,0,0.1)] flex items-center justify-center transition-transform hover:scale-110 active:scale-95 border border-gray-100 mb-2"
-                        title={isRadioPlaying ? "Müziği Kapat" : "Müziği Aç"}
+                <div
+                    className="flex mt-4 touch-none select-none cursor-grab active:cursor-grabbing z-50"
+                    style={{ transform: `translate(${position.x}px, ${position.y}px)` }}
+                    onPointerDown={handlePointerDown}
+                >
+                    <div
+                        onClick={(e) => handleToggleClick(e, 'chatbot')}
+                        className="relative w-12 h-12 bg-gray-900 hover:bg-black text-white rounded-full shadow-[0_8px_25px_rgba(0,0,0,0.3)] flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
                     >
-                        {isRadioPlaying ? <Volume2 className="w-5 h-5 text-green-600" /> : <VolumeX className="w-5 h-5 text-gray-400" />}
-                    </button>
-                    <button 
-                        onClick={() => setIsOpen(true)}
-                        className="w-14 h-14 bg-gray-900 hover:bg-black text-white rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.2)] flex items-center justify-center transition-transform hover:scale-110 active:scale-95"
-                    >
-                        <MessageCircleMore className="w-7 h-7" />
-                    </button>
+                        <MessageCircleMore className="w-[22px] h-[22px]" />
+
+                        {/* Music badge attached to Chatbot */}
+                        <div
+                            onClick={(e) => {
+                                e.stopPropagation();
+                                handleToggleClick(e, 'radio');
+                            }}
+                            className="absolute -top-1.5 -right-1.5 w-[22px] h-[22px] bg-white text-gray-700 rounded-full shadow-[0_4px_12px_rgba(0,0,0,0.3)] flex items-center justify-center transition-transform hover:scale-110 active:scale-95 border border-gray-200 cursor-pointer z-10"
+                            title={isRadioPlaying ? "Müziği Kapat" : "Müziği Aç"}
+                        >
+                            {isRadioPlaying ? <Volume2 className="w-3 h-3 text-green-600" /> : <VolumeX className="w-3 h-3 text-gray-400" />}
+                        </div>
+                    </div>
                 </div>
             )}
-            
+
         </div>
     );
 };
