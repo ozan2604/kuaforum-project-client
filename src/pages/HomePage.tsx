@@ -7,7 +7,7 @@ import { ShopCard } from '../components/ShopCard';
 import { MediaStrip } from '../components/MediaStrip';
 import { useAuth } from '../context/AuthContext';
 import { createPortal } from 'react-dom';
-import { MapPin, ChevronLeft, ChevronRight, Map, XCircle, Navigation, Search, Sliders } from 'lucide-react';
+import { MapPin, ChevronLeft, ChevronRight, Map, XCircle, Navigation, Search, Filter } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -488,7 +488,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
                         className={`p-2 rounded-full transition-colors relative ${activeTags.length > 0 || activeSortTag || minRating || selectedShopType ? 'bg-primary-50 text-primary-600' : 'text-gray-600 hover:bg-gray-100'}`}
                         title="Filtreler"
                     >
-                        <Sliders className="w-5 h-5" />
+                        <Filter className="w-5 h-5" />
                         {(activeTags.length > 0 || activeSortTag || minRating || selectedShopType) && (
                             <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full border border-white"></span>
                         )}

@@ -126,16 +126,7 @@ export const Navbar: React.FC = () => {
                                 </button>
                             </div>
                         )}
-                        {!isAuthenticated && (
-                            <div className="flex items-center gap-2">
-                                <Link to="/login">
-                                    <Button variant="ghost" size="sm">Giriş</Button>
-                                </Link>
-                                <Link to="/register" className="hidden sm:block">
-                                    <Button variant="primary" size="sm">Kayıt Ol</Button>
-                                </Link>
-                            </div>
-                        )}
+
                     </div>
                 </div>
             </div>

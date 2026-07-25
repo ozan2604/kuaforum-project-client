@@ -15,7 +15,7 @@ import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
 import { toast } from 'react-hot-toast';
 import { getApiError } from '../utils/storage';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { reviewService } from '../api/review.service';
 import { ReviewModal } from '../components/ReviewModal';
 
@@ -275,6 +275,30 @@ export const ProfilePage: React.FC = () => {
     const fullName = [user?.firstName, user?.lastName].filter(Boolean).join(' ') || 'Kullanıcı';
 
     const inputCls = "block w-full rounded-lg border border-gray-300 px-3 py-2.5 text-sm shadow-sm focus:border-primary-500 focus:ring-1 focus:ring-primary-500 outline-none";
+
+    if (!isAuthenticated || !user) {
+        return (
+            <div className="min-h-[80vh] flex flex-col items-center justify-center bg-gray-50 px-4">
+                <div className="bg-white p-8 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 max-w-md w-full text-center">
+                    <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <User className="w-10 h-10" />
+                    </div>
+                    <h2 className="text-2xl font-black text-gray-900 mb-3">Hesabınıza Giriş Yapın</h2>
+                    <p className="text-gray-500 mb-8 font-medium leading-relaxed">
+                        Randevularınızı yönetmek, favori salonlarınızı kaydetmek ve deneyimlerinizi paylaşmak için giriş yapmalısınız.
+                    </p>
+                    <div className="flex flex-col gap-3">
+                        <Link to="/login" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg py-3.5 rounded-xl transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5">
+                            Giriş Yap
+                        </Link>
+                        <Link to="/register" className="w-full bg-white hover:bg-gray-50 text-gray-900 border-2 border-gray-200 font-bold text-lg py-3 rounded-xl transition-all hover:border-gray-300">
+                            Kayıt Ol
+                        </Link>
+                    </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gray-100">
