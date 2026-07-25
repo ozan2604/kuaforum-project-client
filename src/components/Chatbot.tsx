@@ -1,0 +1,148 @@
+import React, { useState } from 'react';
+import { MessageCircle, X, Send, Calendar, Search, CreditCard, User, HelpCircle, AlertCircle } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
+
+export const Chatbot: React.FC = () => {
+    const [isOpen, setIsOpen] = useState(false);
+    const [showTooltip, setShowTooltip] = useState(true);
+    const [messages, setMessages] = useState<{ sender: 'bot' | 'user', text: string }[]>([
+        { sender: 'bot', text: 'Size en uygun seçeneği birlikte bulalım. Aşağıdaki konulardan birini seçebilir veya sorunuzu yazabilirsiniz.' }
+    ]);
+    const { pathname } = useLocation();
+
+    // Hide on some pages if needed, but for now show everywhere except maybe admin/employee
+    if (pathname.includes('/admin') || pathname.includes('/employee')) return null;
+
+    const faqOptions = [
+        { icon: <Calendar className="w-4 h-4" />, text: "Nasıl randevu alırım?" },
+        { icon: <AlertCircle className="w-4 h-4" />, text: "Randevumu nasıl iptal ederim?" },
+        { icon: <Calendar className="w-4 h-4" />, text: "Randevumu erteleyebilir miyim?" },
+        { icon: <Search className="w-4 h-4" />, text: "Nasıl işletme bulurum?" },
+        { icon: <CreditCard className="w-4 h-4" />, text: "Ödeme nasıl yapılıyor?" },
+        { icon: <User className="w-4 h-4" />, text: "Hesabımı nasıl yönetirim?" },
+    ];
+
+    const handleOptionClick = (text: string) => {
+        setMessages(prev => [...prev, { sender: 'user', text }]);
+        setTimeout(() => {
+            setMessages(prev => [...prev, { sender: 'bot', text: 'Bu konuda henüz eğitim aşamasındayım. Çok yakında size detaylı yardımcı olabileceğim!' }]);
+        }, 1000);
+    };
+
+    return (
+        <div className="fixed bottom-20 sm:bottom-8 right-4 sm:right-8 z-[100] flex flex-col items-end">
+            
+            {/* Chatbot Window */}
+            {isOpen && (
+                <div className="bg-gray-50 mb-4 w-[calc(100vw-2rem)] sm:w-[380px] max-w-full h-[550px] max-h-[70vh] rounded-2xl shadow-[0_10px_40px_rgba(0,0,0,0.15)] border border-gray-200 flex flex-col overflow-hidden animate-in slide-in-from-bottom-4 fade-in duration-200 origin-bottom-right">
+                    
+                    {/* Header */}
+                    <div className="bg-white px-5 py-4 flex items-center justify-between border-b border-gray-100 shrink-0">
+                        <div className="flex items-center gap-3">
+                            <div className="relative">
+                                <div className="w-10 h-10 bg-black rounded-full flex items-center justify-center text-white font-bold text-xl tracking-tighter">
+                                    rb
+                                </div>
+                                <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white"></div>
+                            </div>
+                            <div>
+                                <h3 className="font-bold text-gray-900 leading-tight">Akıllı Asistan</h3>
+                                <p className="text-xs text-gray-500 font-medium">Size en uygun seçeneği birlikte bulalım.</p>
+                            </div>
+                        </div>
+                        <button 
+                            onClick={() => setIsOpen(false)}
+                            className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
+                        >
+                            <X className="w-5 h-5" />
+                        </button>
+                    </div>
+
+                    {/* Chat Area */}
+                    <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4">
+                        <div className="flex justify-center mb-2">
+                            <span className="text-[11px] text-gray-400 font-semibold uppercase tracking-wider bg-gray-100 px-3 py-1 rounded-full">Bugün</span>
+                        </div>
+
+                        {messages.map((msg, idx) => (
+                            <div key={idx} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                <div className={`max-w-[85%] px-4 py-3 rounded-2xl text-[15px] leading-relaxed shadow-sm
+                                    ${msg.sender === 'user' 
+                                        ? 'bg-blue-600 text-white rounded-br-sm' 
+                                        : 'bg-white text-gray-800 border border-gray-100 rounded-tl-sm'
+                                    }`}
+                                >
+                                    {msg.text}
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+
+                    {/* FAQ Options (only show if last message is from bot) */}
+                    {messages[messages.length - 1].sender === 'bot' && (
+                        <div className="p-3 pt-0 shrink-0 overflow-y-auto max-h-[40%] custom-scrollbar">
+                            <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
+                                {faqOptions.map((opt, idx) => (
+                                    <button 
+                                        key={idx}
+                                        onClick={() => handleOptionClick(opt.text)}
+                                        className={`w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700
+                                            ${idx !== faqOptions.length - 1 ? 'border-b border-gray-100' : ''}
+                                        `}
+                                    >
+                                        <div className="text-gray-400">{opt.icon}</div>
+                                        {opt.text}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Input Area */}
+                    <div className="bg-white p-3 border-t border-gray-100 shrink-0">
+                        <div className="relative flex items-center">
+                            <input 
+                                type="text" 
+                                placeholder="Mesajınızı yazın..." 
+                                className="w-full bg-gray-100 border-none rounded-full py-3 pl-4 pr-12 text-sm text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
+                            />
+                            <button className="absolute right-1.5 p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition-colors shadow-sm">
+                                <Send className="w-4 h-4 ml-0.5" />
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+            )}
+
+            {/* Toggle Button & Tooltip */}
+            {!isOpen && (
+                <div className="flex items-center gap-3">
+                    {/* Tooltip */}
+                    {showTooltip && (
+                        <div className="bg-white px-4 py-2.5 rounded-full shadow-lg border border-gray-100 flex items-center gap-2 animate-bounce-slow relative">
+                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                            <span className="font-bold text-sm text-gray-800">Yardım mı lazım?</span>
+                            <div className="absolute -right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 bg-white border-r border-t border-gray-100 rotate-45"></div>
+                            <button 
+                                onClick={() => setShowTooltip(false)}
+                                className="absolute -top-2 -left-2 w-5 h-5 bg-gray-800 text-white rounded-full flex items-center justify-center hover:bg-black transition-colors"
+                            >
+                                <X className="w-3 h-3" />
+                            </button>
+                        </div>
+                    )}
+
+                    {/* Main Button */}
+                    <button 
+                        onClick={() => setIsOpen(true)}
+                        className="w-14 h-14 bg-gray-900 hover:bg-black text-white rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.2)] flex items-center justify-center transition-transform hover:scale-110 active:scale-95"
+                    >
+                        <MessageCircle className="w-7 h-7" />
+                    </button>
+                </div>
+            )}
+            
+        </div>
+    );
+};

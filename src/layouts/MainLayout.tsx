@@ -2,6 +2,7 @@ import React from 'react';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
 import { MobileBottomNav } from '../components/MobileBottomNav';
+import { Chatbot } from '../components/Chatbot';
 import { Outlet, useLocation } from 'react-router-dom';
 
 export const MainLayout: React.FC = () => {
@@ -16,6 +17,7 @@ export const MainLayout: React.FC = () => {
             </main>
             {!hideFooter && <Footer />}
             <MobileBottomNav />
+            <Chatbot />
         </div>
     );
 };
