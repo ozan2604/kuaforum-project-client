@@ -2,36 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircleMore, X, Send, Calendar, Search, CreditCard, User, AlertCircle, Music, Store, Volume2, VolumeX, Clock, CheckCircle, Zap, Sparkles } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 
-const playSound = (type: 'send' | 'receive') => {
-    try {
-        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
-        if (!AudioContext) return;
-        const ctx = new AudioContext();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.connect(gain);
-        gain.connect(ctx.destination);
-        if (type === 'send') {
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(300, ctx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.1);
-            gain.gain.setValueAtTime(0.1, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
-            osc.start(ctx.currentTime);
-            osc.stop(ctx.currentTime + 0.1);
-        } else {
-            osc.type = 'sine';
-            osc.frequency.setValueAtTime(400, ctx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 0.15);
-            gain.gain.setValueAtTime(0.1, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
-            osc.start(ctx.currentTime);
-            osc.stop(ctx.currentTime + 0.15);
-        }
-    } catch (e) {
-        console.error("Audio playback failed", e);
-    }
-};
+// Removed AudioContext playSound to use DOM Audio elements for iOS compatibility
 
 export const Chatbot: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -49,8 +20,21 @@ export const Chatbot: React.FC = () => {
     ]);
     const { pathname } = useLocation();
 
-    const messagesEndRef = useRef<HTMLDivElement>(null);
     const radioAudioRef = useRef<HTMLAudioElement | null>(null);
+    const sendAudioRef = useRef<HTMLAudioElement | null>(null);
+    const receiveAudioRef = useRef<HTMLAudioElement | null>(null);
+
+    const playSound = (type: 'send' | 'receive') => {
+        const audio = type === 'send' ? sendAudioRef.current : receiveAudioRef.current;
+        if (audio) {
+            audio.volume = 0.3;
+            audio.currentTime = 0;
+            const p = audio.play();
+            if (p) p.catch(() => {});
+        }
+    };
+
+    const messagesEndRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -88,16 +72,29 @@ export const Chatbot: React.FC = () => {
         };
     }, [isDragging]);
 
-    // iOS Audio Unlock Hack
+    // Robust iOS Audio Unlock Hack for all sounds
     useEffect(() => {
         const unlockAudio = () => {
-            if (radioAudioRef.current && radioAudioRef.current.paused && !isRadioPlaying) {
-                const playPromise = radioAudioRef.current.play();
-                if (playPromise !== undefined) {
-                    playPromise.then(() => {
-                        radioAudioRef.current?.pause();
-                    }).catch(() => {});
+            const audios = [radioAudioRef.current, sendAudioRef.current, receiveAudioRef.current];
+            let unlockedAny = false;
+            
+            audios.forEach(a => {
+                if (a && a.paused) {
+                    const originalVolume = a.volume;
+                    a.volume = 0.01; // nearly mute
+                    const playPromise = a.play();
+                    if (playPromise !== undefined) {
+                        playPromise.then(() => {
+                            a.pause();
+                            a.currentTime = 0;
+                            a.volume = originalVolume;
+                        }).catch(() => {});
+                    }
+                    unlockedAny = true;
                 }
+            });
+
+            if (unlockedAny) {
                 document.removeEventListener('touchstart', unlockAudio);
                 document.removeEventListener('click', unlockAudio);
             }
@@ -110,7 +107,7 @@ export const Chatbot: React.FC = () => {
             document.removeEventListener('touchstart', unlockAudio);
             document.removeEventListener('click', unlockAudio);
         };
-    }, [isRadioPlaying]);
+    }, []);
 
     const handlePointerDown = (e: React.PointerEvent) => {
         dragRef.current = {
@@ -143,14 +140,16 @@ export const Chatbot: React.FC = () => {
     const toggleRadio = (play?: boolean) => {
         if (!radioAudioRef.current) return;
         
-        if (play === true || !isRadioPlaying) {
+        const nextState = play !== undefined ? play : !isRadioPlaying;
+        
+        if (nextState) {
             radioAudioRef.current.volume = 0.5;
+            setIsRadioPlaying(true);
             const playPromise = radioAudioRef.current.play();
             if (playPromise !== undefined) {
-                playPromise.then(() => {
-                    setIsRadioPlaying(true);
-                }).catch(error => {
+                playPromise.catch(error => {
                     console.error("Audio playback failed:", error);
+                    setIsRadioPlaying(false);
                 });
             }
         } else {
@@ -318,6 +317,8 @@ export const Chatbot: React.FC = () => {
                 playsInline
                 src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3"
             />
+            <audio ref={sendAudioRef} preload="auto" playsInline src="https://cdn.freesound.org/previews/263/263133_2064400-lq.mp3" />
+            <audio ref={receiveAudioRef} preload="auto" playsInline src="https://cdn.freesound.org/previews/512/512135_6142149-lq.mp3" />
 
             {/* Chatbot Window */}
             {isOpen && (
