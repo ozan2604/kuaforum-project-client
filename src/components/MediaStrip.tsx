@@ -332,13 +332,13 @@ export const MediaStrip: React.FC<MediaStripProps> = ({ items }) => {
         <>
             <style dangerouslySetInnerHTML={{ __html: HEART_STYLE }} />
 
-            <div className="rounded-2xl bg-gray-950 px-3 pt-3 pb-3 my-4">
-                <div className="flex items-center justify-between mb-2.5">
+            <div className="py-2 my-4">
+                <div className="flex items-center justify-between mb-3 px-1">
                     <div className="flex items-center gap-1.5">
-                        <Clapperboard className="w-3.5 h-3.5 text-white/50" />
-                        <p className="text-[11px] font-semibold text-white/50 tracking-wide uppercase">Önerilenler</p>
+                        <Clapperboard className="w-4 h-4 text-gray-500" />
+                        <p className="text-xs font-bold text-gray-700 tracking-wide uppercase">Önerilenler</p>
                     </div>
-                    <button onClick={scroll} className="flex items-center gap-1 text-[11px] font-semibold text-white/40 hover:text-white/70 transition-colors">
+                    <button onClick={scroll} className="flex items-center gap-1 text-[11px] font-semibold text-gray-400 hover:text-gray-600 transition-colors">
                         Sağa kaydır <ChevronRight className="w-3.5 h-3.5" />
                     </button>
                 </div>
