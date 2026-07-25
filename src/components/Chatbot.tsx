@@ -33,6 +33,7 @@ const playSound = (type: 'send' | 'receive') => {
     }
 };
 
+export const Chatbot: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [showFaqs, setShowFaqs] = useState(true);
     const [inputText, setInputText] = useState('');
