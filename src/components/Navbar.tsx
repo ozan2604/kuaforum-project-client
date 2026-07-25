@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './Button';
-import { Search, MapPin, Sliders } from 'lucide-react';
+import { Search, MapPin, Sliders, Home, LayoutGrid, MapPinned, Heart, User } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
     const { isAuthenticated } = useAuth();
@@ -60,7 +60,47 @@ export const Navbar: React.FC = () => {
                     </div>
 
                     {/* Right: Actions */}
-                    <div id="navbar-right-actions" className="flex items-center shrink-0 gap-2 sm:gap-4">
+                    <div id="navbar-right-actions" className="flex items-center shrink-0 gap-2 sm:gap-6">
+                        
+                        {/* Desktop Navigation Links */}
+                        <div className="hidden sm:flex items-center gap-5 mr-2">
+                            <button
+                                onClick={() => navigate('/')}
+                                className={`flex flex-col items-center justify-center gap-1 transition-colors hover:text-primary-600 ${location.pathname === '/' ? 'text-primary-600' : 'text-gray-600'}`}
+                            >
+                                <Home className="w-5 h-5" />
+                                <span className="text-xs font-medium">Ana Sayfa</span>
+                            </button>
+                            <button
+                                onClick={() => navigate('/kolaj')}
+                                className={`flex flex-col items-center justify-center gap-1 transition-colors hover:text-primary-600 ${location.pathname === '/kolaj' ? 'text-primary-600' : 'text-gray-600'}`}
+                            >
+                                <LayoutGrid className="w-5 h-5" />
+                                <span className="text-xs font-medium">Kolaj</span>
+                            </button>
+                            <button
+                                onClick={() => navigate('/?openMap=1')}
+                                className="flex flex-col items-center justify-center gap-1 transition-colors hover:text-primary-600 text-gray-600"
+                            >
+                                <MapPinned className="w-5 h-5" />
+                                <span className="text-xs font-medium">Konum</span>
+                            </button>
+                            <button
+                                onClick={() => navigate('/favorites')}
+                                className={`flex flex-col items-center justify-center gap-1 transition-colors hover:text-red-600 ${location.pathname === '/favorites' ? 'text-red-600' : 'text-gray-600'}`}
+                            >
+                                <Heart className={`w-5 h-5 ${location.pathname === '/favorites' ? 'fill-current text-red-600' : ''}`} />
+                                <span className="text-xs font-medium">Favoriler</span>
+                            </button>
+                            <button
+                                onClick={() => navigate('/profile')}
+                                className={`flex flex-col items-center justify-center gap-1 transition-colors hover:text-primary-600 ${location.pathname === '/profile' ? 'text-primary-600' : 'text-gray-600'}`}
+                            >
+                                <User className="w-5 h-5" />
+                                <span className="text-xs font-medium">Profil</span>
+                            </button>
+                        </div>
+
                         {location.pathname !== '/' && (
                             <div className="flex items-center gap-1 sm:gap-2 ml-auto">
                                 <button
