@@ -332,7 +332,7 @@ export const MediaStrip: React.FC<MediaStripProps> = ({ items }) => {
         <>
             <style dangerouslySetInnerHTML={{ __html: HEART_STYLE }} />
 
-            <div className="py-2 my-4">
+            <div className="pb-2 mb-4 mt-1 sm:mt-2">
                 <div className="flex items-center justify-between mb-3 px-1">
                     <div className="flex items-center gap-1.5">
                         <Clapperboard className="w-4 h-4 text-gray-500" />
