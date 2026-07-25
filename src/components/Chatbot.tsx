@@ -1,10 +1,42 @@
 import React, { useState } from 'react';
-import { MessageCircleMore, X, Send, Calendar, Search, CreditCard, User, AlertCircle } from 'lucide-react';
+import { MessageCircleMore, X, Send, Calendar, Search, CreditCard, User, AlertCircle, Music } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 
-export const Chatbot: React.FC = () => {
+const playSound = (type: 'send' | 'receive') => {
+    try {
+        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext();
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        if (type === 'send') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(300, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.1);
+        } else {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(400, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 0.15);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.15);
+        }
+    } catch (e) {
+        console.error("Audio playback failed", e);
+    }
+};
+
     const [isOpen, setIsOpen] = useState(false);
     const [showFaqs, setShowFaqs] = useState(true);
+    const [inputText, setInputText] = useState('');
+    const [isRadioPlaying, setIsRadioPlaying] = useState(false);
     const [messages, setMessages] = useState<{ sender: 'bot' | 'user', text: string }[]>([
         { sender: 'bot', text: 'Size en uygun seçeneği birlikte bulalım. Aşağıdaki konulardan birini seçebilir veya sorunuzu yazabilirsiniz.' }
     ]);
@@ -14,6 +46,7 @@ export const Chatbot: React.FC = () => {
     if (pathname.includes('/admin') || pathname.includes('/employee')) return null;
 
     const faqOptions = [
+        { icon: <Music className="w-4 h-4" />, text: "Benim için radyoyu açar mısın?" },
         { icon: <Calendar className="w-4 h-4" />, text: "Nasıl randevu alırım?" },
         { icon: <AlertCircle className="w-4 h-4" />, text: "Randevumu nasıl iptal ederim?" },
         { icon: <Calendar className="w-4 h-4" />, text: "Randevumu erteleyebilir miyim?" },
@@ -24,14 +57,61 @@ export const Chatbot: React.FC = () => {
 
     const handleOptionClick = (text: string) => {
         setMessages(prev => [...prev, { sender: 'user', text }]);
+        playSound('send');
         setShowFaqs(false);
+        
+        setTimeout(() => {
+            if (text === "Benim için radyoyu açar mısın?") {
+                setIsRadioPlaying(true);
+                setMessages(prev => [...prev, { sender: 'bot', text: 'Memnuniyetle! Siz kendinize en uygun salonu bulup randevunuzu planlarken, ben de arka planda sizi rahatlatacak dinlendirici bir müzik açıyorum. Keyifli aramalar! 🎶' }]);
+            } else {
+                setMessages(prev => [...prev, { sender: 'bot', text: 'Bu konuda henüz eğitim aşamasındayım. Çok yakında size detaylı yardımcı olabileceğim!' }]);
+            }
+            playSound('receive');
+        }, 1000);
+    };
+
+    const handleActionClick = (action: 'faq' | 'contact') => {
+        if (action === 'faq') {
+            setShowFaqs(true);
+        } else {
+            setMessages(prev => [
+                ...prev, 
+                { sender: 'user', text: 'Bize Ulaşın' }
+            ]);
+            playSound('send');
+            setTimeout(() => {
+                setMessages(prev => [
+                    ...prev, 
+                    { sender: 'bot', text: 'İletişim Bilgilerimiz:\n\nE-posta: salonbir26@gmail.com\nTelefon: 0531 778 85 04' }
+                ]);
+                playSound('receive');
+            }, 500);
+            setShowFaqs(false);
+        }
+    };
+
+    const handleSendText = (e?: React.FormEvent) => {
+        if (e) e.preventDefault();
+        const text = inputText.trim();
+        if (!text) return;
+        
+        setMessages(prev => [...prev, { sender: 'user', text }]);
+        playSound('send');
+        setInputText('');
+        setShowFaqs(false);
+        
         setTimeout(() => {
             setMessages(prev => [...prev, { sender: 'bot', text: 'Bu konuda henüz eğitim aşamasındayım. Çok yakında size detaylı yardımcı olabileceğim!' }]);
+            playSound('receive');
         }, 1000);
     };
 
     return (
         <div className="fixed bottom-20 sm:bottom-8 right-4 sm:right-8 z-[100] flex flex-col items-end">
+            {isRadioPlaying && (
+                <audio autoPlay loop src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3" />
+            )}
             
             {/* Chatbot Window */}
             {isOpen && (
@@ -73,15 +153,33 @@ export const Chatbot: React.FC = () => {
                         </div>
 
                         {messages.map((msg, idx) => (
-                            <div key={idx} className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                                <div className={`max-w-[85%] px-4 py-3 rounded-2xl text-[15px] leading-relaxed shadow-sm
-                                    ${msg.sender === 'user' 
-                                        ? 'bg-blue-600 text-white rounded-br-sm' 
-                                        : 'bg-white text-gray-800 border border-gray-100 rounded-tl-sm'
-                                    }`}
-                                >
-                                    {msg.text}
+                            <div key={idx} className="flex flex-col gap-2">
+                                <div className={`flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                                    <div className={`max-w-[85%] px-4 py-3 rounded-2xl text-[15px] leading-relaxed shadow-sm whitespace-pre-wrap
+                                        ${msg.sender === 'user' 
+                                            ? 'bg-blue-600 text-white rounded-br-sm' 
+                                            : 'bg-white text-gray-800 border border-gray-100 rounded-tl-sm'
+                                        }`}
+                                    >
+                                        {msg.text}
+                                    </div>
                                 </div>
+                                {msg.sender === 'bot' && (
+                                    <div className="flex gap-2 justify-start ml-1 mt-0.5">
+                                        <button 
+                                            onClick={() => handleActionClick('faq')}
+                                            className="px-3 py-1.5 text-[13px] font-medium bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors border border-blue-100 shadow-sm"
+                                        >
+                                            Akıllı Sorular
+                                        </button>
+                                        <button 
+                                            onClick={() => handleActionClick('contact')}
+                                            className="px-3 py-1.5 text-[13px] font-medium bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200 shadow-sm"
+                                        >
+                                            Bize Ulaşın
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         ))}
                     </div>
@@ -108,16 +206,18 @@ export const Chatbot: React.FC = () => {
 
                     {/* Input Area */}
                     <div className="bg-white p-3 border-t border-gray-100 shrink-0">
-                        <div className="relative flex items-center">
+                        <form onSubmit={handleSendText} className="relative flex items-center">
                             <input 
                                 type="text" 
+                                value={inputText}
+                                onChange={e => setInputText(e.target.value)}
                                 placeholder="Mesajınızı yazın..." 
                                 className="w-full bg-gray-100 border-none rounded-full py-3 pl-4 pr-12 text-sm text-gray-800 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all"
                             />
-                            <button className="absolute right-1.5 p-2 bg-blue-600 hover:bg-blue-700 text-white rounded-full transition-colors shadow-sm">
+                            <button type="submit" disabled={!inputText.trim()} className="absolute right-1.5 p-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-full transition-colors shadow-sm">
                                 <Send className="w-4 h-4 ml-0.5" />
                             </button>
-                        </div>
+                        </form>
                     </div>
 
                 </div>
