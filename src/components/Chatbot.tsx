@@ -2,27 +2,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircleMore, X, Send, Calendar, Search, CreditCard, User, AlertCircle, Music, Store, Volume2, VolumeX, Clock, CheckCircle, Zap, Sparkles } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 
-let sharedAudioCtx: any = null;
-
-const getAudioContext = () => {
-    if (!sharedAudioCtx) {
-        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-        if (AudioContextClass) {
-            sharedAudioCtx = new AudioContextClass();
-        }
-    }
-    return sharedAudioCtx;
-};
-
 const playSound = (type: 'send' | 'receive') => {
     try {
-        const ctx = getAudioContext();
-        if (!ctx) return;
-        
-        if (ctx.state === 'suspended') {
-            ctx.resume();
-        }
-
+        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+        if (!AudioContext) return;
+        const ctx = new AudioContext(); // Creates a fresh context each time which unlocks automatically in user gesture
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.connect(gain);
@@ -106,49 +90,6 @@ export const Chatbot: React.FC = () => {
         };
     }, [isDragging]);
 
-    // Robust iOS Audio Unlock Hack for all sounds
-    useEffect(() => {
-        const unlockAudio = () => {
-            // Unlock AudioContext
-            const ctx = getAudioContext();
-            if (ctx && ctx.state === 'suspended') {
-                ctx.resume();
-            }
-
-            const audios = [radioAudioRef.current];
-            let unlockedAny = false;
-            
-            audios.forEach(a => {
-                if (a && a.paused) {
-                    const originalVolume = a.volume;
-                    a.volume = 0.01; // nearly mute
-                    const playPromise = a.play();
-                    if (playPromise !== undefined) {
-                        playPromise.then(() => {
-                            a.pause();
-                            a.currentTime = 0;
-                            a.volume = originalVolume;
-                        }).catch(() => {});
-                    }
-                    unlockedAny = true;
-                }
-            });
-
-            if (unlockedAny) {
-                document.removeEventListener('touchstart', unlockAudio);
-                document.removeEventListener('click', unlockAudio);
-            }
-        };
-
-        document.addEventListener('touchstart', unlockAudio, { once: true });
-        document.addEventListener('click', unlockAudio, { once: true });
-
-        return () => {
-            document.removeEventListener('touchstart', unlockAudio);
-            document.removeEventListener('click', unlockAudio);
-        };
-    }, []);
-
     const handlePointerDown = (e: React.PointerEvent) => {
         dragRef.current = {
             startX: e.clientX,
@@ -158,7 +99,7 @@ export const Chatbot: React.FC = () => {
             hasMoved: false
         };
         setIsDragging(true);
-        e.currentTarget.setPointerCapture(e.pointerId);
+        // Removed e.currentTarget.setPointerCapture(e.pointerId) because it breaks native clicks on iOS Safari
     };
 
     const handleToggleClick = (e: React.MouseEvent, action: 'radio' | 'chatbot') => {
