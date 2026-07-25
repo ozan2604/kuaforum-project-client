@@ -65,12 +65,13 @@ export const Chatbot: React.FC = () => {
 
     const handleOptionClick = (text: string) => {
         setMessages(prev => [...prev, { sender: 'user', text }]);
-        playSound('send');
         setShowFaqs(false);
         
         if (text === "Benim için radyoyu açar mısın?") {
             setIsRadioPlaying(true);
             if (radioAudioRef.current) {
+                // iOS fix: explicit load before play, and skip playSound('send') to not consume gesture
+                radioAudioRef.current.load();
                 radioAudioRef.current.play().catch(e => console.error("Audio playback failed", e));
             }
         } else if (text === "Radyoyu kapatır mısın?") {
@@ -78,6 +79,8 @@ export const Chatbot: React.FC = () => {
             if (radioAudioRef.current) {
                 radioAudioRef.current.pause();
             }
+        } else {
+            playSound('send');
         }
         
         setTimeout(() => {
@@ -134,6 +137,8 @@ export const Chatbot: React.FC = () => {
                 ref={radioAudioRef} 
                 loop 
                 preload="auto" 
+                playsInline
+                crossOrigin="anonymous"
                 src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3" 
             />
             
