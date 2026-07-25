@@ -37,6 +37,7 @@ export const Chatbot: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [showFaqs, setShowFaqs] = useState(true);
     const [inputText, setInputText] = useState('');
+    const [isRadioPlaying, setIsRadioPlaying] = useState(false);
     const [messages, setMessages] = useState<{ sender: 'bot' | 'user', text: string }[]>([
         { sender: 'bot', text: 'Size en uygun seçeneği birlikte bulalım. Aşağıdaki konulardan birini seçebilir veya sorunuzu yazabilirsiniz.' }
     ]);
@@ -49,23 +50,11 @@ export const Chatbot: React.FC = () => {
         messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
     }, [messages, showFaqs]);
 
-    useEffect(() => {
-        radioAudioRef.current = new Audio("https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3");
-        radioAudioRef.current.loop = true;
-        
-        return () => {
-            if (radioAudioRef.current) {
-                radioAudioRef.current.pause();
-                radioAudioRef.current.src = "";
-            }
-        };
-    }, []);
-
     // Hide on some pages if needed, but for now show everywhere except maybe admin/employee
     if (pathname.includes('/admin') || pathname.includes('/employee')) return null;
 
     const faqOptions = [
-        { icon: <Music className="w-4 h-4" />, text: "Benim için radyoyu açar mısın?" },
+        { icon: <Music className="w-4 h-4" />, text: isRadioPlaying ? "Radyoyu kapatır mısın?" : "Benim için radyoyu açar mısın?" },
         { icon: <Calendar className="w-4 h-4" />, text: "Nasıl randevu alırım?" },
         { icon: <AlertCircle className="w-4 h-4" />, text: "Randevumu nasıl iptal ederim?" },
         { icon: <Calendar className="w-4 h-4" />, text: "Randevumu erteleyebilir miyim?" },
@@ -80,12 +69,22 @@ export const Chatbot: React.FC = () => {
         setShowFaqs(false);
         
         if (text === "Benim için radyoyu açar mısın?") {
-            radioAudioRef.current?.play().catch(e => console.error("Audio playback failed", e));
+            setIsRadioPlaying(true);
+            if (radioAudioRef.current) {
+                radioAudioRef.current.play().catch(e => console.error("Audio playback failed", e));
+            }
+        } else if (text === "Radyoyu kapatır mısın?") {
+            setIsRadioPlaying(false);
+            if (radioAudioRef.current) {
+                radioAudioRef.current.pause();
+            }
         }
         
         setTimeout(() => {
             if (text === "Benim için radyoyu açar mısın?") {
                 setMessages(prev => [...prev, { sender: 'bot', text: 'Memnuniyetle! Siz kendinize en uygun salonu bulup randevunuzu planlarken, ben de arka planda sizi rahatlatacak dinlendirici bir müzik açıyorum. Keyifli aramalar! 🎶' }]);
+            } else if (text === "Radyoyu kapatır mısın?") {
+                setMessages(prev => [...prev, { sender: 'bot', text: 'Radyoyu kapattım. Başka bir isteğiniz olursa ben buradayım!' }]);
             } else {
                 setMessages(prev => [...prev, { sender: 'bot', text: 'Bu konuda henüz eğitim aşamasındayım. Çok yakında size detaylı yardımcı olabileceğim!' }]);
             }
@@ -131,6 +130,12 @@ export const Chatbot: React.FC = () => {
 
     return (
         <div className="fixed bottom-20 sm:bottom-8 right-4 sm:right-8 z-[100] flex flex-col items-end">
+            <audio 
+                ref={radioAudioRef} 
+                loop 
+                preload="auto" 
+                src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3" 
+            />
             
             {/* Chatbot Window */}
             {isOpen && (
