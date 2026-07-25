@@ -11,7 +11,7 @@ const playSound = (type: 'send' | 'receive') => {
         const gain = ctx.createGain();
         osc.connect(gain);
         gain.connect(ctx.destination);
-        
+
         if (type === 'send') {
             osc.type = 'sine';
             osc.frequency.setValueAtTime(300, ctx.currentTime);
@@ -63,7 +63,8 @@ export const Chatbot: React.FC = () => {
             if (!isDragging) return;
             const dx = e.clientX - dragRef.current.startX;
             const dy = e.clientY - dragRef.current.startY;
-            if (Math.abs(dx) > 3 || Math.abs(dy) > 3) {
+            // Increased threshold to 15px to prevent false positive drags on touch screens
+            if (Math.abs(dx) > 15 || Math.abs(dy) > 15) {
                 dragRef.current.hasMoved = true;
             }
             setPosition({
@@ -89,6 +90,45 @@ export const Chatbot: React.FC = () => {
             window.removeEventListener('pointerup', handleUp);
         };
     }, [isDragging]);
+
+    // iOS Audio Unlock Hack - unlocks both AudioContext and the radio <audio> element
+    useEffect(() => {
+        const unlockAllAudio = () => {
+            // 1. Unlock AudioContext with a silent oscillator
+            const ctx = getAudioContext();
+            if (ctx && ctx.state === 'suspended') {
+                ctx.resume();
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                gain.gain.value = 0; // Silent
+                osc.connect(gain);
+                gain.connect(ctx.destination);
+                osc.start();
+                osc.stop(ctx.currentTime + 0.001);
+            }
+
+            // 2. Unlock Radio Audio tag
+            if (radioAudioRef.current && radioAudioRef.current.paused && !isRadioPlaying) {
+                const p = radioAudioRef.current.play();
+                if (p) {
+                    p.then(() => {
+                        radioAudioRef.current?.pause();
+                    }).catch(() => { });
+                }
+            }
+
+            document.removeEventListener('touchstart', unlockAllAudio);
+            document.removeEventListener('click', unlockAllAudio);
+        };
+
+        document.addEventListener('touchstart', unlockAllAudio, { once: true });
+        document.addEventListener('click', unlockAllAudio, { once: true });
+
+        return () => {
+            document.removeEventListener('touchstart', unlockAllAudio);
+            document.removeEventListener('click', unlockAllAudio);
+        };
+    }, [isRadioPlaying]);
 
     const handlePointerDown = (e: React.PointerEvent) => {
         dragRef.current = {
@@ -120,9 +160,9 @@ export const Chatbot: React.FC = () => {
 
     const toggleRadio = (play?: boolean) => {
         if (!radioAudioRef.current) return;
-        
+
         const nextState = play !== undefined ? play : !isRadioPlaying;
-        
+
         if (nextState) {
             radioAudioRef.current.volume = 0.5;
             setIsRadioPlaying(true);
@@ -141,7 +181,7 @@ export const Chatbot: React.FC = () => {
 
     const faqOptions = [
         { icon: <Music className="w-4 h-4" />, text: isRadioPlaying ? "Radyoyu kapatır mısın?" : "Benim için radyoyu açar mısın?" },
-        { icon: <Sparkles className="w-4 h-4" />, text: "salonbir nedir?" },
+        { icon: <Sparkles className="w-4 h-4" />, text: "Salonbir nedir?" },
         { icon: <Calendar className="w-4 h-4" />, text: "Nasıl randevu alırım?" },
         { icon: <Store className="w-4 h-4" />, text: "Salonumu nasıl ekleyebilirim?" },
         { icon: <AlertCircle className="w-4 h-4" />, text: "Randevumu nasıl iptal ederim?" },
@@ -168,7 +208,7 @@ export const Chatbot: React.FC = () => {
                 setMessages(prev => [...prev, { sender: 'bot', text: 'Memnuniyetle! Siz kendinize en uygun salonu bulup randevunuzu planlarken, ben de arka planda sizi rahatlatacak dinlendirici bir müzik açıyorum. Keyifli aramalar! 🎶' }]);
             } else if (text === "Radyoyu kapatır mısın?") {
                 setMessages(prev => [...prev, { sender: 'bot', text: 'Radyoyu kapattım. Başka bir isteğiniz olursa ben buradayım!' }]);
-            } else if (text === "Salonbir nedir?") {
+            } else if (text.toLowerCase() === "salonbir nedir?") {
                 setMessages(prev => [...prev, {
                     sender: 'bot',
                     text: (
