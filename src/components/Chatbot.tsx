@@ -72,7 +72,6 @@ export const Chatbot: React.FC = () => {
 
         const handleUp = () => {
             setIsDragging(false);
-            // reset hasMoved after a tiny delay so click handlers can read it
             setTimeout(() => {
                 dragRef.current.hasMoved = false;
             }, 50);
@@ -88,6 +87,30 @@ export const Chatbot: React.FC = () => {
             window.removeEventListener('pointerup', handleUp);
         };
     }, [isDragging]);
+
+    // iOS Audio Unlock Hack
+    useEffect(() => {
+        const unlockAudio = () => {
+            if (radioAudioRef.current && radioAudioRef.current.paused && !isRadioPlaying) {
+                const playPromise = radioAudioRef.current.play();
+                if (playPromise !== undefined) {
+                    playPromise.then(() => {
+                        radioAudioRef.current?.pause();
+                    }).catch(() => {});
+                }
+                document.removeEventListener('touchstart', unlockAudio);
+                document.removeEventListener('click', unlockAudio);
+            }
+        };
+
+        document.addEventListener('touchstart', unlockAudio, { once: true });
+        document.addEventListener('click', unlockAudio, { once: true });
+
+        return () => {
+            document.removeEventListener('touchstart', unlockAudio);
+            document.removeEventListener('click', unlockAudio);
+        };
+    }, [isRadioPlaying]);
 
     const handlePointerDown = (e: React.PointerEvent) => {
         dragRef.current = {
@@ -117,19 +140,22 @@ export const Chatbot: React.FC = () => {
     // Hide on some pages if needed, but for now show everywhere except maybe admin/employee
     if (pathname.includes('/admin') || pathname.includes('/employee')) return null;
 
-    const toggleRadio = (forceState?: boolean) => {
-        const nextState = forceState !== undefined ? forceState : !isRadioPlaying;
-        if (nextState) {
-            setIsRadioPlaying(true);
-            if (radioAudioRef.current) {
-                radioAudioRef.current.load(); // Required for iOS reliability on direct click
-                radioAudioRef.current.play().catch(e => console.error("Audio playback failed", e));
+    const toggleRadio = (play?: boolean) => {
+        if (!radioAudioRef.current) return;
+        
+        if (play === true || !isRadioPlaying) {
+            radioAudioRef.current.volume = 0.5;
+            const playPromise = radioAudioRef.current.play();
+            if (playPromise !== undefined) {
+                playPromise.then(() => {
+                    setIsRadioPlaying(true);
+                }).catch(error => {
+                    console.error("Audio playback failed:", error);
+                });
             }
         } else {
+            radioAudioRef.current.pause();
             setIsRadioPlaying(false);
-            if (radioAudioRef.current) {
-                radioAudioRef.current.pause();
-            }
         }
     };
 
@@ -290,7 +316,6 @@ export const Chatbot: React.FC = () => {
                 loop
                 preload="auto"
                 playsInline
-                crossOrigin="anonymous"
                 src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3"
             />
 
