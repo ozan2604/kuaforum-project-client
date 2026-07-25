@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { Button } from './Button';
-import { Search, MapPin, Sliders, Home, LayoutGrid, MapPinned, Heart, User } from 'lucide-react';
+import { Search, MapPin, Filter, Home, LayoutGrid, MapPinned, Heart, User } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
     const { isAuthenticated } = useAuth();
@@ -122,7 +122,7 @@ export const Navbar: React.FC = () => {
                                     className="p-2 rounded-full text-gray-600 hover:bg-gray-100 transition-colors"
                                     title="Filtreler"
                                 >
-                                    <Sliders className="w-5 h-5" />
+                                    <Filter className="w-5 h-5" />
                                 </button>
                             </div>
                         )}
