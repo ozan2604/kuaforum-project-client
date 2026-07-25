@@ -2,7 +2,53 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircleMore, X, Send, Calendar, Search, CreditCard, User, AlertCircle, Music, Store, Volume2, VolumeX, Clock, CheckCircle, Zap, Sparkles } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 
-// Removed AudioContext playSound to use DOM Audio elements for iOS compatibility
+let sharedAudioCtx: any = null;
+
+const getAudioContext = () => {
+    if (!sharedAudioCtx) {
+        const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioContextClass) {
+            sharedAudioCtx = new AudioContextClass();
+        }
+    }
+    return sharedAudioCtx;
+};
+
+const playSound = (type: 'send' | 'receive') => {
+    try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        
+        if (ctx.state === 'suspended') {
+            ctx.resume();
+        }
+
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        
+        if (type === 'send') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(300, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(100, ctx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.1);
+        } else {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(400, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(600, ctx.currentTime + 0.15);
+            gain.gain.setValueAtTime(0.1, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.15);
+            osc.start(ctx.currentTime);
+            osc.stop(ctx.currentTime + 0.15);
+        }
+    } catch (e) {
+        console.error("Audio playback failed", e);
+    }
+};
 
 export const Chatbot: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -21,18 +67,6 @@ export const Chatbot: React.FC = () => {
     const { pathname } = useLocation();
 
     const radioAudioRef = useRef<HTMLAudioElement | null>(null);
-    const sendAudioRef = useRef<HTMLAudioElement | null>(null);
-    const receiveAudioRef = useRef<HTMLAudioElement | null>(null);
-
-    const playSound = (type: 'send' | 'receive') => {
-        const audio = type === 'send' ? sendAudioRef.current : receiveAudioRef.current;
-        if (audio) {
-            audio.volume = 0.3;
-            audio.currentTime = 0;
-            const p = audio.play();
-            if (p) p.catch(() => {});
-        }
-    };
 
     const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -75,7 +109,13 @@ export const Chatbot: React.FC = () => {
     // Robust iOS Audio Unlock Hack for all sounds
     useEffect(() => {
         const unlockAudio = () => {
-            const audios = [radioAudioRef.current, sendAudioRef.current, receiveAudioRef.current];
+            // Unlock AudioContext
+            const ctx = getAudioContext();
+            if (ctx && ctx.state === 'suspended') {
+                ctx.resume();
+            }
+
+            const audios = [radioAudioRef.current];
             let unlockedAny = false;
             
             audios.forEach(a => {
@@ -317,8 +357,6 @@ export const Chatbot: React.FC = () => {
                 playsInline
                 src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3"
             />
-            <audio ref={sendAudioRef} preload="auto" playsInline src="https://cdn.freesound.org/previews/263/263133_2064400-lq.mp3" />
-            <audio ref={receiveAudioRef} preload="auto" playsInline src="https://cdn.freesound.org/previews/512/512135_6142149-lq.mp3" />
 
             {/* Chatbot Window */}
             {isOpen && (
