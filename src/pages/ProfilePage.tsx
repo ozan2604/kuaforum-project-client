@@ -78,7 +78,7 @@ const ResultModal: React.FC<{
     );
 
 export const ProfilePage: React.FC = () => {
-    const { user, logout, updateAuthorization } = useAuth();
+    const { user, isAuthenticated, logout, updateAuthorization } = useAuth();
     const navigate = useNavigate();
     const [searchParams, setSearchParams] = useSearchParams();
     const activeTab = (searchParams.get('tab') as TabType | null);

@@ -2,11 +2,9 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { Button } from './Button';
 import { Search, MapPin, Filter, Home, LayoutGrid, MapPinned, Heart, User } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
-    const { isAuthenticated } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
     const [searchParams, setSearchParams] = useSearchParams();

@@ -69,7 +69,10 @@ const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, isMutedRef, o
     }, []);
 
     const handleLike = async () => {
-        if (!isAuthenticated) return;
+        if (!isAuthenticated) {
+            toast.error('Beğenmek için giriş yapmalısınız.');
+            return;
+        }
         const newLiked = !liked;
         setLiked(newLiked);
         setCount(prev => prev + (newLiked ? 1 : -1));
@@ -81,7 +84,8 @@ const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, isMutedRef, o
             await mediaLikeService.toggle(item.id, item.type);
         } catch {
             setLiked(!newLiked);
-            setCount(item.likeCount);
+            setCount(prev => prev + (!newLiked ? 1 : -1));
+            toast.error('İşlem başarısız oldu');
         }
     };
 
@@ -251,7 +255,6 @@ const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, isMutedRef, o
                             </div>
                         )}
 
-                        {isAuthenticated ? (
                             <button
                                 onPointerDown={e => e.stopPropagation()}
                                 onClick={handleLike}
@@ -262,14 +265,6 @@ const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, isMutedRef, o
                                 </div>
                                 <span className="text-white text-[11px] font-bold drop-shadow">{count}</span>
                             </button>
-                        ) : (
-                            <div className="flex flex-col items-center gap-0.5">
-                                <div className="w-11 h-11 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center border border-white/20">
-                                    <Heart className="w-5 h-5 text-white/40" />
-                                </div>
-                                <span className="text-white/40 text-[11px] font-bold">{count}</span>
-                            </div>
-                        )}
                     </div>
                 </div>
             </div>

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { MessageCircle, X, Send, Calendar, Search, CreditCard, User, HelpCircle, AlertCircle } from 'lucide-react';
+import { MessageCircle, X, Send, Calendar, Search, CreditCard, User, AlertCircle } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 
 export const Chatbot: React.FC = () => {

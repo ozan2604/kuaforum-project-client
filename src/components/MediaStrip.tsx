@@ -111,7 +111,10 @@ const MediaCard: React.FC<MediaCardProps> = ({
     };
 
     const handleLike = async () => {
-        if (!isAuthenticated) return;
+        if (!isAuthenticated) {
+            toast.error('Beğenmek için giriş yapmalısınız.');
+            return;
+        }
         const newLiked = !liked;
         setLiked(newLiked);
         setCount(prev => prev + (newLiked ? 1 : -1));
@@ -120,12 +123,11 @@ const MediaCard: React.FC<MediaCardProps> = ({
             setTimeout(() => setShowHeart(false), 800);
         }
         try {
-            const serverLiked = await mediaLikeService.toggle(item.id, item.type);
-            setLiked(serverLiked);
-            setCount(serverLiked ? item.likeCount + 1 : item.likeCount);
+            await mediaLikeService.toggle(item.id, item.type);
         } catch {
             setLiked(!newLiked);
-            setCount(item.likeCount);
+            setCount(prev => prev + (!newLiked ? 1 : -1));
+            toast.error('İşlem başarısız oldu');
         }
     };
 
@@ -252,21 +254,14 @@ const MediaCard: React.FC<MediaCardProps> = ({
                             </div>
                         )}
                     </div>
-                    {isAuthenticated ? (
-                        <button
-                            onPointerDown={e => e.stopPropagation()}
-                            onClick={e => { e.stopPropagation(); handleLike(); }}
-                            className="flex items-center gap-0.5 active:scale-90 transition-transform"
-                        >
-                            <Heart className={`w-3.5 h-3.5 transition-colors ${liked ? 'text-red-500 fill-red-500' : 'text-white/70'}`} />
-                            <span className="text-[10px] text-white/70 font-semibold">{count}</span>
-                        </button>
-                    ) : (
-                        <div className="flex items-center gap-0.5">
-                            <Heart className="w-3.5 h-3.5 text-white/40" />
-                            <span className="text-[10px] text-white/40 font-semibold">{count}</span>
-                        </div>
-                    )}
+                    <button
+                        onPointerDown={e => e.stopPropagation()}
+                        onClick={e => { e.stopPropagation(); handleLike(); }}
+                        className="flex items-center gap-0.5 active:scale-90 transition-transform"
+                    >
+                        <Heart className={`w-3.5 h-3.5 transition-colors ${liked ? 'text-red-500 fill-red-500' : 'text-white/70'}`} />
+                        <span className="text-[10px] text-white/70 font-semibold">{count}</span>
+                    </button>
                 </div>
             </div>
         </div>
