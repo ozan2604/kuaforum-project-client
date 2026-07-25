@@ -190,11 +190,11 @@ export const Chatbot: React.FC = () => {
                     sender: 'bot',
                     text: (
                         <div className="flex flex-col gap-3">
-                            <span>Randevu almak Kuaforum'da çok kolay ve <strong>tamamen ücretsizdir!</strong> Kendinize en uygun salonu bulduktan sonra işlemlerinizi hızlıca tamamlayabilirsiniz:</span>
+                            <span>Randevu almak SalonBir'de çok kolay ve <strong>tamamen ücretsizdir!</strong> Kendinize en uygun salonu bulduktan sonra işlemlerinizi hızlıca tamamlayabilirsiniz:</span>
                             <ul className="list-decimal list-inside text-[13.5px] text-gray-700 space-y-1 ml-1 bg-gray-50/50 p-2 rounded-lg border border-gray-100/50">
                                 <li>Size en uygun salonu ve hizmeti seçin.</li>
                                 <li>Tarih ve saat belirleyin.</li>
-                                <li>Randevunuzu oluşturun.</li>
+                                <li>Hatırlatma SMS'leri için numaranızı girin ve randevunuzu oluşturun</li>
                             </ul>
 
                             <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-1 pt-3 border-t border-gray-100">
