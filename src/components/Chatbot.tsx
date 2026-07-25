@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { MessageCircleMore, X, Send, Calendar, Search, CreditCard, User, AlertCircle, Music } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 
@@ -37,11 +37,29 @@ export const Chatbot: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [showFaqs, setShowFaqs] = useState(true);
     const [inputText, setInputText] = useState('');
-    const [isRadioPlaying, setIsRadioPlaying] = useState(false);
     const [messages, setMessages] = useState<{ sender: 'bot' | 'user', text: string }[]>([
         { sender: 'bot', text: 'Size en uygun seçeneği birlikte bulalım. Aşağıdaki konulardan birini seçebilir veya sorunuzu yazabilirsiniz.' }
     ]);
     const { pathname } = useLocation();
+
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const radioAudioRef = useRef<HTMLAudioElement | null>(null);
+
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    }, [messages, showFaqs]);
+
+    useEffect(() => {
+        radioAudioRef.current = new Audio("https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3");
+        radioAudioRef.current.loop = true;
+        
+        return () => {
+            if (radioAudioRef.current) {
+                radioAudioRef.current.pause();
+                radioAudioRef.current.src = "";
+            }
+        };
+    }, []);
 
     // Hide on some pages if needed, but for now show everywhere except maybe admin/employee
     if (pathname.includes('/admin') || pathname.includes('/employee')) return null;
@@ -61,9 +79,12 @@ export const Chatbot: React.FC = () => {
         playSound('send');
         setShowFaqs(false);
         
+        if (text === "Benim için radyoyu açar mısın?") {
+            radioAudioRef.current?.play().catch(e => console.error("Audio playback failed", e));
+        }
+        
         setTimeout(() => {
             if (text === "Benim için radyoyu açar mısın?") {
-                setIsRadioPlaying(true);
                 setMessages(prev => [...prev, { sender: 'bot', text: 'Memnuniyetle! Siz kendinize en uygun salonu bulup randevunuzu planlarken, ben de arka planda sizi rahatlatacak dinlendirici bir müzik açıyorum. Keyifli aramalar! 🎶' }]);
             } else {
                 setMessages(prev => [...prev, { sender: 'bot', text: 'Bu konuda henüz eğitim aşamasındayım. Çok yakında size detaylı yardımcı olabileceğim!' }]);
@@ -110,9 +131,6 @@ export const Chatbot: React.FC = () => {
 
     return (
         <div className="fixed bottom-20 sm:bottom-8 right-4 sm:right-8 z-[100] flex flex-col items-end">
-            {isRadioPlaying && (
-                <audio autoPlay loop src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3" />
-            )}
             
             {/* Chatbot Window */}
             {isOpen && (
@@ -183,6 +201,7 @@ export const Chatbot: React.FC = () => {
                                 )}
                             </div>
                         ))}
+                        <div ref={messagesEndRef} />
                     </div>
 
                     {/* FAQ Options (only show if last message is from bot and showFaqs is true) */}
