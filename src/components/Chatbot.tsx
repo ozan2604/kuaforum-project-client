@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { MessageCircle, X, Send, Calendar, Search, CreditCard, User, AlertCircle } from 'lucide-react';
+import { MessageCircleMore, X, Send, Calendar, Search, CreditCard, User, AlertCircle } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 
 export const Chatbot: React.FC = () => {
     const [isOpen, setIsOpen] = useState(false);
-    const [showTooltip, setShowTooltip] = useState(true);
+    const [showFaqs, setShowFaqs] = useState(true);
     const [messages, setMessages] = useState<{ sender: 'bot' | 'user', text: string }[]>([
         { sender: 'bot', text: 'Size en uygun seçeneği birlikte bulalım. Aşağıdaki konulardan birini seçebilir veya sorunuzu yazabilirsiniz.' }
     ]);
@@ -24,6 +24,7 @@ export const Chatbot: React.FC = () => {
 
     const handleOptionClick = (text: string) => {
         setMessages(prev => [...prev, { sender: 'user', text }]);
+        setShowFaqs(false);
         setTimeout(() => {
             setMessages(prev => [...prev, { sender: 'bot', text: 'Bu konuda henüz eğitim aşamasındayım. Çok yakında size detaylı yardımcı olabileceğim!' }]);
         }, 1000);
@@ -40,8 +41,15 @@ export const Chatbot: React.FC = () => {
                     <div className="bg-white px-5 py-4 flex items-center justify-between border-b border-gray-100 shrink-0">
                         <div className="flex items-center gap-3">
                             <div className="relative">
-                                <div className="w-10 h-10 bg-black rounded-full flex items-center justify-center text-white font-bold text-xl tracking-tighter">
-                                    rb
+                                <div 
+                                    className="w-10 h-10 rounded-full bg-white border border-gray-200 overflow-hidden" 
+                                    style={{ 
+                                        backgroundImage: "url('/logo.png')", 
+                                        backgroundPosition: "45% 50%", 
+                                        backgroundSize: "400%", 
+                                        backgroundRepeat: "no-repeat" 
+                                    }}
+                                >
                                 </div>
                                 <div className="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 bg-green-500 rounded-full border-2 border-white"></div>
                             </div>
@@ -78,8 +86,8 @@ export const Chatbot: React.FC = () => {
                         ))}
                     </div>
 
-                    {/* FAQ Options (only show if last message is from bot) */}
-                    {messages[messages.length - 1].sender === 'bot' && (
+                    {/* FAQ Options (only show if last message is from bot and showFaqs is true) */}
+                    {showFaqs && messages[messages.length - 1].sender === 'bot' && (
                         <div className="p-3 pt-0 shrink-0 overflow-y-auto max-h-[40%] custom-scrollbar">
                             <div className="bg-white rounded-xl border border-gray-200 overflow-hidden shadow-sm">
                                 {faqOptions.map((opt, idx) => (
@@ -115,32 +123,14 @@ export const Chatbot: React.FC = () => {
                 </div>
             )}
 
-            {/* Toggle Button & Tooltip */}
+            {/* Toggle Button */}
             {!isOpen && (
-                <div className="flex items-center gap-3">
-                    {/* Tooltip */}
-                    {showTooltip && (
-                        <div className="bg-white px-4 py-2.5 rounded-full shadow-lg border border-gray-100 flex items-center gap-2 animate-bounce-slow relative">
-                            <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                            <span className="font-bold text-sm text-gray-800">Yardım mı lazım?</span>
-                            <div className="absolute -right-1.5 top-1/2 -translate-y-1/2 w-3 h-3 bg-white border-r border-t border-gray-100 rotate-45"></div>
-                            <button 
-                                onClick={() => setShowTooltip(false)}
-                                className="absolute -top-2 -left-2 w-5 h-5 bg-gray-800 text-white rounded-full flex items-center justify-center hover:bg-black transition-colors"
-                            >
-                                <X className="w-3 h-3" />
-                            </button>
-                        </div>
-                    )}
-
-                    {/* Main Button */}
-                    <button 
-                        onClick={() => setIsOpen(true)}
-                        className="w-14 h-14 bg-gray-900 hover:bg-black text-white rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.2)] flex items-center justify-center transition-transform hover:scale-110 active:scale-95"
-                    >
-                        <MessageCircle className="w-7 h-7" />
-                    </button>
-                </div>
+                <button 
+                    onClick={() => setIsOpen(true)}
+                    className="w-14 h-14 bg-gray-900 hover:bg-black text-white rounded-full shadow-[0_10px_30px_rgba(0,0,0,0.2)] flex items-center justify-center transition-transform hover:scale-110 active:scale-95 mt-4"
+                >
+                    <MessageCircleMore className="w-7 h-7" />
+                </button>
             )}
             
         </div>

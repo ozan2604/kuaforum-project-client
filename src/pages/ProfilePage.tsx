@@ -280,18 +280,18 @@ export const ProfilePage: React.FC = () => {
         return (
             <div className="min-h-[80vh] flex flex-col items-center justify-center bg-gray-50 px-4">
                 <div className="bg-white p-8 rounded-[2rem] shadow-[0_8px_30px_rgb(0,0,0,0.04)] border border-gray-100 max-w-md w-full text-center">
-                    <div className="w-20 h-20 bg-blue-50 text-blue-600 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <User className="w-10 h-10" />
+                    <div className="w-16 h-16 bg-primary-600 text-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg">
+                        <User className="w-8 h-8" />
                     </div>
                     <h2 className="text-2xl font-black text-gray-900 mb-3">Hesabınıza Giriş Yapın</h2>
                     <p className="text-gray-500 mb-8 font-medium leading-relaxed">
                         Randevularınızı yönetmek, favori salonlarınızı kaydetmek ve deneyimlerinizi paylaşmak için giriş yapmalısınız.
                     </p>
                     <div className="flex flex-col gap-3">
-                        <Link to="/login" className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg py-3.5 rounded-xl transition-all shadow-md hover:shadow-lg hover:-translate-y-0.5">
+                        <Link to="/login" className="w-full bg-primary-600 hover:bg-primary-700 text-white font-semibold text-[15px] py-3 rounded-xl transition-all shadow-sm hover:shadow-md flex items-center justify-center">
                             Giriş Yap
                         </Link>
-                        <Link to="/register" className="w-full bg-white hover:bg-gray-50 text-gray-900 border-2 border-gray-200 font-bold text-lg py-3 rounded-xl transition-all hover:border-gray-300">
+                        <Link to="/register" className="w-full bg-white hover:bg-gray-50 text-gray-900 border border-gray-200 font-semibold text-[15px] py-3 rounded-xl transition-all flex items-center justify-center">
                             Kayıt Ol
                         </Link>
                     </div>
