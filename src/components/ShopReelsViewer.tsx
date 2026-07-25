@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Volume2, VolumeX, Heart, Send, Check, Eye, X } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import { shopService } from '../api/shop.service';
 import { mediaLikeService } from '../api/mediaLike.service';
 import type { MediaHighlight } from '../types/shop';

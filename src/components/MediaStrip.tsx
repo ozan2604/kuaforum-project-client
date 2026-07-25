@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ChevronRight, Heart, Send, Check, Clapperboard, Volume2, VolumeX, Eye } from 'lucide-react';
+import { toast } from 'react-hot-toast';
 import type { MediaHighlight } from '../types/shop';
 import { mediaLikeService } from '../api/mediaLike.service';
 import { shopService } from '../api/shop.service';
