@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { MessageCircleMore, X, Send, Calendar, Search, CreditCard, User, AlertCircle, Music, Store, Volume2, VolumeX, Clock, CheckCircle, Zap } from 'lucide-react';
+import { MessageCircleMore, X, Send, Calendar, Search, CreditCard, User, AlertCircle, Music, Store, Volume2, VolumeX, Clock, CheckCircle, Zap, Sparkles } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 
 const playSound = (type: 'send' | 'receive') => {
@@ -71,6 +71,7 @@ export const Chatbot: React.FC = () => {
 
     const faqOptions = [
         { icon: <Music className="w-4 h-4" />, text: isRadioPlaying ? "Radyoyu kapatır mısın?" : "Benim için radyoyu açar mısın?" },
+        { icon: <Sparkles className="w-4 h-4 text-yellow-500" />, text: "SalonBir nedir?" },
         { icon: <Calendar className="w-4 h-4" />, text: "Nasıl randevu alırım?" },
         { icon: <Store className="w-4 h-4" />, text: "Salonumu nasıl ekleyebilirim?" },
         { icon: <AlertCircle className="w-4 h-4" />, text: "Randevumu nasıl iptal ederim?" },
@@ -97,6 +98,29 @@ export const Chatbot: React.FC = () => {
                 setMessages(prev => [...prev, { sender: 'bot', text: 'Memnuniyetle! Siz kendinize en uygun salonu bulup randevunuzu planlarken, ben de arka planda sizi rahatlatacak dinlendirici bir müzik açıyorum. Keyifli aramalar! 🎶' }]);
             } else if (text === "Radyoyu kapatır mısın?") {
                 setMessages(prev => [...prev, { sender: 'bot', text: 'Radyoyu kapattım. Başka bir isteğiniz olursa ben buradayım!' }]);
+            } else if (text === "SalonBir nedir?") {
+                setMessages(prev => [...prev, { 
+                    sender: 'bot', 
+                    text: (
+                        <div className="flex flex-col gap-3">
+                            <span className="font-semibold text-gray-800 border-b border-gray-100 pb-2">SalonBir, güzellik ve bakım dünyasını tek çatı altında toplayan yeni nesil platformdur. ✨</span>
+                            
+                            <div className="flex flex-col gap-1.5">
+                                <span className="text-[13px] font-bold text-blue-600">Müşteriler için:</span>
+                                <span className="text-[13px] text-gray-600 leading-relaxed">Şehrinizdeki en iyi salonları keşfedebilir, gerçek yorumları okuyabilir ve 7/24 tamamen <strong>ücretsiz</strong> randevu oluşturabilirsiniz. Güzellik rutininiz artık cebinizde!</span>
+                            </div>
+
+                            <div className="flex flex-col gap-1.5">
+                                <span className="text-[13px] font-bold text-purple-600">Salon Sahipleri için:</span>
+                                <span className="text-[13px] text-gray-600 leading-relaxed">İşletmenizi dijital dünyaya taşıyarak yepyeni müşterilere ulaşırsınız. Randevularınızı, personellerinizi ve kazançlarınızı tek bir ekrandan profesyonelce yönetirsiniz.</span>
+                            </div>
+                            
+                            <span className="text-[13px] text-gray-500 italic mt-1 bg-gray-50 p-2 rounded-lg text-center">
+                                Kısacası SalonBir; güzellik arayanlar ile güzellik yaratanları en güvenli ve hızlı şekilde buluşturan köprüdür.
+                            </span>
+                        </div>
+                    )
+                }]);
             } else if (text === "Nasıl randevu alırım?") {
                 setMessages(prev => [...prev, { 
                     sender: 'bot', 
@@ -123,6 +147,19 @@ export const Chatbot: React.FC = () => {
                                     <span className="text-[11px] font-semibold text-gray-600">Anında onay</span>
                                 </div>
                             </div>
+                        </div>
+                    )
+                }]);
+            } else if (text === "Randevumu nasıl iptal ederim?") {
+                setMessages(prev => [...prev, { 
+                    sender: 'bot', 
+                    text: (
+                        <div className="flex flex-col gap-2">
+                            <span>Randevunuzu iptal etmek çok kolaydır. Bunun için şu adımları izleyebilirsiniz:</span>
+                            <div className="bg-gray-50 p-2.5 rounded-lg border border-gray-100 text-[13px] text-gray-700 mt-1">
+                                Profilinizdeki <strong>"Randevularım"</strong> sekmesine gidin. İptal etmek istediğiniz randevuyu bulun. Eğer salon sahibinin belirlediği iptal süresini aşmadıysanız, <strong>"İptal Et"</strong> butonuna basarak tek tıkla randevunuzu iptal edebilirsiniz.
+                            </div>
+                            <span className="text-[12px] text-gray-500 italic mt-1">Not: İptal süresi dolmuş randevular için doğrudan salonla iletişime geçmeniz gerekebilir.</span>
                         </div>
                     )
                 }]);
