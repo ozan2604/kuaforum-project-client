@@ -40,7 +40,8 @@ export const AdEditModal: React.FC<AdEditModalProps> = ({ ad, onClose, onSuccess
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         
-        if (!/^05\d{9}$/.test(phoneNumber)) {
+        const cleanPhone = phoneNumber.replace(/\D/g, '');
+        if (!/^05\d{9}$/.test(cleanPhone)) {
             toast.error('Telefon numarası 05XXXXXXXXX formatında olmalıdır.');
             return;
         }
@@ -48,11 +49,11 @@ export const AdEditModal: React.FC<AdEditModalProps> = ({ ad, onClose, onSuccess
         setIsSubmitting(true);
         try {
             const formData = new FormData();
-            formData.append('description', description);
-            formData.append('phoneNumber', phoneNumber);
-            if (externalLink) formData.append('externalLink', externalLink);
-            if (price) formData.append('price', price);
-            if (mediaFile) formData.append('media', mediaFile);
+            formData.append('Description', description);
+            formData.append('PhoneNumber', cleanPhone);
+            if (externalLink) formData.append('ExternalLink', externalLink);
+            if (price) formData.append('Price', price);
+            if (mediaFile) formData.append('Media', mediaFile);
 
             await adsService.updateMyAd(ad.id, formData);
             toast.success('Reklam başvurunuz başarıyla güncellendi.');
