@@ -22,7 +22,7 @@ export const AdBanner: React.FC<AdBannerProps> = ({ type, variant = 'full' }) =>
     };
 
     return (
-        <div className="relative w-full h-full bg-black shrink-0 snap-start flex items-center justify-center overflow-hidden">
+        <div className="relative w-full h-full bg-black flex items-center justify-center overflow-hidden">
             {/* Background Image */}
             <div 
                 className="absolute inset-0 z-0 bg-cover bg-center opacity-80"

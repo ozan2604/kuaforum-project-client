@@ -13,7 +13,7 @@ export const DynamicAdBanner: React.FC<DynamicAdBannerProps> = ({ ad, variant = 
     const navigate = useNavigate();
 
     return (
-        <div className="relative w-full h-full bg-black shrink-0 snap-start flex items-center justify-center overflow-hidden">
+        <div className="relative w-full h-full bg-black flex items-center justify-center overflow-hidden">
             {/* Background Media */}
             <div className="absolute inset-0 z-0 bg-black flex items-center justify-center">
                 {ad.mediaType === 'video' ? (

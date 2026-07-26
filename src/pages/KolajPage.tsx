@@ -177,7 +177,7 @@ const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, isMutedRef, o
     return (
         <div
             ref={containerRef}
-            className="relative w-full h-full sm:aspect-[9/16] sm:max-w-[420px] sm:h-auto sm:max-h-[90vh] sm:rounded-2xl sm:shadow-2xl overflow-hidden bg-black select-none mx-auto"
+            className="relative w-full h-full overflow-hidden bg-black select-none"
             onPointerDown={handlePointerDown}
             onPointerUp={handlePointerUp}
             onPointerLeave={handlePointerUp}
@@ -334,7 +334,6 @@ export const KolajPage: React.FC = () => {
 
     const renderItems = useMemo(() => {
         const arr: any[] = [];
-        let mediaIndex = 0;
         let adCount = 0;
         let dynAdCount = 0;
         
@@ -363,37 +362,38 @@ export const KolajPage: React.FC = () => {
             injectedTarget = true;
         }
 
-        while (mediaIndex < items.length) {
-            const combinedIndex = arr.length;
+        items.forEach((item, index) => {
+            arr.push({ type: 'media', item, mediaIndex: index, key: `${item.shopId}-${index}` });
             
-            // Fixed ad condition: at index 4, then every 10 items
-            if ((combinedIndex === 4 || (combinedIndex > 4 && (combinedIndex - 4) % 10 === 0)) && !injectedTarget) {
-                const adType = adCount % 2 === 0 ? 'cosmetics' : 'equipment';
-                arr.push({ type: 'ad', adType, key: `ad-${adCount}` });
-                adCount++;
-                continue;
-            }
-            // If we injected target, shift the fixed ad logic
-            if (injectedTarget && (combinedIndex === 5 || (combinedIndex > 5 && (combinedIndex - 5) % 10 === 0))) {
-                const adType = adCount % 2 === 0 ? 'cosmetics' : 'equipment';
-                arr.push({ type: 'ad', adType, key: `ad-${adCount}` });
-                adCount++;
-                continue;
-            }
-            
-            // Dynamic ad condition: every 6 media posts
-            if (dynamicAds.length > 0 && mediaIndex > 0 && mediaIndex % 6 === 0 && dynAdCount < Math.floor(mediaIndex / 6)) {
+            if ((index + 1) % 3 === 0 && dynamicAds.length > 0) {
                 const dynAd = getDynamicAd();
                 if (dynAd) {
                     arr.push({ type: 'dynamicAd', ad: dynAd, key: `dyn-ad-${dynAdCount}` });
                     dynAdCount++;
-                    continue;
                 }
             }
+            
+            if ((index + 1) % 5 === 0) {
+                const adType = adCount % 2 === 0 ? 'cosmetics' : 'equipment';
+                arr.push({ type: 'ad', adType, key: `ad-${adCount}` });
+                adCount++;
+            }
+        });
 
-            arr.push({ type: 'media', item: items[mediaIndex], mediaIndex, key: `${items[mediaIndex].shopId}-${mediaIndex}` });
-            mediaIndex++;
+        if (items.length > 0 && items.length < 3) {
+            if (dynamicAds.length > 0 && dynAdCount === 0) {
+                const dynAd = getDynamicAd();
+                if (dynAd) {
+                    arr.push({ type: 'dynamicAd', ad: dynAd, key: `dyn-ad-fallback` });
+                    dynAdCount++;
+                }
+            }
+            if (adCount === 0) {
+                arr.push({ type: 'ad', adType: 'cosmetics', key: `ad-fallback` });
+                adCount++;
+            }
         }
+
         return arr;
     }, [items, dynamicAds, location.search]);
 
@@ -436,30 +436,28 @@ export const KolajPage: React.FC = () => {
         );
     }
 
-    if (items.length === 0) {
+    if (renderItems.length === 0) {
         return (
-            <div className="flex flex-1 flex-col items-center justify-center gap-3 text-gray-400 bg-black sm:bg-gray-950 w-full">
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 text-gray-400 bg-gray-950 w-full h-full">
                 <Play className="w-12 h-12" />
                 <p className="text-sm font-semibold">Henüz içerik yok</p>
             </div>
         );
     }
 
-    // renderItems moved up into useMemo
-
     return (
         <>
             <style dangerouslySetInnerHTML={{ __html: HEART_STYLE }} />
-            <div className="bg-black sm:bg-gray-950 w-full flex-1 flex flex-col min-h-0 relative">
+            <div className="bg-gray-950 w-full flex-1 flex flex-col min-h-0 relative">
                 <div 
                     ref={scrollRef} 
-                    className="overflow-y-scroll h-full w-full no-scrollbar flex-1 snap-y snap-mandatory"
+                    className="overflow-y-scroll h-full w-full no-scrollbar flex-1 snap-y snap-mandatory flex flex-col gap-6 py-8 px-4 items-center"
                 >
                     {renderItems.map((renderItem, idx) => (
                         <div 
                             key={renderItem.key} 
                             id={`kolaj-item-${idx}`}
-                            className="w-full h-full snap-start sm:py-6 flex items-center justify-center relative"
+                            className="w-full max-w-[400px] h-[75vh] min-h-[480px] max-h-[800px] shrink-0 snap-center flex items-center justify-center relative rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-black"
                         >
                             {renderItem.type === 'dynamicAd' ? (
                                 <DynamicAdBanner ad={renderItem.ad} />
