@@ -336,7 +336,7 @@ export const Chatbot: React.FC = () => {
                 loop
                 preload="auto"
                 playsInline
-                src="https://cdn.pixabay.com/download/audio/2022/05/27/audio_1808fbf07a.mp3?filename=lofi-study-112191.mp3"
+                src="https://cdn.pixabay.com/audio/2022/05/27/audio_1808fbf07a.mp3"
             />
 
             {/* Chatbot Window */}
