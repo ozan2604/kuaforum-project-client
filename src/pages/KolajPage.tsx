@@ -417,7 +417,7 @@ export const KolajPage: React.FC = () => {
             setTimeout(() => {
                 const el = document.getElementById(`kolaj-item-${index}`);
                 if (el) {
-                    el.scrollIntoView({ behavior: 'auto', block: 'start' });
+                    el.scrollIntoView({ behavior: 'auto', block: 'center' });
                 } else if (scrollRef.current) {
                     scrollRef.current.scrollTop = index * scrollRef.current.clientHeight;
                 }

@@ -34,7 +34,7 @@ export const AdBanner: React.FC<AdBannerProps> = ({ type, variant = 'full' }) =>
 
             {/* Ad Content */}
             <div className={`absolute z-20 flex flex-col items-start ${isCompact ? 'bottom-3 left-3 right-3' : 'bottom-16 left-6 right-6'}`}>
-                <span className={`bg-white/20 backdrop-blur-md text-white font-bold rounded uppercase tracking-wider border border-white/30 ${isCompact ? 'text-[8px] px-1.5 py-0.5 mb-1.5' : 'text-[10px] px-2 py-1 mb-3'}`}>
+                <span className={`bg-white/20 backdrop-blur-md text-white font-bold rounded uppercase tracking-wider border border-white/30 ${isCompact ? 'text-[7px] px-1 py-px mb-1.5' : 'text-[9px] px-1.5 py-0.5 mb-3'}`}>
                     Sponsorlu
                 </span>
                 

@@ -39,11 +39,11 @@ export const DynamicAdBanner: React.FC<DynamicAdBannerProps> = ({ ad, variant = 
             {/* Ad Content */}
             <div className={`absolute z-20 flex flex-col items-start w-full ${isCompact ? 'bottom-3 px-3' : 'bottom-16 px-6'}`}>
                 <div className="flex justify-between items-center w-full mb-2">
-                    <span className={`bg-white/20 backdrop-blur-md text-white font-bold rounded uppercase tracking-wider border border-white/30 ${isCompact ? 'text-[8px] px-1.5 py-0.5' : 'text-[10px] px-2 py-1'}`}>
+                    <span className={`bg-white/20 backdrop-blur-md text-white font-bold rounded uppercase tracking-wider border border-white/30 ${isCompact ? 'text-[7px] px-1 py-px' : 'text-[9px] px-1.5 py-0.5'}`}>
                         Sponsorlu
                     </span>
                     {ad.price && (
-                        <span className={`bg-primary-600 text-white font-bold rounded shadow-lg ${isCompact ? 'text-[10px] px-1.5 py-0.5' : 'text-sm px-3 py-1'}`}>
+                        <span className={`bg-primary-600 text-white font-bold rounded shadow-lg ${isCompact ? 'text-[9px] px-1.5 py-0.5' : 'text-xs px-2 py-0.5'}`}>
                             {ad.price} TL
                         </span>
                     )}
@@ -79,7 +79,7 @@ export const DynamicAdBanner: React.FC<DynamicAdBannerProps> = ({ ad, variant = 
                     className="flex items-center gap-2 bg-black/40 backdrop-blur-md border border-white/20 text-white/90 text-xs px-4 py-2 rounded-full shadow-lg hover:bg-black/60 transition-colors"
                 >
                     <Info className="w-3 h-3" />
-                    Reklam Verin
+                    Reklam Ver
                 </button>
             </div>
         </div>
