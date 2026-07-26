@@ -396,13 +396,13 @@ export const KolajPage: React.FC = () => {
             <div className="bg-black sm:bg-gray-950 w-full h-[calc(100dvh-112px)] sm:h-[calc(100vh-96px)]">
                 <div 
                     ref={scrollRef} 
-                    className="overflow-y-scroll snap-y snap-mandatory h-full w-full no-scrollbar"
+                    className="overflow-y-scroll h-full w-full no-scrollbar"
                 >
                     {renderItems.map((renderItem, idx) => (
                         <div 
                             key={renderItem.key} 
                             id={`kolaj-item-${idx}`}
-                            className="w-full h-full snap-start snap-always sm:py-6 flex items-center justify-center"
+                            className="w-full h-full sm:py-6 flex items-center justify-center"
                         >
                             {renderItem.type === 'ad' ? (
                                 <AdBanner type={renderItem.adType as 'cosmetics' | 'equipment'} />

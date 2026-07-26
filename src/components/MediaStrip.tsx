@@ -276,6 +276,7 @@ interface MediaStripProps {
 
 export const MediaStrip: React.FC<MediaStripProps> = ({ items }) => {
     const { isAuthenticated } = useAuth();
+    const navigate = useNavigate();
     const scrollRef    = useRef<HTMLDivElement>(null);
     const [isMuted, setIsMuted]       = useState(true);
     const [focusedId, setFocusedId]   = useState<string | null>(null);
