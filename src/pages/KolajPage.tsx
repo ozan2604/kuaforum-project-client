@@ -177,18 +177,18 @@ const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, isMutedRef, o
     return (
         <div
             ref={containerRef}
-            className="relative w-full h-full sm:max-w-md sm:rounded-xl sm:shadow-2xl overflow-hidden bg-black select-none mx-auto"
+            className="relative w-full h-full sm:aspect-[9/16] sm:max-w-[420px] sm:h-auto sm:max-h-[90vh] sm:rounded-2xl sm:shadow-2xl overflow-hidden bg-black select-none mx-auto"
             onPointerDown={handlePointerDown}
             onPointerUp={handlePointerUp}
             onPointerLeave={handlePointerUp}
         >
             {item.type === 'image' ? (
-                <img src={item.url} alt={item.shopName} className="w-full h-full object-contain" loading={index < 3 ? 'eager' : 'lazy'} draggable={false} />
+                <img src={item.url} alt={item.shopName} className="w-full h-full object-cover" loading={index < 3 ? 'eager' : 'lazy'} draggable={false} />
             ) : (
                 <video
                     ref={videoRef}
                     src={item.url}
-                    className="w-full h-full object-contain"
+                    className="w-full h-full object-cover"
                     muted loop playsInline
                     preload={index < 2 ? 'auto' : 'metadata'}
                     onLoadedMetadata={e => { e.currentTarget.currentTime = 0.1; }}
@@ -336,10 +336,22 @@ export const KolajPage: React.FC = () => {
         const arr: any[] = [];
         let mediaIndex = 0;
         let adCount = 0;
+        let dynAdCount = 0;
         
-        // Pick random ads if we have dynamic ads
-        const getRandomAd = () => {
+        const params = new URLSearchParams(location.search);
+        const targetAdId = params.get('adId');
+        const targetAd = params.get('ad');
+        let injectedTarget = false;
+
+        const getDynamicAd = () => {
             if (dynamicAds.length > 0) {
+                if (targetAdId && !injectedTarget) {
+                    const found = dynamicAds.find(a => String(a.id) === targetAdId);
+                    if (found) {
+                        injectedTarget = true;
+                        return found;
+                    }
+                }
                 const randomIndex = Math.floor(Math.random() * dynamicAds.length);
                 return dynamicAds[randomIndex];
             }
@@ -348,23 +360,45 @@ export const KolajPage: React.FC = () => {
 
         while (mediaIndex < items.length) {
             const combinedIndex = arr.length;
-            // 5. sırada (index 4) ve sonrasında her 10 postta bir reklam
-            if (combinedIndex === 4 || (combinedIndex > 4 && (combinedIndex - 4) % 10 === 0)) {
-                const dynAd = getRandomAd();
-                if (dynAd) {
-                    arr.push({ type: 'dynamicAd', ad: dynAd, key: `dyn-ad-${adCount}` });
-                } else {
-                    const adType = adCount % 2 === 0 ? 'cosmetics' : 'equipment';
-                    arr.push({ type: 'ad', adType, key: `ad-${adCount}` });
+            
+            // If navigated via ad click, show it immediately at the top
+            if (combinedIndex === 0) {
+                if (targetAdId && !injectedTarget && dynamicAds.length > 0) {
+                    const dynAd = getDynamicAd();
+                    if (dynAd) {
+                        arr.push({ type: 'dynamicAd', ad: dynAd, key: `dyn-ad-target` });
+                        continue;
+                    }
+                } else if (targetAd) {
+                    arr.push({ type: 'ad', adType: targetAd, key: `ad-target` });
+                    // We don't continue here if we want to still process the rest normally, but continue makes it index 0
+                    continue;
                 }
-                adCount++;
-            } else {
-                arr.push({ type: 'media', item: items[mediaIndex], mediaIndex, key: `${items[mediaIndex].shopId}-${mediaIndex}` });
-                mediaIndex++;
             }
+
+            // Fixed ad condition: at index 4, then every 10 items
+            if (combinedIndex === 4 || (combinedIndex > 4 && (combinedIndex - 4) % 10 === 0)) {
+                const adType = adCount % 2 === 0 ? 'cosmetics' : 'equipment';
+                arr.push({ type: 'ad', adType, key: `ad-${adCount}` });
+                adCount++;
+                continue;
+            }
+            
+            // Dynamic ad condition: every 6 media posts
+            if (dynamicAds.length > 0 && mediaIndex > 0 && mediaIndex % 6 === 0 && dynAdCount < Math.floor(mediaIndex / 6)) {
+                const dynAd = getDynamicAd();
+                if (dynAd) {
+                    arr.push({ type: 'dynamicAd', ad: dynAd, key: `dyn-ad-${dynAdCount}` });
+                    dynAdCount++;
+                    continue;
+                }
+            }
+
+            arr.push({ type: 'media', item: items[mediaIndex], mediaIndex, key: `${items[mediaIndex].shopId}-${mediaIndex}` });
+            mediaIndex++;
         }
         return arr;
-    }, [items, dynamicAds]);
+    }, [items, dynamicAds, location.search]);
 
     useEffect(() => {
         if (!renderItems.length || !scrollRef.current) return;

@@ -334,18 +334,24 @@ export const MediaStrip: React.FC<MediaStripProps> = ({ items }) => {
     const renderItems = React.useMemo(() => {
         if (items.length === 0) return [];
         
-        const adIndex = Math.floor(Math.random() * Math.min(items.length, 5));
+        const fixedAdIndex = Math.floor(Math.random() * Math.min(items.length, 5));
+        let dynAdIndex = -1;
+        if (dynamicAds.length > 0) {
+            do {
+                dynAdIndex = Math.floor(Math.random() * Math.min(items.length, 5));
+            } while (dynAdIndex === fixedAdIndex && items.length > 1);
+        }
+
         const newItems: any[] = [];
         
         items.forEach((item, index) => {
-            if (index === adIndex) {
-                if (dynamicAds.length > 0) {
-                    const dynAd = dynamicAds[Math.floor(Math.random() * dynamicAds.length)];
-                    newItems.push({ type: 'dynamicAd', ad: dynAd, key: `dyn-ad-${index}` });
-                } else {
-                    const adType = Math.random() > 0.5 ? 'cosmetics' : 'equipment';
-                    newItems.push({ type: 'ad', adType, key: `ad-${index}` });
-                }
+            if (index === fixedAdIndex) {
+                const adType = Math.random() > 0.5 ? 'cosmetics' : 'equipment';
+                newItems.push({ type: 'ad', adType, key: `ad-${index}` });
+            }
+            if (index === dynAdIndex && dynamicAds.length > 0) {
+                const dynAd = dynamicAds[Math.floor(Math.random() * dynamicAds.length)];
+                newItems.push({ type: 'dynamicAd', ad: dynAd, key: `dyn-ad-${index}` });
             }
             newItems.push({ type: 'media', item, key: `${item.shopId}-${index}`, index });
         });
