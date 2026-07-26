@@ -1,7 +1,6 @@
 import React from 'react';
 import { ExternalLink } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import toast from 'react-hot-toast';
 
 interface AdBannerProps {
     type: 'cosmetics' | 'equipment';
@@ -17,11 +16,9 @@ export const AdBanner: React.FC<AdBannerProps> = ({ type, variant = 'full' }) =>
 
     const isCompact = variant === 'compact';
 
-    const handleContact = () => {
-        toast("Reklam vermek için:\n0531 778 85 04 nolu telefondan veya salonbir26@gmail.com adresinden bize ulaşabilirsiniz.", {
-            icon: '📞',
-            duration: 5000
-        });
+    const handleContact = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        navigate('/reklam-ver');
     };
 
     return (

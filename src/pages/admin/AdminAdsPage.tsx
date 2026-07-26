@@ -5,10 +5,14 @@ import toast from 'react-hot-toast';
 import { ExternalLink, Check, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { tr } from 'date-fns/locale';
+import { ConfirmationModal } from '../../components/ConfirmationModal';
 
 export const AdminAdsPage: React.FC = () => {
     const [ads, setAds] = useState<AdApplication[]>([]);
     const [loading, setLoading] = useState(true);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [selectedAction, setSelectedAction] = useState<{ id: string, status: 'Approved' | 'Rejected' } | null>(null);
+    const [actionLoading, setActionLoading] = useState(false);
 
     const fetchAds = async () => {
         try {
@@ -25,15 +29,24 @@ export const AdminAdsPage: React.FC = () => {
         fetchAds();
     }, []);
 
-    const handleUpdateStatus = async (id: string, status: 'Approved' | 'Rejected') => {
-        if (!window.confirm(`Reklamı ${status === 'Approved' ? 'onaylamak' : 'reddetmek'} istediğinize emin misiniz?`)) return;
-        
+    const handleUpdateStatus = (id: string, status: 'Approved' | 'Rejected') => {
+        setSelectedAction({ id, status });
+        setIsModalOpen(true);
+    };
+
+    const confirmAction = async () => {
+        if (!selectedAction) return;
+        setActionLoading(true);
         try {
-            await adsService.updateAdStatus(id, status);
-            toast.success(`Reklam başarıyla ${status === 'Approved' ? 'onaylandı' : 'reddedildi'}.`);
+            await adsService.updateAdStatus(selectedAction.id, selectedAction.status);
+            toast.success(`Reklam başarıyla ${selectedAction.status === 'Approved' ? 'onaylandı' : 'reddedildi'}.`);
             fetchAds();
         } catch (error) {
             toast.error('Durum güncellenirken bir hata oluştu.');
+        } finally {
+            setActionLoading(false);
+            setIsModalOpen(false);
+            setSelectedAction(null);
         }
     };
 
@@ -135,6 +148,18 @@ export const AdminAdsPage: React.FC = () => {
                     )}
                 </div>
             </div>
+            <ConfirmationModal
+                isOpen={isModalOpen}
+                onClose={() => { setIsModalOpen(false); setSelectedAction(null); }}
+                onConfirm={confirmAction}
+                title={selectedAction?.status === 'Approved' ? "Reklamı Onayla" : "Reklamı Reddet"}
+                message={selectedAction?.status === 'Approved' 
+                    ? "Bu reklam başvurusunu onaylamak istediğinize emin misiniz? Onaylandığında sistemde 1 ay boyunca gösterilecektir." 
+                    : "Bu reklam başvurusunu reddetmek istediğinize emin misiniz?"}
+                confirmText={selectedAction?.status === 'Approved' ? "Onayla" : "Reddet"}
+                cancelText="İptal"
+                isLoading={actionLoading}
+            />
         </div>
     );
 };

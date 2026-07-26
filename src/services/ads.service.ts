@@ -36,7 +36,8 @@ export const adsService = {
     },
 
     updateAdStatus: async (id: string, status: 'Pending' | 'Approved' | 'Rejected') => {
-        const response = await api.put(`/ads/${id}/status`, { status });
+        const statusMap = { 'Pending': 0, 'Approved': 1, 'Rejected': 2 };
+        const response = await api.put(`/ads/${id}/status`, { status: statusMap[status] });
         return response.data;
     },
 

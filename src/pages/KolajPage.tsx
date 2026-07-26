@@ -177,18 +177,18 @@ const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, isMutedRef, o
     return (
         <div
             ref={containerRef}
-            className="relative w-full h-full sm:max-w-[400px] sm:rounded-xl sm:shadow-2xl overflow-hidden bg-black select-none mx-auto"
+            className="relative w-full h-full sm:max-w-md sm:rounded-xl sm:shadow-2xl overflow-hidden bg-black select-none mx-auto"
             onPointerDown={handlePointerDown}
             onPointerUp={handlePointerUp}
             onPointerLeave={handlePointerUp}
         >
             {item.type === 'image' ? (
-                <img src={item.url} alt={item.shopName} className="w-full h-full object-cover" loading={index < 3 ? 'eager' : 'lazy'} draggable={false} />
+                <img src={item.url} alt={item.shopName} className="w-full h-full object-contain" loading={index < 3 ? 'eager' : 'lazy'} draggable={false} />
             ) : (
                 <video
                     ref={videoRef}
                     src={item.url}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-contain"
                     muted loop playsInline
                     preload={index < 2 ? 'auto' : 'metadata'}
                     onLoadedMetadata={e => { e.currentTarget.currentTime = 0.1; }}

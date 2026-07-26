@@ -23,11 +23,11 @@ export const DynamicAdBanner: React.FC<DynamicAdBannerProps> = ({ ad, variant = 
                         muted 
                         loop 
                         playsInline
-                        className="w-full h-full object-cover opacity-80" 
+                        className="w-full h-full object-contain opacity-80" 
                     />
                 ) : (
                     <div 
-                        className="w-full h-full bg-cover bg-center opacity-80"
+                        className="w-full h-full bg-contain bg-center bg-no-repeat opacity-80"
                         style={{ backgroundImage: `url(${ad.mediaUrl})` }}
                     />
                 )}
