@@ -23,6 +23,8 @@ import { CreateShopPage } from './pages/CreateShopPage';
 import { MyAppointmentsPage } from './pages/MyAppointmentsPage';
 import { KolajPage } from './pages/KolajPage';
 import { FavoritesPage } from './pages/FavoritesPage';
+import { AdApplicationFormPage } from './pages/AdApplicationFormPage';
+import { MyAdsPage } from './pages/MyAdsPage';
 import { UnauthorizedPage } from './pages/UnauthorizedPage';
 import { LegalPage } from './pages/legal/LegalPage';
 import { LEGAL_TEXTS } from './constants/legal';
@@ -35,6 +37,7 @@ import { SmsTestPage } from './pages/admin/SmsTestPage';
 import { AdminCreateSalonPage } from './pages/admin/AdminCreateSalonPage';
 import AdminPasswordsPage from './pages/admin/AdminPasswordsPage';
 import { AdminAppointmentsPage } from './pages/admin/AdminAppointmentsPage';
+import { AdminAdsPage } from './pages/admin/AdminAdsPage';
 
 import { SalonDashboard } from './pages/salon/SalonDashboard';
 import { SalonAppointmentsPage } from './pages/salon/SalonAppointmentsPage';
@@ -105,6 +108,8 @@ function App() {
             <Route path="/salon-basvurusu" element={<SalonApplicationPage />} />
             <Route path="/create-shop" element={<CreateShopPage />} />
             <Route path="/my-appointments" element={<MyAppointmentsPage />} />
+            <Route path="/reklam-ver" element={<AdApplicationFormPage />} />
+            <Route path="/my-ads" element={<MyAdsPage />} />
           </Route>
         </Route>
 
@@ -119,6 +124,7 @@ function App() {
             <Route path="/admin/shops/create" element={<AdminCreateSalonPage />} />
             <Route path="/admin/passwords" element={<AdminPasswordsPage />} />
             <Route path="/admin/appointments" element={<AdminAppointmentsPage />} />
+            <Route path="/admin/reklam-basvurulari" element={<AdminAdsPage />} />
           </Route>
           <Route path="/admin/shops/:shopId/panel" element={<AdminSalonLayout />}>
             <Route index element={<SalonDashboard />} />

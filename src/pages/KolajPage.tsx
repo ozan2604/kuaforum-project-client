@@ -6,6 +6,9 @@ import { mediaLikeService } from '../api/mediaLike.service';
 import type { MediaHighlight } from '../types/shop';
 import { useAuth } from '../context/AuthContext';
 import { AdBanner } from '../components/AdBanner';
+import { DynamicAdBanner } from '../components/DynamicAdBanner';
+import { adsService } from '../services/ads.service';
+import type { AdApplication } from '../services/ads.service';
 
 
 
@@ -301,6 +304,7 @@ export const KolajPage: React.FC = () => {
     const { isAuthenticated } = useAuth();
     const location            = useLocation();
     const [items, setItems]   = useState<MediaHighlight[]>([]);
+    const [dynamicAds, setDynamicAds] = useState<AdApplication[]>([]);
     const [loading, setLoading] = useState(true);
     const [isMuted, setIsMuted] = useState(true);
     const isMutedRef  = useRef(true);
@@ -312,28 +316,47 @@ export const KolajPage: React.FC = () => {
     });
 
     useEffect(() => {
-        shopService.getMediaHighlights(undefined, undefined, undefined, 100)
-            .then(data => {
-                const state = location.state as any;
-                if (state?.initialMedia) {
-                    const exists = data.some(d => d.id === state.initialMedia.id);
-                    if (!exists) {
-                        data.unshift(state.initialMedia);
-                    }
+        Promise.all([
+            shopService.getMediaHighlights(undefined, undefined, undefined, 100),
+            adsService.getActiveAds().catch(() => []) // Fallback to empty array if fails
+        ]).then(([mediaData, adsData]) => {
+            const state = location.state as any;
+            if (state?.initialMedia) {
+                const exists = mediaData.some(d => d.id === state.initialMedia.id);
+                if (!exists) {
+                    mediaData.unshift(state.initialMedia);
                 }
-                setItems(data);
-            }).catch(() => {}).finally(() => setLoading(false));
+            }
+            setItems(mediaData);
+            setDynamicAds(adsData);
+        }).finally(() => setLoading(false));
     }, [location.state]);
 
     const renderItems = useMemo(() => {
         const arr: any[] = [];
         let mediaIndex = 0;
         let adCount = 0;
+        
+        // Pick random ads if we have dynamic ads
+        const getRandomAd = () => {
+            if (dynamicAds.length > 0) {
+                const randomIndex = Math.floor(Math.random() * dynamicAds.length);
+                return dynamicAds[randomIndex];
+            }
+            return null;
+        };
+
         while (mediaIndex < items.length) {
             const combinedIndex = arr.length;
+            // 5. sırada (index 4) ve sonrasında her 10 postta bir reklam
             if (combinedIndex === 4 || (combinedIndex > 4 && (combinedIndex - 4) % 10 === 0)) {
-                const adType = adCount % 2 === 0 ? 'cosmetics' : 'equipment';
-                arr.push({ type: 'ad', adType, key: `ad-${adCount}` });
+                const dynAd = getRandomAd();
+                if (dynAd) {
+                    arr.push({ type: 'dynamicAd', ad: dynAd, key: `dyn-ad-${adCount}` });
+                } else {
+                    const adType = adCount % 2 === 0 ? 'cosmetics' : 'equipment';
+                    arr.push({ type: 'ad', adType, key: `ad-${adCount}` });
+                }
                 adCount++;
             } else {
                 arr.push({ type: 'media', item: items[mediaIndex], mediaIndex, key: `${items[mediaIndex].shopId}-${mediaIndex}` });
@@ -341,21 +364,24 @@ export const KolajPage: React.FC = () => {
             }
         }
         return arr;
-    }, [items]);
+    }, [items, dynamicAds]);
 
     useEffect(() => {
         if (!renderItems.length || !scrollRef.current) return;
         const params = new URLSearchParams(location.search);
         const targetId = params.get('id');
         const targetAd = params.get('ad');
+        const targetAdId = params.get('adId');
         
-        if (!targetId && !targetAd) return;
+        if (!targetId && !targetAd && !targetAdId) return;
         
         let index = -1;
         if (targetId) {
             index = renderItems.findIndex((i: any) => i.type === 'media' && String(i.item.id) === targetId);
         } else if (targetAd) {
             index = renderItems.findIndex((i: any) => i.type === 'ad' && i.adType === targetAd);
+        } else if (targetAdId) {
+            index = renderItems.findIndex((i: any) => i.type === 'dynamicAd' && String(i.ad.id) === targetAdId);
         }
         
         if (index >= 0) {
@@ -404,7 +430,9 @@ export const KolajPage: React.FC = () => {
                             id={`kolaj-item-${idx}`}
                             className="w-full h-full sm:py-6 flex items-center justify-center"
                         >
-                            {renderItem.type === 'ad' ? (
+                            {renderItem.type === 'dynamicAd' ? (
+                                <DynamicAdBanner ad={renderItem.ad} />
+                            ) : renderItem.type === 'ad' ? (
                                 <AdBanner type={renderItem.adType as 'cosmetics' | 'equipment'} />
                             ) : (
                                 <ReelItem

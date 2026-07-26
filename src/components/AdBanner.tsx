@@ -1,5 +1,7 @@
 import React from 'react';
 import { ExternalLink } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 interface AdBannerProps {
     type: 'cosmetics' | 'equipment';
@@ -7,12 +9,20 @@ interface AdBannerProps {
 }
 
 export const AdBanner: React.FC<AdBannerProps> = ({ type, variant = 'full' }) => {
+    const navigate = useNavigate();
     const isCosmetics = type === 'cosmetics';
     const bgImage = isCosmetics ? '/ad_cosmetics.png' : '/ad_equipment.png';
     const title = isCosmetics ? "Premium Salon Ürünleri" : "Profesyonel Ekipmanlar";
     const desc = isCosmetics ? "İşletmenizi bir üst seviyeye taşıyacak premium ürünlerimizi keşfedin." : "Salonunuz için en kaliteli ve uzun ömürlü profesyonel ekipmanlar.";
 
     const isCompact = variant === 'compact';
+
+    const handleContact = () => {
+        toast("Reklam vermek için:\n0531 778 85 04 nolu telefondan veya salonbir26@gmail.com adresinden bize ulaşabilirsiniz.", {
+            icon: '📞',
+            duration: 5000
+        });
+    };
 
     return (
         <div className="relative w-full h-full bg-black shrink-0 snap-start flex items-center justify-center overflow-hidden">
@@ -40,7 +50,7 @@ export const AdBanner: React.FC<AdBannerProps> = ({ type, variant = 'full' }) =>
                 </p>
 
                 <button 
-                    onClick={() => alert('Reklam modülü çok yakında aktif olacak!')}
+                    onClick={() => navigate('/reklam-ver')}
                     className={`w-full bg-white text-gray-900 font-bold rounded-lg shadow-xl active:scale-95 transition-transform flex items-center justify-center gap-1.5 group ${isCompact ? 'py-1.5 text-[10px]' : 'py-3.5 text-base rounded-xl'}`}
                 >
                     Hemen Başvur <ExternalLink className={`${isCompact ? 'w-3 h-3' : 'w-4 h-4'} group-hover:translate-x-1 transition-transform`} />
@@ -51,7 +61,7 @@ export const AdBanner: React.FC<AdBannerProps> = ({ type, variant = 'full' }) =>
             {!isCompact && (
                 <div className="absolute top-6 left-0 w-full flex justify-center z-20">
                     <div 
-                        onClick={() => alert('Reklam vermek için: info@salonbir.com adresinden bize ulaşabilirsiniz.')}
+                        onClick={handleContact}
                         className="bg-black/40 backdrop-blur-md border border-white/20 text-white/90 text-xs px-4 py-2 rounded-full shadow-lg text-center cursor-pointer hover:bg-black/60 transition-colors"
                     >
                         Burada reklam vermek için <strong>iletişime geçin</strong>
@@ -61,7 +71,7 @@ export const AdBanner: React.FC<AdBannerProps> = ({ type, variant = 'full' }) =>
             {isCompact && (
                 <div className="absolute top-2 left-0 w-full flex justify-center z-20">
                     <div 
-                        onClick={() => alert('Reklam vermek için: info@salonbir.com adresinden bize ulaşabilirsiniz.')}
+                        onClick={handleContact}
                         className="bg-black/40 backdrop-blur-md border border-white/20 text-white/90 text-[8px] px-2 py-1 rounded-full shadow-lg text-center cursor-pointer hover:bg-black/60 transition-colors"
                     >
                         Reklam ver

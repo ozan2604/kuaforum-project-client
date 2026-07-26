@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, Store, Users, LogOut, Scissors, Menu, X, MessageSquare, Home, AlertTriangle, Plus, Key, Lock, Calendar } from 'lucide-react';
+import { LayoutDashboard, Store, Users, LogOut, Scissors, Menu, X, MessageSquare, Home, AlertTriangle, Plus, Key, Lock, Calendar, Megaphone } from 'lucide-react';
 import { adminPasswordService } from '../api/adminPassword.service';
 
 const LogoutConfirmModal: React.FC<{ onConfirm: () => void; onCancel: () => void }> = ({ onConfirm, onCancel }) =>
@@ -111,6 +111,7 @@ export const AdminLayout: React.FC = () => {
         { path: '/admin/users',        label: 'Kullanıcılar', icon: Users },
         { path: '/admin/sms-test',     label: 'SMS Test',     icon: MessageSquare },
         { path: '/admin/passwords',    label: 'Şifreler',     icon: Key },
+        { path: '/admin/reklam-basvurulari', label: 'Reklamlar', icon: Megaphone },
     ];
 
     if (isLoadingPassword) {

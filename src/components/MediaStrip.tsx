@@ -7,6 +7,9 @@ import { mediaLikeService } from '../api/mediaLike.service';
 import { shopService } from '../api/shop.service';
 import { useAuth } from '../context/AuthContext';
 import { AdBanner } from './AdBanner';
+import { DynamicAdBanner } from './DynamicAdBanner';
+import { adsService } from '../services/ads.service';
+import type { AdApplication } from '../services/ads.service';
 
 const HEART_STYLE = `
 @keyframes heartPop {
@@ -320,19 +323,34 @@ export const MediaStrip: React.FC<MediaStripProps> = ({ items }) => {
         };
     }, [updateFocus, items]);
 
+    const [dynamicAds, setDynamicAds] = useState<AdApplication[]>([]);
+    
+    useEffect(() => {
+        adsService.getActiveAds()
+            .then(data => setDynamicAds(data))
+            .catch(() => {});
+    }, []);
+
     const renderItems = React.useMemo(() => {
         if (items.length === 0) return [];
-        const adType = Math.random() > 0.5 ? 'cosmetics' : 'equipment';
+        
         const adIndex = Math.floor(Math.random() * Math.min(items.length, 5));
         const newItems: any[] = [];
+        
         items.forEach((item, index) => {
             if (index === adIndex) {
-                newItems.push({ type: 'ad', adType, key: `ad-${index}` });
+                if (dynamicAds.length > 0) {
+                    const dynAd = dynamicAds[Math.floor(Math.random() * dynamicAds.length)];
+                    newItems.push({ type: 'dynamicAd', ad: dynAd, key: `dyn-ad-${index}` });
+                } else {
+                    const adType = Math.random() > 0.5 ? 'cosmetics' : 'equipment';
+                    newItems.push({ type: 'ad', adType, key: `ad-${index}` });
+                }
             }
             newItems.push({ type: 'media', item, key: `${item.shopId}-${index}`, index });
         });
         return newItems;
-    }, [items]);
+    }, [items, dynamicAds]);
 
     if (items.length === 0) return null;
 
@@ -360,6 +378,17 @@ export const MediaStrip: React.FC<MediaStripProps> = ({ items }) => {
                     className="flex gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
                 >
                     {renderItems.map((renderItem) => {
+                        if (renderItem.type === 'dynamicAd') {
+                            return (
+                                <div 
+                                    key={renderItem.key} 
+                                    onClick={() => navigate(`/kolaj?adId=${renderItem.ad.id}`)}
+                                    className="relative shrink-0 w-[140px] h-[250px] rounded-xl overflow-hidden cursor-pointer select-none border border-gray-100"
+                                >
+                                    <DynamicAdBanner ad={renderItem.ad} variant="compact" />
+                                </div>
+                            );
+                        }
                         if (renderItem.type === 'ad') {
                             return (
                                 <div 
