@@ -95,7 +95,9 @@ export const Chatbot: React.FC = () => {
     useEffect(() => {
         const unlockAllAudio = () => {
             // 1. Unlock AudioContext with a silent oscillator
-            const ctx = getAudioContext();
+            const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
+            if (!AudioContextClass) return;
+            const ctx = new AudioContextClass();
             if (ctx && ctx.state === 'suspended') {
                 ctx.resume();
                 const osc = ctx.createOscillator();
