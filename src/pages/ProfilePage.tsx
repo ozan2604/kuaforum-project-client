@@ -18,8 +18,10 @@ import { getApiError } from '../utils/storage';
 import { useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { reviewService } from '../api/review.service';
 import { ReviewModal } from '../components/ReviewModal';
+import { adsService, type AdApplication } from '../services/ads.service';
+import { AdEditModal } from '../components/AdEditModal';
 
-type TabType = 'appointments' | 'account' | 'favorites' | 'reviews' | 'security';
+type TabType = 'appointments' | 'account' | 'favorites' | 'reviews' | 'security' | 'ads';
 
 interface AccordionSection { id: TabType; label: string; icon: React.ReactNode; }
 const sections: AccordionSection[] = [
@@ -27,6 +29,7 @@ const sections: AccordionSection[] = [
     { id: 'account', label: 'Hesap Bilgileri', icon: <User className="h-5 w-5" /> },
     { id: 'favorites', label: 'Favorilerim', icon: <Heart className="h-5 w-5" /> },
     { id: 'reviews', label: 'Yorumlarım', icon: <MessageSquare className="h-5 w-5" /> },
+    { id: 'ads', label: 'Reklamlarım', icon: <Camera className="h-5 w-5" /> },
     { id: 'security', label: 'Güvenlik', icon: <Lock className="h-5 w-5" /> },
 ];
 
@@ -131,6 +134,11 @@ export const ProfilePage: React.FC = () => {
     const [selectedAppointment, setSelectedAppointment] = useState<AppointmentDto | null>(null);
     const [selectedReview, setSelectedReview] = useState<Review | null>(null);
 
+    const [myAds, setMyAds] = useState<AdApplication[]>([]);
+    const [adsLoading, setAdsLoading] = useState(false);
+    const [adToDelete, setAdToDelete] = useState<string | null>(null);
+    const [adToEdit, setAdToEdit] = useState<AdApplication | null>(null);
+
     useEffect(() => {
         if (user) { 
             setFirstName(user.firstName); 
@@ -144,7 +152,10 @@ export const ProfilePage: React.FC = () => {
         if (openSection === 'appointments') loadAppointments();
         else if (openSection === 'favorites') loadFavorites();
         else if (openSection === 'reviews') loadReviews();
+        else if (openSection === 'ads') loadAds();
     }, [openSection]);
+
+    const loadAds = async () => { setAdsLoading(true); try { setMyAds(await adsService.getMyAds()); } catch (err) { toast.error(getApiError(err, 'Reklamlar yüklenemedi.')); } finally { setAdsLoading(false); } };
 
     const loadAppointments = async () => { setAppointmentsLoading(true); try { const result = await appointmentService.getMyAppointments(1, 50); setAppointments(result.items); } catch (err) { toast.error(getApiError(err, 'Randevular yüklenemedi.')); } finally { setAppointmentsLoading(false); } };
 
@@ -247,6 +258,19 @@ export const ProfilePage: React.FC = () => {
         } finally {
             setAppointmentToCancel(null);
             setCancelReason('');
+        }
+    };
+
+    const confirmDeleteAd = async () => {
+        if (!adToDelete) return;
+        try {
+            await adsService.deleteMyAd(adToDelete);
+            loadAds();
+            showResult('success', 'Reklam başvurunuz başarıyla silindi.');
+        } catch (err) {
+            showResult('error', getApiError(err, 'Reklam başvurusu silinemedi.'));
+        } finally {
+            setAdToDelete(null);
         }
     };
 
@@ -614,6 +638,75 @@ export const ProfilePage: React.FC = () => {
 
 
 
+                                {/* ── ADS (REKLAMLARIM) ── */}
+                                {section.id === 'ads' && (
+                                    <div className="space-y-4">
+                                        <div className="flex justify-between items-center mb-4">
+                                            <div>
+                                                <h3 className="font-bold text-gray-900">Reklam Başvurularım</h3>
+                                                <p className="text-xs text-gray-500">Tüm reklamlarınızı buradan yönetebilirsiniz.</p>
+                                            </div>
+                                            <Button onClick={() => navigate('/ad-application')} className="text-sm px-3 py-1.5 h-auto">
+                                                Yeni Başvuru Yap
+                                            </Button>
+                                        </div>
+
+                                        {adsLoading ? (
+                                            <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" /></div>
+                                        ) : myAds.length > 0 ? (
+                                            <div className="space-y-4">
+                                                {myAds.map(ad => (
+                                                    <div key={ad.id} className="border border-gray-100 rounded-xl p-4 bg-gray-50/50 flex flex-col sm:flex-row gap-4">
+                                                        <div className="w-full sm:w-24 h-32 flex-shrink-0 rounded-lg overflow-hidden border border-gray-200 bg-black">
+                                                            {ad.mediaType === 'video' ? (
+                                                                <video src={ad.mediaUrl} className="w-full h-full object-cover" />
+                                                            ) : (
+                                                                <img src={ad.mediaUrl} alt="Ad" className="w-full h-full object-cover" />
+                                                            )}
+                                                        </div>
+                                                        <div className="flex-1 flex flex-col">
+                                                            <div className="flex justify-between items-start mb-2">
+                                                                <div>
+                                                                    <div className="mb-1">
+                                                                        {ad.status === 'Pending' && <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded-full text-xs font-medium inline-block">Onay Bekliyor</span>}
+                                                                        {ad.status === 'Approved' && <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium inline-block">Onaylandı</span>}
+                                                                        {ad.status === 'Rejected' && <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium inline-block">Reddedildi</span>}
+                                                                    </div>
+                                                                    <p className="text-[10px] text-gray-400">Başvuru: {format(new Date(ad.createdAt), 'd MMMM yyyy HH:mm', { locale: tr })}</p>
+                                                                </div>
+                                                                {(ad.status === 'Pending' || ad.status === 'Approved') && (
+                                                                    <div className="flex items-center gap-2">
+                                                                        <button onClick={() => setAdToEdit(ad)} className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-white rounded-lg transition-all shadow-sm">
+                                                                            <Edit2 className="h-4 w-4" />
+                                                                        </button>
+                                                                        <button onClick={() => setAdToDelete(ad.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-white rounded-lg transition-all shadow-sm">
+                                                                            <Trash2 className="h-4 w-4" />
+                                                                        </button>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                            <p className="text-sm text-gray-700 leading-relaxed line-clamp-2 mb-2">{ad.description}</p>
+                                                            <div className="mt-auto flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+                                                                <span>📞 {ad.phoneNumber}</span>
+                                                                {ad.price != null && <span className="font-medium text-green-600">{ad.price} TL</span>}
+                                                                {ad.externalLink && <a href={ad.externalLink} target="_blank" rel="noreferrer" className="text-primary-600 hover:underline truncate max-w-[150px]">Link</a>}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="text-center py-10 bg-gray-50 border border-gray-100 rounded-xl">
+                                                <Camera className="h-10 w-10 text-gray-300 mx-auto mb-3" />
+                                                <p className="text-gray-500 text-sm mb-4">Henüz hiç reklam başvurunuz bulunmuyor.</p>
+                                                <Button onClick={() => navigate('/ad-application')}>
+                                                    Hemen Yeni Reklam Ver
+                                                </Button>
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
                                 {/* ── SECURITY ── */}
                                 {section.id === 'security' && (
                                     <div className="space-y-4">
@@ -702,6 +795,26 @@ export const ProfilePage: React.FC = () => {
                     confirmLabel="Evet, Yorumu Sil"
                     onConfirm={confirmDeleteReview}
                     onCancel={() => setReviewToDelete(null)}
+                />
+            )}
+
+            {/* Delete Ad Confirm */}
+            {adToDelete && (
+                <ConfirmModal
+                    title="Reklam Başvurusunu Sil"
+                    message="Bu reklam başvurusunu kalıcı olarak silmek istediğinize emin misiniz? Bu işlem geri alınamaz."
+                    confirmLabel="Evet, Başvuruyu Sil"
+                    onConfirm={confirmDeleteAd}
+                    onCancel={() => setAdToDelete(null)}
+                />
+            )}
+
+            {/* Edit Ad Modal */}
+            {adToEdit && (
+                <AdEditModal
+                    ad={adToEdit}
+                    onClose={() => setAdToEdit(null)}
+                    onSuccess={() => { setAdToEdit(null); loadAds(); }}
                 />
             )}
 

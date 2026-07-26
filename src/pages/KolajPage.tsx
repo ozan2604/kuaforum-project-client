@@ -322,12 +322,12 @@ export const KolajPage: React.FC = () => {
         ]).then(([mediaData, adsData]) => {
             const state = location.state as any;
             if (state?.initialMedia) {
-                const exists = mediaData.some(d => d.id === state.initialMedia.id);
-                if (!exists) {
-                    mediaData.unshift(state.initialMedia);
-                }
+                const filtered = mediaData.filter(d => String(d.id) !== String(state.initialMedia.id));
+                filtered.unshift(state.initialMedia);
+                setItems(filtered);
+            } else {
+                setItems(mediaData);
             }
-            setItems(mediaData);
             setDynamicAds(adsData);
         }).finally(() => setLoading(false));
     }, [location.state]);
@@ -345,39 +345,36 @@ export const KolajPage: React.FC = () => {
 
         const getDynamicAd = () => {
             if (dynamicAds.length > 0) {
-                if (targetAdId && !injectedTarget) {
-                    const found = dynamicAds.find(a => String(a.id) === targetAdId);
-                    if (found) {
-                        injectedTarget = true;
-                        return found;
-                    }
-                }
                 const randomIndex = Math.floor(Math.random() * dynamicAds.length);
                 return dynamicAds[randomIndex];
             }
             return null;
         };
 
+        // If navigated via ad click, ALWAYS show it at the very top (index 0)
+        if (targetAdId && dynamicAds.length > 0) {
+            const found = dynamicAds.find(a => String(a.id) === targetAdId);
+            if (found) {
+                arr.push({ type: 'dynamicAd', ad: found, key: `dyn-ad-target` });
+                injectedTarget = true;
+            }
+        } else if (targetAd) {
+            arr.push({ type: 'ad', adType: targetAd, key: `ad-target` });
+            injectedTarget = true;
+        }
+
         while (mediaIndex < items.length) {
             const combinedIndex = arr.length;
             
-            // If navigated via ad click, show it immediately at the top
-            if (combinedIndex === 0) {
-                if (targetAdId && !injectedTarget && dynamicAds.length > 0) {
-                    const dynAd = getDynamicAd();
-                    if (dynAd) {
-                        arr.push({ type: 'dynamicAd', ad: dynAd, key: `dyn-ad-target` });
-                        continue;
-                    }
-                } else if (targetAd) {
-                    arr.push({ type: 'ad', adType: targetAd, key: `ad-target` });
-                    // We don't continue here if we want to still process the rest normally, but continue makes it index 0
-                    continue;
-                }
-            }
-
             // Fixed ad condition: at index 4, then every 10 items
-            if (combinedIndex === 4 || (combinedIndex > 4 && (combinedIndex - 4) % 10 === 0)) {
+            if ((combinedIndex === 4 || (combinedIndex > 4 && (combinedIndex - 4) % 10 === 0)) && !injectedTarget) {
+                const adType = adCount % 2 === 0 ? 'cosmetics' : 'equipment';
+                arr.push({ type: 'ad', adType, key: `ad-${adCount}` });
+                adCount++;
+                continue;
+            }
+            // If we injected target, shift the fixed ad logic
+            if (injectedTarget && (combinedIndex === 5 || (combinedIndex > 5 && (combinedIndex - 5) % 10 === 0))) {
                 const adType = adCount % 2 === 0 ? 'cosmetics' : 'equipment';
                 arr.push({ type: 'ad', adType, key: `ad-${adCount}` });
                 adCount++;
@@ -453,16 +450,16 @@ export const KolajPage: React.FC = () => {
     return (
         <>
             <style dangerouslySetInnerHTML={{ __html: HEART_STYLE }} />
-            <div className="bg-black sm:bg-gray-950 w-full flex-1 flex flex-col min-h-0">
+            <div className="bg-black sm:bg-gray-950 w-full flex-1 flex flex-col min-h-0 relative">
                 <div 
                     ref={scrollRef} 
-                    className="overflow-y-scroll h-full w-full no-scrollbar flex-1"
+                    className="overflow-y-scroll h-full w-full no-scrollbar flex-1 snap-y snap-mandatory"
                 >
                     {renderItems.map((renderItem, idx) => (
                         <div 
                             key={renderItem.key} 
                             id={`kolaj-item-${idx}`}
-                            className="w-full h-full sm:py-6 flex items-center justify-center"
+                            className="w-full h-full snap-start sm:py-6 flex items-center justify-center relative"
                         >
                             {renderItem.type === 'dynamicAd' ? (
                                 <DynamicAdBanner ad={renderItem.ad} />

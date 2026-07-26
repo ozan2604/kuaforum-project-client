@@ -44,5 +44,19 @@ export const adsService = {
     getActiveAds: async () => {
         const response = await api.get<AdApplication[]>('/ads/active');
         return response.data;
+    },
+
+    updateMyAd: async (id: string, formData: FormData) => {
+        const response = await api.put(`/ads/${id}`, formData, {
+            headers: {
+                'Content-Type': 'multipart/form-data'
+            }
+        });
+        return response.data;
+    },
+
+    deleteMyAd: async (id: string) => {
+        const response = await api.delete(`/ads/${id}`);
+        return response.data;
     }
 };
