@@ -340,7 +340,6 @@ export const KolajPage: React.FC = () => {
         const params = new URLSearchParams(location.search);
         const targetAdId = params.get('adId');
         const targetAd = params.get('ad');
-        let injectedTarget = false;
 
         const getDynamicAd = () => {
             if (dynamicAds.length > 0) {
@@ -355,11 +354,9 @@ export const KolajPage: React.FC = () => {
             const found = dynamicAds.find(a => String(a.id) === targetAdId);
             if (found) {
                 arr.push({ type: 'dynamicAd', ad: found, key: `dyn-ad-target` });
-                injectedTarget = true;
             }
         } else if (targetAd) {
             arr.push({ type: 'ad', adType: targetAd, key: `ad-target` });
-            injectedTarget = true;
         }
 
         items.forEach((item, index) => {
