@@ -96,17 +96,18 @@ export const Chatbot: React.FC = () => {
         const unlockAllAudio = () => {
             // 1. Unlock AudioContext with a silent oscillator
             const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-            if (!AudioContextClass) return;
-            const ctx = new AudioContextClass();
-            if (ctx && ctx.state === 'suspended') {
-                ctx.resume();
-                const osc = ctx.createOscillator();
-                const gain = ctx.createGain();
-                gain.gain.value = 0; // Silent
-                osc.connect(gain);
-                gain.connect(ctx.destination);
-                osc.start();
-                osc.stop(ctx.currentTime + 0.001);
+            if (AudioContextClass) {
+                const ctx = new AudioContextClass();
+                if (ctx.state === 'suspended') {
+                    ctx.resume();
+                    const osc = ctx.createOscillator();
+                    const gain = ctx.createGain();
+                    gain.gain.value = 0; // Silent
+                    osc.connect(gain);
+                    gain.connect(ctx.destination);
+                    osc.start();
+                    osc.stop(ctx.currentTime + 0.001);
+                }
             }
 
             // 2. Unlock Radio Audio tag
@@ -215,7 +216,7 @@ export const Chatbot: React.FC = () => {
                     sender: 'bot',
                     text: (
                         <div className="flex flex-col gap-3">
-                            <span className="font-semibold text-gray-800 border-b border-gray-100 pb-2">SalonBir, güzellik ve bakım dünyasını tek çatı altında toplayan yeni nesil platformdur. ✨</span>
+                            <span className="font-semibold text-gray-800 border-b border-gray-100 pb-2">Salonbir, güzellik ve bakım dünyasını tek çatı altında toplayan yeni nesil platformdur. ✨</span>
 
                             <div className="flex flex-col gap-1.5">
                                 <span className="text-[13px] font-bold text-blue-600">Müşteriler için:</span>
@@ -228,7 +229,7 @@ export const Chatbot: React.FC = () => {
                             </div>
 
                             <span className="text-[13px] text-gray-500 italic mt-1 bg-gray-50 p-2 rounded-lg text-center">
-                                Kısacası SalonBir; güzellik arayanlar ile güzellik yaratanları en güvenli ve hızlı şekilde buluşturan köprüdür.
+                                Kısacası Salonbir; güzellik arayanlar ile güzellik yaratanları en güvenli ve hızlı şekilde buluşturan köprüdür.
                             </span>
                         </div>
                     )
@@ -238,7 +239,7 @@ export const Chatbot: React.FC = () => {
                     sender: 'bot',
                     text: (
                         <div className="flex flex-col gap-3">
-                            <span>Randevu almak SalonBir'de çok kolay ve <strong>tamamen ücretsizdir!</strong> Kendinize en uygun salonu bulduktan sonra işlemlerinizi hızlıca tamamlayabilirsiniz:</span>
+                            <span>Randevu almak Salonbir'de çok kolay ve <strong>tamamen ücretsizdir!</strong> Kendinize en uygun salonu bulduktan sonra işlemlerinizi hızlıca tamamlayabilirsiniz:</span>
                             <ul className="list-decimal list-inside text-[13.5px] text-gray-700 space-y-1 ml-1 bg-gray-50/50 p-2 rounded-lg border border-gray-100/50">
                                 <li>Size en uygun salonu ve hizmeti seçin.</li>
                                 <li>Tarih ve saat belirleyin.</li>
@@ -476,6 +477,7 @@ export const Chatbot: React.FC = () => {
 
                         {/* Music badge attached to Chatbot */}
                         <div
+                            onPointerDown={(e) => e.stopPropagation()}
                             onClick={(e) => {
                                 e.stopPropagation();
                                 handleToggleClick(e, 'radio');
