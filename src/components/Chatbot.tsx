@@ -91,47 +91,7 @@ export const Chatbot: React.FC = () => {
         };
     }, [isDragging]);
 
-    // iOS Audio Unlock Hack - unlocks both AudioContext and the radio <audio> element
-    useEffect(() => {
-        const unlockAllAudio = () => {
-            // 1. Unlock AudioContext with a silent oscillator
-            const AudioContextClass = window.AudioContext || (window as any).webkitAudioContext;
-            if (AudioContextClass) {
-                const ctx = new AudioContextClass();
-                if (ctx.state === 'suspended') {
-                    ctx.resume();
-                    const osc = ctx.createOscillator();
-                    const gain = ctx.createGain();
-                    gain.gain.value = 0; // Silent
-                    osc.connect(gain);
-                    gain.connect(ctx.destination);
-                    osc.start();
-                    osc.stop(ctx.currentTime + 0.001);
-                }
-            }
-
-            // 2. Unlock Radio Audio tag
-            if (radioAudioRef.current && radioAudioRef.current.paused && !isRadioPlaying) {
-                const p = radioAudioRef.current.play();
-                if (p) {
-                    p.then(() => {
-                        radioAudioRef.current?.pause();
-                    }).catch(() => { });
-                }
-            }
-
-            document.removeEventListener('touchstart', unlockAllAudio);
-            document.removeEventListener('click', unlockAllAudio);
-        };
-
-        document.addEventListener('touchstart', unlockAllAudio, { once: true });
-        document.addEventListener('click', unlockAllAudio, { once: true });
-
-        return () => {
-            document.removeEventListener('touchstart', unlockAllAudio);
-            document.removeEventListener('click', unlockAllAudio);
-        };
-    }, [isRadioPlaying]);
+    // The iOS Audio Unlock Hack was removed because it was causing race conditions where bubbling click events would instantly unpause the radio audio, and it was entirely unnecessary since toggleRadio is called synchronously within user gestures.
 
     const handlePointerDown = (e: React.PointerEvent) => {
         dragRef.current = {
@@ -369,14 +329,22 @@ export const Chatbot: React.FC = () => {
                         </div>
                         <div className="flex items-center gap-1">
                             <button
-                                onClick={() => toggleRadio()}
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    toggleRadio();
+                                }}
                                 className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
                                 title={isRadioPlaying ? "Müziği Kapat" : "Müziği Aç"}
                             >
                                 {isRadioPlaying ? <Volume2 className="w-4 h-4 text-green-600" /> : <VolumeX className="w-4 h-4 text-gray-400" />}
                             </button>
                             <button
-                                onClick={() => setIsOpen(false)}
+                                onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    setIsOpen(false);
+                                }}
                                 className="p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-colors"
                             >
                                 <X className="w-5 h-5" />
@@ -405,13 +373,21 @@ export const Chatbot: React.FC = () => {
                                 {msg.sender === 'bot' && (
                                     <div className="flex gap-2 justify-start ml-1 mt-0.5">
                                         <button
-                                            onClick={() => handleActionClick('faq')}
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                handleActionClick('faq');
+                                            }}
                                             className="px-3 py-1.5 text-[13px] font-medium bg-blue-50 text-blue-600 rounded-lg hover:bg-blue-100 transition-colors border border-blue-100 shadow-sm"
                                         >
                                             Akıllı Sorular
                                         </button>
                                         <button
-                                            onClick={() => handleActionClick('contact')}
+                                            onClick={(e) => {
+                                                e.preventDefault();
+                                                e.stopPropagation();
+                                                handleActionClick('contact');
+                                            }}
                                             className="px-3 py-1.5 text-[13px] font-medium bg-gray-50 text-gray-700 rounded-lg hover:bg-gray-100 transition-colors border border-gray-200 shadow-sm"
                                         >
                                             Bize Ulaşın
@@ -430,7 +406,11 @@ export const Chatbot: React.FC = () => {
                                 {faqOptions.map((opt, idx) => (
                                     <button
                                         key={idx}
-                                        onClick={() => handleOptionClick(opt.text)}
+                                        onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            handleOptionClick(opt.text);
+                                        }}
                                         className={`w-full flex items-center gap-3 px-4 py-3.5 text-left hover:bg-gray-50 transition-colors text-sm font-medium text-gray-700
                                             ${idx !== faqOptions.length - 1 ? 'border-b border-gray-100' : ''}
                                         `}
