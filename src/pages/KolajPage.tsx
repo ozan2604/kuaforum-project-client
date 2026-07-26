@@ -373,7 +373,7 @@ export const KolajPage: React.FC = () => {
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center bg-black sm:bg-gray-950 w-full h-[calc(100dvh-112px)] sm:h-[calc(100vh-96px)]">
+            <div className="flex flex-1 items-center justify-center bg-black sm:bg-gray-950 w-full">
                 <div className="w-8 h-8 border-2 border-primary-600 border-t-transparent rounded-full animate-spin" />
             </div>
         );
@@ -381,7 +381,7 @@ export const KolajPage: React.FC = () => {
 
     if (items.length === 0) {
         return (
-            <div className="flex flex-col items-center justify-center gap-3 text-gray-400 bg-black sm:bg-gray-950 w-full h-[calc(100dvh-112px)] sm:h-[calc(100vh-96px)]">
+            <div className="flex flex-1 flex-col items-center justify-center gap-3 text-gray-400 bg-black sm:bg-gray-950 w-full">
                 <Play className="w-12 h-12" />
                 <p className="text-sm font-semibold">Henüz içerik yok</p>
             </div>
@@ -393,10 +393,10 @@ export const KolajPage: React.FC = () => {
     return (
         <>
             <style dangerouslySetInnerHTML={{ __html: HEART_STYLE }} />
-            <div className="bg-black sm:bg-gray-950 w-full h-[calc(100dvh-112px)] sm:h-[calc(100vh-96px)]">
+            <div className="bg-black sm:bg-gray-950 w-full flex-1 flex flex-col min-h-0">
                 <div 
                     ref={scrollRef} 
-                    className="overflow-y-scroll h-full w-full no-scrollbar"
+                    className="overflow-y-scroll h-full w-full no-scrollbar flex-1"
                 >
                     {renderItems.map((renderItem, idx) => (
                         <div 
