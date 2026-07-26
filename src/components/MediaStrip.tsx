@@ -6,6 +6,7 @@ import type { MediaHighlight } from '../types/shop';
 import { mediaLikeService } from '../api/mediaLike.service';
 import { shopService } from '../api/shop.service';
 import { useAuth } from '../context/AuthContext';
+import { AdBanner } from './AdBanner';
 
 const HEART_STYLE = `
 @keyframes heartPop {
@@ -318,6 +319,20 @@ export const MediaStrip: React.FC<MediaStripProps> = ({ items }) => {
         };
     }, [updateFocus, items]);
 
+    const renderItems = React.useMemo(() => {
+        if (items.length === 0) return [];
+        const adType = Math.random() > 0.5 ? 'cosmetics' : 'equipment';
+        const adIndex = Math.floor(Math.random() * Math.min(items.length, 5));
+        const newItems: any[] = [];
+        items.forEach((item, index) => {
+            if (index === adIndex) {
+                newItems.push({ type: 'ad', adType, key: `ad-${index}` });
+            }
+            newItems.push({ type: 'media', item, key: `${item.shopId}-${index}`, index });
+        });
+        return newItems;
+    }, [items]);
+
     if (items.length === 0) return null;
 
     const scroll = () => {
@@ -343,19 +358,30 @@ export const MediaStrip: React.FC<MediaStripProps> = ({ items }) => {
                     ref={scrollRef}
                     className="flex gap-2 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
                 >
-                    {items.map((item, index) => (
-                        <MediaCard
-                            key={`${item.shopId}-${index}`}
-                            item={item}
-                            index={index}
-                            isAuthenticated={isAuthenticated}
-                            isFocused={focusedId !== null
-                                ? focusedId === String(item.id)
-                                : index === 0}
-                            isMuted={isMuted}
-                            onToggleMute={toggleMute}
-                        />
-                    ))}
+                    {renderItems.map((renderItem) => {
+                        if (renderItem.type === 'ad') {
+                            return (
+                                <div key={renderItem.key} className="w-[180px] sm:w-[220px] h-[320px] sm:h-[390px] shrink-0 rounded-2xl overflow-hidden snap-center relative shadow-sm border border-gray-100">
+                                    <AdBanner type={renderItem.adType} />
+                                </div>
+                            );
+                        }
+                        const item = renderItem.item;
+                        const index = renderItem.index;
+                        return (
+                            <MediaCard
+                                key={renderItem.key}
+                                item={item}
+                                index={index}
+                                isAuthenticated={isAuthenticated}
+                                isFocused={focusedId !== null
+                                    ? focusedId === String(item.id)
+                                    : index === 0}
+                                isMuted={isMuted}
+                                onToggleMute={toggleMute}
+                            />
+                        );
+                    })}
                 </div>
             </div>
         </>

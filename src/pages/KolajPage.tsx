@@ -5,6 +5,7 @@ import { shopService } from '../api/shop.service';
 import { mediaLikeService } from '../api/mediaLike.service';
 import type { MediaHighlight } from '../types/shop';
 import { useAuth } from '../context/AuthContext';
+import { AdBanner } from '../components/AdBanner';
 
 
 
@@ -227,7 +228,7 @@ const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, isMutedRef, o
             )}
 
             {/* Alt bilgi + beğeni */}
-            <div className="absolute bottom-4 left-4 right-4 pb-2">
+            <div className="absolute bottom-4 left-4 right-4 pb-2 z-20">
                 <p className="text-white font-bold text-xl leading-snug mb-3 drop-shadow-sm">{item.shopName}</p>
                 {/* Salona Git + Beğeni yan yana */}
                 <div className="flex items-center justify-between">
@@ -342,6 +343,22 @@ export const KolajPage: React.FC = () => {
         );
     }
 
+    const renderItems = [];
+    let mediaIndex = 0;
+    let adCount = 0;
+
+    while (mediaIndex < items.length) {
+        const combinedIndex = renderItems.length;
+        if (combinedIndex === 4 || (combinedIndex > 4 && (combinedIndex - 4) % 10 === 0)) {
+            const adType = adCount % 2 === 0 ? 'cosmetics' : 'equipment';
+            renderItems.push({ type: 'ad', adType, key: `ad-${adCount}` });
+            adCount++;
+        } else {
+            renderItems.push({ type: 'media', item: items[mediaIndex], mediaIndex, key: `${items[mediaIndex].shopId}-${mediaIndex}` });
+            mediaIndex++;
+        }
+    }
+
     return (
         <>
             <style dangerouslySetInnerHTML={{ __html: HEART_STYLE }} />
@@ -350,16 +367,20 @@ export const KolajPage: React.FC = () => {
                     ref={scrollRef} 
                     className="overflow-y-scroll snap-y snap-mandatory h-full w-full no-scrollbar"
                 >
-                    {items.map((item, index) => (
-                        <div key={`${item.shopId}-${index}`} className="w-full h-full snap-start snap-always sm:py-6 flex items-center justify-center">
-                            <ReelItem
-                                item={item}
-                                index={index}
-                                isMuted={isMuted}
-                                isMutedRef={isMutedRef}
-                                onToggleMute={toggleMute}
-                                isAuthenticated={isAuthenticated}
-                            />
+                    {renderItems.map((renderItem) => (
+                        <div key={renderItem.key} className="w-full h-full snap-start snap-always sm:py-6 flex items-center justify-center">
+                            {renderItem.type === 'ad' ? (
+                                <AdBanner type={renderItem.adType as 'cosmetics' | 'equipment'} />
+                            ) : (
+                                <ReelItem
+                                    item={renderItem.item as any}
+                                    index={renderItem.mediaIndex as number}
+                                    isMuted={isMuted}
+                                    isMutedRef={isMutedRef}
+                                    onToggleMute={toggleMute}
+                                    isAuthenticated={isAuthenticated}
+                                />
+                            )}
                         </div>
                     ))}
                 </div>
