@@ -361,8 +361,8 @@ export const MediaStrip: React.FC<MediaStripProps> = ({ items }) => {
                     {renderItems.map((renderItem) => {
                         if (renderItem.type === 'ad') {
                             return (
-                                <div key={renderItem.key} className="w-[180px] sm:w-[220px] h-[320px] sm:h-[390px] shrink-0 rounded-2xl overflow-hidden snap-center relative shadow-sm border border-gray-100">
-                                    <AdBanner type={renderItem.adType} />
+                                <div key={renderItem.key} className="relative shrink-0 w-[140px] h-[250px] rounded-xl overflow-hidden cursor-pointer select-none border border-gray-100">
+                                    <AdBanner type={renderItem.adType} variant="compact" />
                                 </div>
                             );
                         }
