@@ -164,7 +164,7 @@ const MediaCard: React.FC<MediaCardProps> = ({
     const handleClick = () => {
         if (didDblRef.current) { didDblRef.current = false; return; }
         if (isHoldRef.current) return;
-        navigate(`/kolaj?id=${item.id}`);
+        navigate(`/kolaj?id=${item.id}`, { state: { initialMedia: item } });
     };
 
     return (
@@ -361,7 +361,11 @@ export const MediaStrip: React.FC<MediaStripProps> = ({ items }) => {
                     {renderItems.map((renderItem) => {
                         if (renderItem.type === 'ad') {
                             return (
-                                <div key={renderItem.key} className="relative shrink-0 w-[140px] h-[250px] rounded-xl overflow-hidden cursor-pointer select-none border border-gray-100">
+                                <div 
+                                    key={renderItem.key} 
+                                    onClick={() => navigate(`/kolaj?ad=${renderItem.adType}`)}
+                                    className="relative shrink-0 w-[140px] h-[250px] rounded-xl overflow-hidden cursor-pointer select-none border border-gray-100"
+                                >
                                     <AdBanner type={renderItem.adType} variant="compact" />
                                 </div>
                             );

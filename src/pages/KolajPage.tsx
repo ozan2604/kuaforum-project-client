@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Play, ArrowRight, Volume2, VolumeX, Heart, Send, Check, Eye } from 'lucide-react';
 import { shopService } from '../api/shop.service';
@@ -313,18 +313,63 @@ export const KolajPage: React.FC = () => {
 
     useEffect(() => {
         shopService.getMediaHighlights(undefined, undefined, undefined, 100)
-            .then(data => setItems(data)).catch(() => {}).finally(() => setLoading(false));
-    }, []);
+            .then(data => {
+                const state = location.state as any;
+                if (state?.initialMedia) {
+                    const exists = data.some(d => d.id === state.initialMedia.id);
+                    if (!exists) {
+                        data.unshift(state.initialMedia);
+                    }
+                }
+                setItems(data);
+            }).catch(() => {}).finally(() => setLoading(false));
+    }, [location.state]);
+
+    const renderItems = useMemo(() => {
+        const arr: any[] = [];
+        let mediaIndex = 0;
+        let adCount = 0;
+        while (mediaIndex < items.length) {
+            const combinedIndex = arr.length;
+            if (combinedIndex === 4 || (combinedIndex > 4 && (combinedIndex - 4) % 10 === 0)) {
+                const adType = adCount % 2 === 0 ? 'cosmetics' : 'equipment';
+                arr.push({ type: 'ad', adType, key: `ad-${adCount}` });
+                adCount++;
+            } else {
+                arr.push({ type: 'media', item: items[mediaIndex], mediaIndex, key: `${items[mediaIndex].shopId}-${mediaIndex}` });
+                mediaIndex++;
+            }
+        }
+        return arr;
+    }, [items]);
 
     useEffect(() => {
-        if (!items.length || !scrollRef.current) return;
-        const targetId = new URLSearchParams(location.search).get('id');
-        if (!targetId) return;
-        const index = items.findIndex(i => String(i.id) === targetId);
-        if (index > 0) {
-            scrollRef.current.scrollTop = index * scrollRef.current.clientHeight;
+        if (!renderItems.length || !scrollRef.current) return;
+        const params = new URLSearchParams(location.search);
+        const targetId = params.get('id');
+        const targetAd = params.get('ad');
+        
+        if (!targetId && !targetAd) return;
+        
+        let index = -1;
+        if (targetId) {
+            index = renderItems.findIndex((i: any) => i.type === 'media' && String(i.item.id) === targetId);
+        } else if (targetAd) {
+            index = renderItems.findIndex((i: any) => i.type === 'ad' && i.adType === targetAd);
         }
-    }, [items, location.search]);
+        
+        if (index >= 0) {
+            // setTimeout ensures the DOM elements are fully rendered and snap rules applied
+            setTimeout(() => {
+                const el = document.getElementById(`kolaj-item-${index}`);
+                if (el) {
+                    el.scrollIntoView({ behavior: 'auto', block: 'start' });
+                } else if (scrollRef.current) {
+                    scrollRef.current.scrollTop = index * scrollRef.current.clientHeight;
+                }
+            }, 100);
+        }
+    }, [renderItems, location.search]);
 
     if (loading) {
         return (
@@ -343,21 +388,7 @@ export const KolajPage: React.FC = () => {
         );
     }
 
-    const renderItems = [];
-    let mediaIndex = 0;
-    let adCount = 0;
-
-    while (mediaIndex < items.length) {
-        const combinedIndex = renderItems.length;
-        if (combinedIndex === 4 || (combinedIndex > 4 && (combinedIndex - 4) % 10 === 0)) {
-            const adType = adCount % 2 === 0 ? 'cosmetics' : 'equipment';
-            renderItems.push({ type: 'ad', adType, key: `ad-${adCount}` });
-            adCount++;
-        } else {
-            renderItems.push({ type: 'media', item: items[mediaIndex], mediaIndex, key: `${items[mediaIndex].shopId}-${mediaIndex}` });
-            mediaIndex++;
-        }
-    }
+    // renderItems moved up into useMemo
 
     return (
         <>
@@ -367,8 +398,12 @@ export const KolajPage: React.FC = () => {
                     ref={scrollRef} 
                     className="overflow-y-scroll snap-y snap-mandatory h-full w-full no-scrollbar"
                 >
-                    {renderItems.map((renderItem) => (
-                        <div key={renderItem.key} className="w-full h-full snap-start snap-always sm:py-6 flex items-center justify-center">
+                    {renderItems.map((renderItem, idx) => (
+                        <div 
+                            key={renderItem.key} 
+                            id={`kolaj-item-${idx}`}
+                            className="w-full h-full snap-start snap-always sm:py-6 flex items-center justify-center"
+                        >
                             {renderItem.type === 'ad' ? (
                                 <AdBanner type={renderItem.adType as 'cosmetics' | 'equipment'} />
                             ) : (
