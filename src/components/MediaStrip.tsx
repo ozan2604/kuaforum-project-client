@@ -391,7 +391,7 @@ export const MediaStrip: React.FC<MediaStripProps> = ({ items }) => {
                                     onClick={() => navigate(`/kolaj?adId=${renderItem.ad.id}`)}
                                     className="relative shrink-0 w-[140px] h-[250px] rounded-xl overflow-hidden cursor-pointer select-none border border-gray-100"
                                 >
-                                    <DynamicAdBanner ad={renderItem.ad} variant="compact" />
+                                    <DynamicAdBanner ad={renderItem.ad} variant="compact" isMuted={isMuted} onToggleMute={toggleMute} />
                                 </div>
                             );
                         }

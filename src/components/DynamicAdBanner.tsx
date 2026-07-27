@@ -6,12 +6,26 @@ import { useNavigate } from 'react-router-dom';
 interface DynamicAdBannerProps {
     ad: AdApplication;
     variant?: 'full' | 'compact';
+    isMuted?: boolean;
+    onToggleMute?: () => void;
 }
 
-export const DynamicAdBanner: React.FC<DynamicAdBannerProps> = ({ ad, variant = 'full' }) => {
+export const DynamicAdBanner: React.FC<DynamicAdBannerProps> = ({ ad, variant = 'full', isMuted: externalIsMuted, onToggleMute }) => {
     const isCompact = variant === 'compact';
     const navigate = useNavigate();
-    const [isMuted, setIsMuted] = useState(true);
+    const [localIsMuted, setLocalIsMuted] = useState(true);
+
+    const isMuted = externalIsMuted !== undefined ? externalIsMuted : localIsMuted;
+
+    const handleToggleMute = (e: React.MouseEvent | React.PointerEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (onToggleMute) {
+            onToggleMute();
+        } else {
+            setLocalIsMuted(!localIsMuted);
+        }
+    };
 
     return (
         <div className="relative w-full h-full bg-black flex items-center justify-center overflow-hidden">
@@ -28,10 +42,11 @@ export const DynamicAdBanner: React.FC<DynamicAdBannerProps> = ({ ad, variant = 
                             className="w-full h-full object-contain opacity-80" 
                         />
                         <button
-                            onClick={(e) => { e.stopPropagation(); setIsMuted(!isMuted); }}
-                            className="absolute top-4 right-4 z-30 p-2 bg-black/40 backdrop-blur-md rounded-full text-white/90 hover:bg-black/60 transition-colors"
+                            onPointerDown={handleToggleMute}
+                            onClick={handleToggleMute}
+                            className="absolute top-4 right-4 z-30 p-2 bg-black/40 backdrop-blur-md rounded-full text-white/90 hover:bg-black/60 transition-colors cursor-pointer"
                         >
-                            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                            {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
                         </button>
                     </div>
                 ) : (

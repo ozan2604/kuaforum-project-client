@@ -457,7 +457,7 @@ export const KolajPage: React.FC = () => {
                             className="w-full max-w-[400px] h-[75vh] min-h-[480px] max-h-[800px] shrink-0 snap-center flex items-center justify-center relative rounded-2xl overflow-hidden shadow-2xl border border-white/10 bg-black"
                         >
                             {renderItem.type === 'dynamicAd' ? (
-                                <DynamicAdBanner ad={renderItem.ad} />
+                                <DynamicAdBanner ad={renderItem.ad} isMuted={isMuted} onToggleMute={toggleMute} />
                             ) : renderItem.type === 'ad' ? (
                                 <AdBanner type={renderItem.adType as 'cosmetics' | 'equipment'} />
                             ) : (
