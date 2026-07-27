@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { ExternalLink, Info, Volume2, VolumeX } from 'lucide-react';
 import type { AdApplication } from '../services/ads.service';
 import { useNavigate } from 'react-router-dom';
@@ -14,8 +14,51 @@ export const DynamicAdBanner: React.FC<DynamicAdBannerProps> = ({ ad, variant = 
     const isCompact = variant === 'compact';
     const navigate = useNavigate();
     const [localIsMuted, setLocalIsMuted] = useState(true);
+    const videoRef = useRef<HTMLVideoElement>(null);
+    const containerRef = useRef<HTMLDivElement>(null);
 
     const isMuted = externalIsMuted !== undefined ? externalIsMuted : localIsMuted;
+
+    useEffect(() => {
+        if (videoRef.current) {
+            videoRef.current.muted = isMuted;
+        }
+    }, [isMuted]);
+
+    useEffect(() => {
+        const vid = videoRef.current;
+        const container = containerRef.current;
+        if (!vid || !container) return;
+
+        const handleVisibilityChange = () => {
+            if (document.hidden) {
+                vid.pause();
+            } else if (container.getBoundingClientRect().top >= 0) { // simple check
+                // let IntersectionObserver handle the play if it's intersecting
+            }
+        };
+
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+
+        const observer = new IntersectionObserver(
+            ([entry]) => {
+                if (entry.isIntersecting) {
+                    vid.muted = isMuted;
+                    vid.play().catch(() => {});
+                } else {
+                    vid.pause();
+                }
+            },
+            { threshold: 0.5 }
+        );
+
+        observer.observe(container);
+
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+            observer.disconnect();
+        };
+    }, [isMuted]);
 
     const handleToggleMute = (e: React.MouseEvent | React.PointerEvent) => {
         e.preventDefault();
@@ -28,21 +71,21 @@ export const DynamicAdBanner: React.FC<DynamicAdBannerProps> = ({ ad, variant = 
     };
 
     return (
-        <div className="relative w-full h-full bg-black flex items-center justify-center overflow-hidden">
+        <div ref={containerRef} className="relative w-full h-full bg-black flex items-center justify-center overflow-hidden">
             {/* Background Media */}
             <div className="absolute inset-0 z-0 bg-black flex items-center justify-center">
                 {ad.mediaType === 'video' ? (
                     <video 
+                        ref={videoRef}
                         src={ad.mediaUrl} 
-                        autoPlay 
                         muted={isMuted}
                         loop 
                         playsInline
-                        className="w-full h-full object-contain opacity-80" 
+                        className="w-full h-full object-cover sm:object-contain opacity-80" 
                     />
                 ) : (
                     <div 
-                        className="w-full h-full bg-contain bg-center bg-no-repeat opacity-80"
+                        className="w-full h-full bg-cover sm:bg-contain bg-center bg-no-repeat opacity-80"
                         style={{ backgroundImage: `url(${ad.mediaUrl})` }}
                     />
                 )}
@@ -53,13 +96,16 @@ export const DynamicAdBanner: React.FC<DynamicAdBannerProps> = ({ ad, variant = 
 
             {/* Mute Toggle */}
             {ad.mediaType === 'video' && (
-                <div className="absolute top-4 right-4 z-30">
+                <div className={`absolute z-30 ${isCompact ? 'top-2 right-2' : 'top-4 right-4'}`}>
                     <button
                         onPointerDown={e => e.stopPropagation()}
                         onClick={handleToggleMute}
-                        className="w-10 h-10 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white border border-white/20 shadow-lg active:scale-90 transition-transform cursor-pointer"
+                        className={`rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center text-white border border-white/20 shadow-lg active:scale-90 transition-transform cursor-pointer ${isCompact ? 'w-7 h-7' : 'w-10 h-10'}`}
                     >
-                        {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                        {isMuted 
+                            ? <VolumeX className={isCompact ? 'w-3.5 h-3.5' : 'w-5 h-5'} /> 
+                            : <Volume2 className={isCompact ? 'w-3.5 h-3.5' : 'w-5 h-5'} />
+                        }
                     </button>
                 </div>
             )}
