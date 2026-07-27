@@ -7,7 +7,7 @@ import { ShopCard } from '../components/ShopCard';
 import { MediaStrip } from '../components/MediaStrip';
 import { useAuth } from '../context/AuthContext';
 import { createPortal } from 'react-dom';
-import { MapPin, ChevronLeft, ChevronRight, Map, XCircle, Navigation, Search, Filter, ListFilter, ChevronDown } from 'lucide-react';
+import { MapPin, Map, XCircle, Navigation, Search, Filter, ListFilter, ChevronDown } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -193,7 +193,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
     const [mapFocusCenter, setMapFocusCenter] = useState<[number, number] | null>(null);
     const [mapFocusShopId, setMapFocusShopId] = useState<string | null>(null);
     const mapSectionRef = useRef<HTMLDivElement>(null);
-    const [catScroll, setCatScroll] = useState({ left: false, right: true });
+
 
     useEffect(() => {
         const loadProvinces = async () => {
