@@ -1,5 +1,5 @@
-import React from 'react';
-import { ExternalLink, Info } from 'lucide-react';
+import React, { useState } from 'react';
+import { ExternalLink, Info, Volume2, VolumeX } from 'lucide-react';
 import type { AdApplication } from '../services/ads.service';
 import { useNavigate } from 'react-router-dom';
 
@@ -11,20 +11,29 @@ interface DynamicAdBannerProps {
 export const DynamicAdBanner: React.FC<DynamicAdBannerProps> = ({ ad, variant = 'full' }) => {
     const isCompact = variant === 'compact';
     const navigate = useNavigate();
+    const [isMuted, setIsMuted] = useState(true);
 
     return (
         <div className="relative w-full h-full bg-black flex items-center justify-center overflow-hidden">
             {/* Background Media */}
             <div className="absolute inset-0 z-0 bg-black flex items-center justify-center">
                 {ad.mediaType === 'video' ? (
-                    <video 
-                        src={ad.mediaUrl} 
-                        autoPlay 
-                        muted 
-                        loop 
-                        playsInline
-                        className="w-full h-full object-contain opacity-80" 
-                    />
+                    <div className="w-full h-full relative">
+                        <video 
+                            src={ad.mediaUrl} 
+                            autoPlay 
+                            muted={isMuted}
+                            loop 
+                            playsInline
+                            className="w-full h-full object-contain opacity-80" 
+                        />
+                        <button
+                            onClick={(e) => { e.stopPropagation(); setIsMuted(!isMuted); }}
+                            className="absolute top-4 right-4 z-30 p-2 bg-black/40 backdrop-blur-md rounded-full text-white/90 hover:bg-black/60 transition-colors"
+                        >
+                            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                        </button>
+                    </div>
                 ) : (
                     <div 
                         className="w-full h-full bg-contain bg-center bg-no-repeat opacity-80"
