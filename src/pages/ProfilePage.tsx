@@ -647,7 +647,7 @@ export const ProfilePage: React.FC = () => {
                                                 <p className="text-xs text-gray-500">Tüm reklamlarınızı buradan yönetebilirsiniz.</p>
                                             </div>
                                             <button 
-                                                onClick={() => navigate('/ad-application')} 
+                                                onClick={() => navigate('/reklam-ver')} 
                                                 className="bg-primary-600 hover:bg-primary-700 text-white font-semibold text-[13px] px-4 py-2 rounded-xl transition-all shadow-sm hover:shadow-md"
                                             >
                                                 Yeni Başvuru Yap
@@ -703,7 +703,7 @@ export const ProfilePage: React.FC = () => {
                                                 <Camera className="h-10 w-10 text-gray-300 mx-auto mb-3" />
                                                 <p className="text-gray-500 text-sm mb-4">Henüz hiç reklam başvurunuz bulunmuyor.</p>
                                                 <button 
-                                                    onClick={() => navigate('/ad-application')}
+                                                    onClick={() => navigate('/reklam-ver')}
                                                     className="bg-primary-600 hover:bg-primary-700 text-white font-semibold text-[14px] px-5 py-2.5 rounded-xl transition-all shadow-sm hover:shadow-md mt-2 inline-flex items-center justify-center"
                                                 >
                                                     Hemen Yeni Reklam Ver
