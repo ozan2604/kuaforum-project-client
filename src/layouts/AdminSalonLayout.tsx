@@ -31,6 +31,7 @@ const AdminSalonLayoutInner: React.FC = () => {
         { name: 'Salonum',    href: `${base}/shop`,                 icon: Store,           end: false },
         { name: 'Müşteriler', href: `${base}/blocked-customers`,    icon: Users,           end: false },
         { name: 'QR Kod',     href: `${base}/qr-kod`,               icon: QrCode,          end: false },
+        { name: 'Ziyaretçiler', href: `${base}/analytics`,          icon: LayoutDashboard, end: false },
     ];
 
     if (isLoading) {

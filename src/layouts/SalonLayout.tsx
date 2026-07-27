@@ -38,6 +38,7 @@ export const SalonLayout: React.FC = () => {
         { path: '/salon/appointments', label: 'Randevular', icon: Calendar },
         { path: '/salon/customers', label: 'Müşteriler', icon: ShieldCheck },
         { path: '/salon/qr', label: 'QR Kod', icon: QrCode },
+        { path: '/salon/analytics', label: 'Ziyaretçiler', icon: LayoutDashboard },
     ];
 
     const ShopPicker = () => {

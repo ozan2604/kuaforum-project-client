@@ -135,6 +135,22 @@ export const ShopDetailsPage: React.FC = () => {
         checkFavorite();
     }, [id, isAuthenticated]);
 
+    useEffect(() => {
+        if (id) {
+            const hasVisitedShop = sessionStorage.getItem(`has_logged_visit_shop_${id}`);
+            if (!hasVisitedShop) {
+                import('../api/analytics.service').then(({ analyticsService }) => {
+                    analyticsService.logVisit({
+                        referrer: document.referrer,
+                        userAgent: navigator.userAgent,
+                        shopId: id
+                    }).catch(err => console.error('Shop analytics log failed:', err));
+                    sessionStorage.setItem(`has_logged_visit_shop_${id}`, 'true');
+                });
+            }
+        }
+    }, [id]);
+
     const handleToggleFavorite = async () => {
         if (!isAuthenticated) {
             toast.error('Favorilere eklemek için giriş yapmalısınız.');

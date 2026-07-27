@@ -599,6 +599,22 @@ export const SalonDashboard: React.FC = () => {
                                         </div>
                                         <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-indigo-400" />
                                     </button>
+                                    
+                                    <button
+                                        onClick={() => navigate('/salon-panel/analytics')}
+                                        className="group p-5 border border-gray-100 rounded-xl text-left hover:border-emerald-100 hover:bg-emerald-50/50 hover:shadow-sm transition-all flex items-center justify-between"
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className="p-2 bg-emerald-100 text-emerald-600 rounded-lg group-hover:scale-110 transition-transform">
+                                                <Activity className="w-5 h-5" />
+                                            </div>
+                                            <div>
+                                                <span className="block font-semibold text-gray-900">Ziyaretçi Analitiği</span>
+                                                <span className="text-xs text-gray-500">Profil ziyaretlerini gör</span>
+                                            </div>
+                                        </div>
+                                        <ChevronRight className="w-5 h-5 text-gray-300 group-hover:text-emerald-400" />
+                                    </button>
 
                                     <button
                                         onClick={() => navigate('/salon-panel/employees')}

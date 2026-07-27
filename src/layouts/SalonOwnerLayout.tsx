@@ -142,6 +142,7 @@ const SalonOwnerLayoutInner: React.FC = () => {
         { name: 'QR Kod',     href: '/salon-panel/qr-kod',                  icon: QrCode },
         { name: 'Dashboard',  href: '/salon-panel',                        icon: LayoutDashboard },
         { name: 'Müşteriler', href: '/salon-panel/blocked-customers',       icon: Users },
+        { name: 'Ziyaretçiler', href: '/salon-panel/analytics',             icon: LayoutDashboard },
         { name: 'Ayarlar',    href: '/salon-panel/settings',                icon: Settings },
     ];
 

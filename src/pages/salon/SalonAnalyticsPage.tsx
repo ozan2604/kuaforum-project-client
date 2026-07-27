@@ -1,16 +1,24 @@
 import React, { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { analyticsService, type SiteStatsDto } from '../../api/analytics.service';
 import { Loader2, Globe, Monitor, Smartphone, Tablet, Apple, Compass } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 
-export const AdminAnalyticsPage: React.FC = () => {
+import { useSalon } from '../../context/SalonContext';
+
+export const SalonAnalyticsPage: React.FC = () => {
+    const { shopId: paramShopId } = useParams<{ shopId: string }>();
+    const { currentShop } = useSalon();
+    const shopId = paramShopId || currentShop?.id;
+
     const [stats, setStats] = useState<SiteStatsDto | null>(null);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const fetchStats = async () => {
+            if (!shopId) return;
             try {
-                const data = await analyticsService.getStats();
+                const data = await analyticsService.getShopStats(shopId);
                 setStats(data);
             } catch (err) {
                 toast.error('İstatistikler yüklenemedi.');
@@ -19,7 +27,7 @@ export const AdminAnalyticsPage: React.FC = () => {
             }
         };
         fetchStats();
-    }, []);
+    }, [shopId]);
 
     if (loading) {
         return (
@@ -46,8 +54,8 @@ export const AdminAnalyticsPage: React.FC = () => {
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-2xl font-bold text-gray-900">Ziyaretçi Analitiği</h1>
-                <p className="text-gray-500 text-sm mt-1">Sitenin trafik kaynakları, cihaz kullanımları ve ziyaretçi sayıları.</p>
+                <h1 className="text-2xl font-bold text-gray-900">Profil Ziyaretçileri</h1>
+                <p className="text-gray-500 text-sm mt-1">Salonunuzun sayfasına gelen ziyaretçiler, tıklanma ve trafik istatistikleri.</p>
             </div>
 
             {/* Toplam Ziyaretler */}
@@ -70,7 +78,7 @@ export const AdminAnalyticsPage: React.FC = () => {
                 {/* Trafik Kaynakları */}
                 <div className="bg-white rounded-xl border overflow-hidden">
                     <div className="bg-gray-50 px-5 py-4 border-b">
-                        <h3 className="font-semibold text-gray-800">Trafik Kaynakları (Referrer)</h3>
+                        <h3 className="font-semibold text-gray-800">Trafik Kaynakları</h3>
                     </div>
                     <div className="p-5 flex flex-col gap-4">
                         {stats.sources.length === 0 && <p className="text-gray-400 text-sm italic">Veri bulunamadı.</p>}
