@@ -38,6 +38,7 @@ import { AdminCreateSalonPage } from './pages/admin/AdminCreateSalonPage';
 import AdminPasswordsPage from './pages/admin/AdminPasswordsPage';
 import { AdminAppointmentsPage } from './pages/admin/AdminAppointmentsPage';
 import { AdminAdsPage } from './pages/admin/AdminAdsPage';
+import { AdminAnalyticsPage } from './pages/admin/AdminAnalyticsPage';
 
 import { SalonDashboard } from './pages/salon/SalonDashboard';
 import { SalonAppointmentsPage } from './pages/salon/SalonAppointmentsPage';
@@ -50,8 +51,21 @@ import { EmployeeSchedulePage } from './pages/employee/EmployeeSchedulePage';
 import { EmployeeDashboardPage } from './pages/employee/EmployeeDashboardPage';
 import { EmployeeProfilePage } from './pages/employee/EmployeeProfilePage';
 import { EmployeeLeavePage } from './pages/employee/EmployeeLeavePage';
+import { analyticsService } from './api/analytics.service';
+import { useEffect } from 'react';
 
 function App() {
+  useEffect(() => {
+    const hasVisited = sessionStorage.getItem('has_logged_visit');
+    if (!hasVisited) {
+      analyticsService.logVisit({
+        referrer: document.referrer,
+        userAgent: navigator.userAgent
+      }).catch(err => console.error('Analytics log failed:', err));
+      sessionStorage.setItem('has_logged_visit', 'true');
+    }
+  }, []);
+
   return (
     <>
       <ScrollToTop />
@@ -125,6 +139,7 @@ function App() {
             <Route path="/admin/passwords" element={<AdminPasswordsPage />} />
             <Route path="/admin/appointments" element={<AdminAppointmentsPage />} />
             <Route path="/admin/reklam-basvurulari" element={<AdminAdsPage />} />
+            <Route path="/admin/analytics" element={<AdminAnalyticsPage />} />
           </Route>
           <Route path="/admin/shops/:shopId/panel" element={<AdminSalonLayout />}>
             <Route index element={<SalonDashboard />} />

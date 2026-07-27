@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LayoutDashboard, Store, Users, LogOut, Scissors, Menu, X, MessageSquare, Home, AlertTriangle, Plus, Key, Lock, Calendar, Megaphone } from 'lucide-react';
+import { LayoutDashboard, Store, Users, LogOut, Scissors, Menu, X, MessageSquare, Home, AlertTriangle, Plus, Key, Lock, Calendar, Megaphone, BarChart2 } from 'lucide-react';
 import { adminPasswordService } from '../api/adminPassword.service';
 
 const LogoutConfirmModal: React.FC<{ onConfirm: () => void; onCancel: () => void }> = ({ onConfirm, onCancel }) =>
@@ -103,15 +103,16 @@ export const AdminLayout: React.FC = () => {
     };
 
     const navItems = [
-        { path: '/admin',              label: 'Panel',        icon: LayoutDashboard },
-        { path: '/admin/applications', label: 'Başvurular',   icon: Users },
+        { path: '/admin',              label: 'Özet',         icon: LayoutDashboard },
+        { path: '/admin/applications', label: 'Başvurular',   icon: Store },
         { path: '/admin/shops',        label: 'Salonlar',     icon: Store },
-        { path: '/admin/shops/create', label: 'Salon Ekle',   icon: Plus },
+        { path: '/admin/create-salon', label: 'Salon Ekle',   icon: Plus },
         { path: '/admin/appointments', label: 'Randevular',   icon: Calendar },
         { path: '/admin/users',        label: 'Kullanıcılar', icon: Users },
         { path: '/admin/sms-test',     label: 'SMS Test',     icon: MessageSquare },
         { path: '/admin/passwords',    label: 'Şifreler',     icon: Key },
         { path: '/admin/reklam-basvurulari', label: 'Reklamlar', icon: Megaphone },
+        { path: '/admin/analytics',    label: 'Ziyaretçiler', icon: BarChart2 },
     ];
 
     if (isLoadingPassword) {

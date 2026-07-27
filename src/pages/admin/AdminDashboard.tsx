@@ -4,12 +4,14 @@ import { salonApplicationService } from '../../api/salon-application.service';
 import { shopService } from '../../api/shop.service';
 import { userService } from '../../api/user.service';
 import { toast } from 'react-hot-toast';
-import { Building2, Store, Users, Clock, Loader2, ArrowRight } from 'lucide-react';
+import { Building2, Store, Users, Clock, Loader2, ArrowRight, BarChart2 } from 'lucide-react';
+import { analyticsService } from '../../api/analytics.service';
 
 interface DashboardStats {
     pendingApplications: number;
     totalShops: number;
     totalUsers: number;
+    todayVisits: number;
 }
 
 export const AdminDashboard: React.FC = () => {
@@ -19,15 +21,17 @@ export const AdminDashboard: React.FC = () => {
     useEffect(() => {
         const fetchStats = async () => {
             try {
-                const [apps, shops, users] = await Promise.all([
+                const [apps, shops, users, siteStats] = await Promise.all([
                     salonApplicationService.getPendingApplications().catch(() => [] as any[]),
                     shopService.getAllShops(1, 1, '').catch(() => ({ totalCount: 0 })),
                     userService.getAllUsers(1, 1, '').catch(() => ({ totalCount: 0 })),
+                    analyticsService.getStats().catch(() => ({ totalVisitsToday: 0 }))
                 ]);
                 setStats({
                     pendingApplications: Array.isArray(apps) ? apps.length : 0,
                     totalShops: shops?.totalCount ?? 0,
                     totalUsers: users?.totalCount ?? 0,
+                    todayVisits: (siteStats as any)?.totalVisitsToday ?? 0,
                 });
             } catch {
                 toast.error('İstatistikler yüklenemedi.');
@@ -66,6 +70,15 @@ export const AdminDashboard: React.FC = () => {
             link: '/admin/users',
             linkLabel: 'Kullanıcıları Görüntüle',
         },
+        {
+            title: 'Bugünkü Ziyaretçi',
+            value: stats?.todayVisits,
+            icon: BarChart2,
+            color: 'bg-purple-50 text-purple-600 border-purple-100',
+            iconBg: 'bg-purple-100',
+            link: '/admin/analytics',
+            linkLabel: 'Trafiği İncele',
+        },
     ];
 
     return (
@@ -80,7 +93,7 @@ export const AdminDashboard: React.FC = () => {
                     <Loader2 className="w-8 h-8 animate-spin text-primary-500" />
                 </div>
             ) : (
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                     {cards.map(({ title, value, icon: Icon, color, iconBg, link, linkLabel }) => (
                         <div key={title} className={`bg-white rounded-xl border p-6 flex flex-col gap-4 shadow-sm ${color}`}>
                             <div className="flex items-center justify-between">
