@@ -18,7 +18,10 @@ export interface AdApplication {
 export const adsService = {
     createAd: async (formData: FormData) => {
         const response = await api.post('/ads', formData, {
-            headers: { 'Content-Type': undefined }
+            transformRequest: [(data, headers) => {
+                delete headers['Content-Type'];
+                return data;
+            }]
         });
         return response.data;
     },
@@ -46,7 +49,10 @@ export const adsService = {
 
     updateMyAd: async (id: string, formData: FormData) => {
         const response = await api.put(`/ads/${id}`, formData, {
-            headers: { 'Content-Type': undefined }
+            transformRequest: [(data, headers) => {
+                delete headers['Content-Type'];
+                return data;
+            }]
         });
         return response.data;
     },
