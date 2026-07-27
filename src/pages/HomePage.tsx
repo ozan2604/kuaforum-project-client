@@ -7,7 +7,7 @@ import { ShopCard } from '../components/ShopCard';
 import { MediaStrip } from '../components/MediaStrip';
 import { useAuth } from '../context/AuthContext';
 import { createPortal } from 'react-dom';
-import { MapPin, ChevronLeft, ChevronRight, Map, XCircle, Navigation, Search, Filter } from 'lucide-react';
+import { MapPin, ChevronLeft, ChevronRight, Map, XCircle, Navigation, Search, Filter, ListFilter, ChevronDown } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
@@ -186,6 +186,7 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
     const [selectedShopType, setSelectedShopType] = useState<ShopType | null>(_saved.selectedShopType ?? null);
 
     const [isLocationDropdownOpen, setIsLocationDropdownOpen] = useState(false);
+    const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
     const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
     const [isMobileSearchOpen, setIsMobileSearchOpen] = useState(false);
     const [isMapModalOpen, setIsMapModalOpen] = useState(false);
@@ -470,18 +471,12 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
             {document.getElementById('navbar-right-actions') && createPortal(
                 <div className="flex items-center gap-1 sm:gap-2 ml-auto">
                     <button
-                        onClick={() => setIsLocationDropdownOpen(!isLocationDropdownOpen)}
-                        className={`p-2 rounded-full transition-colors ${isLocationDropdownOpen || selectedProvince ? 'bg-primary-50 text-primary-600' : 'text-gray-600 hover:bg-gray-100'}`}
-                        title="Konum Seç"
-                    >
-                        <MapPin className="w-5 h-5" />
-                    </button>
-                    <button
                         onClick={() => setIsMobileSearchOpen(!isMobileSearchOpen)}
-                        className={`p-2 rounded-full transition-colors sm:hidden ${isMobileSearchOpen || searchTerm ? 'bg-primary-50 text-primary-600' : 'text-gray-600 hover:bg-gray-100'}`}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border transition-all sm:hidden ${isMobileSearchOpen || searchTerm ? 'bg-primary-50 border-primary-200 text-primary-600' : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'}`}
                         title="Arama"
                     >
-                        <Search className="w-5 h-5" />
+                        <Search className="w-4 h-4" />
+                        <span className="text-[13px] font-semibold">Salon Ara</span>
                     </button>
                     <button
                         onClick={() => setIsMobileFiltersOpen(true)}
@@ -729,113 +724,85 @@ export const HomePage: React.FC<HomePageProps> = ({ showFavoritesOnly = false })
 
 
 
-            {/* Kategori Yuvarlakları */}
-            <div className="bg-white border-b border-gray-100">
+            {/* Kategori ve Konum Seçicileri (Dropdown Tasarımı) */}
+            <div className="bg-white border-b border-gray-100 relative z-40">
                 <div className="max-w-[1600px] mx-auto px-4 sm:px-6 lg:px-8 py-3">
-                    <div className="relative group/scroll">
-                        {/* Sol Ok Butonu */}
-                        <button
-                            onClick={() => {
-                                const el = document.getElementById('category-scroll');
-                                if (el) el.scrollBy({ left: -300, behavior: 'smooth' });
-                            }}
-                            className="absolute left-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm border border-gray-200 shadow-lg hidden sm:flex items-center justify-center hover:bg-white hover:shadow-xl transition-all opacity-0 group-hover/scroll:opacity-100 -translate-x-1"
-                        >
-                            <ChevronLeft className="w-5 h-5 text-gray-600" />
-                        </button>
-
-                        {/* Sağ Ok Butonu */}
-                        <button
-                            onClick={() => {
-                                const el = document.getElementById('category-scroll');
-                                if (el) el.scrollBy({ left: 300, behavior: 'smooth' });
-                            }}
-                            className="absolute right-0 top-1/2 -translate-y-1/2 z-10 w-10 h-10 rounded-full bg-white/80 backdrop-blur-sm border border-gray-200 shadow-lg hidden sm:flex items-center justify-center hover:bg-white hover:shadow-xl transition-all opacity-0 group-hover/scroll:opacity-100 translate-x-1"
-                        >
-                            <ChevronRight className="w-5 h-5 text-gray-600" />
-                        </button>
-
-                        {/* Mobil / Tablet Sol Şeffaf Gradient + Ok (Scroll varsa görünür) */}
-                        <div
-                            className={`sm:hidden absolute left-0 top-0 bottom-0 w-16 bg-gradient-to-r from-white via-white/80 to-transparent z-10 pointer-events-none flex items-center transition-opacity duration-300 ${catScroll.left ? 'opacity-100' : 'opacity-0'}`}
-                        >
-                            <div
-                                onClick={() => {
-                                    const el = document.getElementById('category-scroll');
-                                    if (el) el.scrollBy({ left: -200, behavior: 'smooth' });
-                                }}
-                                className="pointer-events-auto cursor-pointer p-1"
+                    <div className="flex flex-row items-center gap-2 sm:gap-3">
+                        
+                        {/* Kategori Dropdown */}
+                        <div className="relative flex-1 min-w-0">
+                            <button
+                                onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
+                                className={`w-full flex items-center justify-between px-2.5 sm:px-4 py-2.5 rounded-xl border text-[12px] sm:text-sm font-semibold transition-all ${
+                                    selectedCategory ? 'bg-primary-50 border-primary-500 text-primary-700 shadow-sm' : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
+                                }`}
                             >
-                                <ChevronLeft className="w-5 h-5 text-gray-400" />
-                            </div>
-                        </div>
-
-                        {/* Mobil / Tablet Sağ Şeffaf Gradient + Ok (Scroll bitmediyse görünür) */}
-                        <div
-                            className={`sm:hidden absolute right-0 top-0 bottom-0 w-16 bg-gradient-to-l from-white via-white/80 to-transparent z-10 pointer-events-none flex items-center justify-end transition-opacity duration-300 ${catScroll.right ? 'opacity-100' : 'opacity-0'}`}
-                        >
-                            <div
-                                onClick={() => {
-                                    const el = document.getElementById('category-scroll');
-                                    if (el) el.scrollBy({ left: 200, behavior: 'smooth' });
-                                }}
-                                className="pointer-events-auto cursor-pointer p-1"
-                            >
-                                <ChevronRight className="w-5 h-5 text-gray-400 animate-pulse" />
-                            </div>
-                        </div>
-
-                        <div
-                            id="category-scroll"
-                            onScroll={(e) => {
-                                const el = e.currentTarget;
-                                setCatScroll({
-                                    left: el.scrollLeft > 5,
-                                    right: el.scrollLeft < el.scrollWidth - el.clientWidth - 5
-                                });
-                            }}
-                            className="flex items-center gap-4 sm:gap-7 md:gap-9 lg:gap-11 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none] py-2 px-2 relative"
-                        >
-                            {[
-                                { id: ShopCategory.ErkekKuafor, label: ShopCategoryLabels[ShopCategory.ErkekKuafor], image: '/images/categories/berber.png' },
-                                { id: ShopCategory.Kuafor, label: ShopCategoryLabels[ShopCategory.Kuafor], image: '/images/categories/kuafor.png' },
-                                { id: ShopCategory.PetKuafor, label: ShopCategoryLabels[ShopCategory.PetKuafor], image: '/images/categories/petkuafor.png' },
-                                { id: ShopCategory.GuzellikMerkezi, label: ShopCategoryLabels[ShopCategory.GuzellikMerkezi], image: '/images/categories/guzellik.png' },
-                                { id: ShopCategory.KuaforTag, label: ShopCategoryLabels[ShopCategory.KuaforTag], image: '/images/categories/kuafortag.png' },
-                                { id: ShopCategory.DovmePiercingStudyosu, label: ShopCategoryLabels[ShopCategory.DovmePiercingStudyosu], image: '/images/categories/dovme.png' },
-                                { id: ShopCategory.MakyajKasKirpikStudyosu, label: ShopCategoryLabels[ShopCategory.MakyajKasKirpikStudyosu], image: '/images/categories/makyaj.png' },
-                                { id: ShopCategory.SacKaynakProtez, label: ShopCategoryLabels[ShopCategory.SacKaynakProtez], image: '/images/categories/sackaynak.png' },
-                                { id: ShopCategory.CiltBakimMerkezi, label: ShopCategoryLabels[ShopCategory.CiltBakimMerkezi], image: '/images/categories/ciltbakim.png' },
-                                { id: ShopCategory.TirnakSalonu, label: ShopCategoryLabels[ShopCategory.TirnakSalonu], image: '/images/categories/nailart.png' },
-                                { id: ShopCategory.LazerEpilasyon, label: ShopCategoryLabels[ShopCategory.LazerEpilasyon], image: '/images/categories/lazer.png' },
-                            ].map((cat) => (
-                                <button
-                                    key={cat.id}
-                                    onClick={() => setSelectedCategory(selectedCategory === cat.id ? null : cat.id)}
-                                    className="flex flex-col items-center gap-1.5 group shrink-0 transition-all"
-                                >
-                                    <div className={`w-16 h-16 sm:w-[88px] sm:h-[88px] rounded-full overflow-hidden border-[3px] transition-all duration-300 shadow-md ${selectedCategory === cat.id
-                                        ? 'border-primary-500 shadow-primary-200/50 shadow-lg ring-4 ring-primary-100'
-                                        : 'border-gray-200 group-hover:border-primary-300 group-hover:shadow-lg'
-                                        }`}>
-                                        <img
-                                            src={cat.image}
-                                            alt={cat.label}
-                                            className={`w-full h-full object-cover transition-transform duration-300 ${cat.id === ShopCategory.ErkekKuafor
-                                                    ? 'scale-[1.4]'
-                                                    : cat.id === ShopCategory.GuzellikMerkezi
-                                                        ? 'scale-[1.35]'
-                                                        : 'scale-[1.15]'
-                                                }`}
-                                        />
-                                    </div>
-                                    <span className={`text-[11px] sm:text-sm font-semibold text-center leading-tight transition-colors whitespace-pre-line sm:whitespace-normal h-8 sm:h-auto flex items-start justify-center ${selectedCategory === cat.id ? 'text-primary-700' : 'text-gray-700 group-hover:text-primary-600'
-                                        }`}>
-                                        {cat.label.replace(' ', '\n')}
+                                <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                                    <ListFilter className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-primary-600" />
+                                    <span className="truncate">
+                                        {selectedCategory ? ShopCategoryLabels[selectedCategory] : 'Kategori Seç'}
                                     </span>
-                                </button>
-                            ))}
+                                </div>
+                                <ChevronDown className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform text-gray-400 ${isCategoryDropdownOpen ? 'rotate-180' : ''} shrink-0 ml-1`} />
+                            </button>
+
+                            {/* Kategori Dropdown İçeriği */}
+                            {isCategoryDropdownOpen && (
+                                <>
+                                    <div className="fixed inset-0 z-[90]" onClick={() => setIsCategoryDropdownOpen(false)} />
+                                    <div className="absolute top-full left-0 mt-2 w-full sm:w-[320px] bg-white shadow-[0_10px_40px_rgba(0,0,0,0.12)] rounded-xl border border-gray-100 z-[100] max-h-[60vh] overflow-y-auto custom-scrollbar animate-in fade-in slide-in-from-top-2">
+                                        <div className="p-2 flex flex-col gap-1">
+                                            <button
+                                                onClick={() => { setSelectedCategory(null); setIsCategoryDropdownOpen(false); }}
+                                                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-bold transition-colors ${!selectedCategory ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}
+                                            >
+                                                <span>Tümü</span>
+                                            </button>
+                                            {[
+                                                { id: ShopCategory.ErkekKuafor, label: ShopCategoryLabels[ShopCategory.ErkekKuafor], emoji: '✂️' },
+                                                { id: ShopCategory.Kuafor, label: ShopCategoryLabels[ShopCategory.Kuafor], emoji: '💇‍♀️' },
+                                                { id: ShopCategory.PetKuafor, label: ShopCategoryLabels[ShopCategory.PetKuafor], emoji: '🐾' },
+                                                { id: ShopCategory.GuzellikMerkezi, label: ShopCategoryLabels[ShopCategory.GuzellikMerkezi], emoji: '✨' },
+                                                { id: ShopCategory.KuaforTag, label: ShopCategoryLabels[ShopCategory.KuaforTag], emoji: '🏷️' },
+                                                { id: ShopCategory.DovmePiercingStudyosu, label: ShopCategoryLabels[ShopCategory.DovmePiercingStudyosu], emoji: '✒️' },
+                                                { id: ShopCategory.MakyajKasKirpikStudyosu, label: ShopCategoryLabels[ShopCategory.MakyajKasKirpikStudyosu], emoji: '💄' },
+                                                { id: ShopCategory.SacKaynakProtez, label: ShopCategoryLabels[ShopCategory.SacKaynakProtez], emoji: '💆‍♀️' },
+                                                { id: ShopCategory.CiltBakimMerkezi, label: ShopCategoryLabels[ShopCategory.CiltBakimMerkezi], emoji: '🧖‍♀️' },
+                                                { id: ShopCategory.TirnakSalonu, label: ShopCategoryLabels[ShopCategory.TirnakSalonu], emoji: '💅' },
+                                                { id: ShopCategory.LazerEpilasyon, label: ShopCategoryLabels[ShopCategory.LazerEpilasyon], emoji: '⚡' },
+                                            ].map(cat => (
+                                                <button
+                                                    key={cat.id}
+                                                    onClick={() => { setSelectedCategory(cat.id); setIsCategoryDropdownOpen(false); }}
+                                                    className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-[13px] sm:text-sm font-semibold transition-colors ${selectedCategory === cat.id ? 'bg-primary-50 text-primary-700' : 'text-gray-700 hover:bg-gray-50'}`}
+                                                >
+                                                    <span>{cat.label}</span>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </>
+                            )}
                         </div>
+
+                        {/* Konum Dropdown Butonu */}
+                        <div className="relative flex-1 min-w-0">
+                            <button
+                                onClick={() => setIsLocationDropdownOpen(!isLocationDropdownOpen)}
+                                className={`w-full flex items-center justify-between px-2.5 sm:px-4 py-2.5 rounded-xl border text-[12px] sm:text-sm font-semibold transition-all ${
+                                    (selectedProvince || selectedDistrict || selectedNeighborhood) ? 'bg-primary-50 border-primary-500 text-primary-700 shadow-sm' : 'bg-white border-gray-200 text-gray-700 hover:bg-gray-50'
+                                }`}
+                            >
+                                <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+                                    <MapPin className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 text-red-500" />
+                                    <span className="truncate">
+                                        {selectedNeighborhood || selectedDistrict || selectedProvince || 'Konum Seç'}
+                                    </span>
+                                </div>
+                                <ChevronDown className={`w-3.5 h-3.5 sm:w-4 sm:h-4 transition-transform text-gray-400 ${isLocationDropdownOpen ? 'rotate-180' : ''} shrink-0 ml-1`} />
+                            </button>
+                        </div>
+                        
                     </div>
                 </div>
             </div>
