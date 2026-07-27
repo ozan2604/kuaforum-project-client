@@ -238,9 +238,9 @@ const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, isMutedRef, o
                     <button
                         onPointerDown={e => e.stopPropagation()}
                         onClick={() => navigate(`/shop/${item.shopId}`)}
-                        className="inline-flex items-center gap-1.5 bg-white text-gray-900 text-sm font-bold px-4 py-2.5 rounded-2xl shadow-lg active:scale-95 transition-transform"
+                        className="inline-flex items-center gap-1.5 bg-white text-gray-900 text-xs font-bold px-3 py-2 rounded-xl shadow-lg active:scale-95 transition-transform"
                     >
-                        Salona Git <ArrowRight className="w-4 h-4" />
+                        Salona Git <ArrowRight className="w-3.5 h-3.5" />
                     </button>
 
                     <div className="flex items-end gap-3">
@@ -251,12 +251,12 @@ const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, isMutedRef, o
                             disabled={shareState === 'loading'}
                             className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform disabled:opacity-60"
                         >
-                            <div className="w-11 h-11 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center border border-white/20 shadow-lg">
-                                {shareState === 'copied'  ? <Check className="w-5 h-5 text-green-400" /> :
-                                 shareState === 'loading' ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> :
-                                                            <Send className="w-5 h-5 text-white" />}
+                            <div className="w-9 h-9 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center border border-white/20 shadow-lg">
+                                {shareState === 'copied'  ? <Check className="w-4 h-4 text-green-400" /> :
+                                 shareState === 'loading' ? <div className="w-3.5 h-3.5 border-2 border-white border-t-transparent rounded-full animate-spin" /> :
+                                                            <Send className="w-4 h-4 text-white" />}
                             </div>
-                            <span className="text-white text-[11px] font-bold drop-shadow">
+                            <span className="text-white text-[10px] font-bold drop-shadow">
                                 {shareState === 'copied' ? 'Kopyalandı' : 'Paylaş'}
                             </span>
                         </button>
@@ -264,10 +264,10 @@ const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, isMutedRef, o
                         {/* Görüntülenme — sadece videolarda */}
                         {item.type === 'video' && (
                             <div className="flex flex-col items-center gap-0.5">
-                                <div className="w-11 h-11 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center border border-white/20 shadow-lg">
-                                    <Eye className="w-5 h-5 text-white" />
+                                <div className="w-9 h-9 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center border border-white/20 shadow-lg">
+                                    <Eye className="w-4 h-4 text-white" />
                                 </div>
-                                <span className="text-white text-[11px] font-bold drop-shadow">
+                                <span className="text-white text-[10px] font-bold drop-shadow">
                                     {viewCount >= 1000 ? `${(viewCount / 1000).toFixed(1)}B` : viewCount}
                                 </span>
                             </div>
@@ -280,17 +280,17 @@ const ReelItem: React.FC<ReelItemProps> = ({ item, index, isMuted, isMutedRef, o
                                 onClick={handleLike}
                                 className="flex flex-col items-center gap-0.5 active:scale-90 transition-transform"
                             >
-                                <div className="w-11 h-11 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center border border-white/20 shadow-lg">
-                                    <Heart className={`w-5 h-5 transition-colors ${liked ? 'text-red-500 fill-red-500' : 'text-white'}`} />
+                                <div className="w-9 h-9 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center border border-white/20 shadow-lg">
+                                    <Heart className={`w-4 h-4 transition-colors ${liked ? 'text-red-500 fill-red-500' : 'text-white'}`} />
                                 </div>
-                                <span className="text-white text-[11px] font-bold drop-shadow">{count}</span>
+                                <span className="text-white text-[10px] font-bold drop-shadow">{count}</span>
                             </button>
                         ) : (
                             <div className="flex flex-col items-center gap-0.5">
-                                <div className="w-11 h-11 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center border border-white/20">
-                                    <Heart className="w-5 h-5 text-white/40" />
+                                <div className="w-9 h-9 rounded-full bg-black/50 backdrop-blur-sm flex items-center justify-center border border-white/20">
+                                    <Heart className="w-4 h-4 text-white/40" />
                                 </div>
-                                <span className="text-white/40 text-[11px] font-bold">{count}</span>
+                                <span className="text-white/40 text-[10px] font-bold">{count}</span>
                             </div>
                         )}
                     </div>
