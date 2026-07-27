@@ -32,23 +32,14 @@ export const DynamicAdBanner: React.FC<DynamicAdBannerProps> = ({ ad, variant = 
             {/* Background Media */}
             <div className="absolute inset-0 z-0 bg-black flex items-center justify-center">
                 {ad.mediaType === 'video' ? (
-                    <div className="w-full h-full relative">
-                        <video 
-                            src={ad.mediaUrl} 
-                            autoPlay 
-                            muted={isMuted}
-                            loop 
-                            playsInline
-                            className="w-full h-full object-contain opacity-80" 
-                        />
-                        <button
-                            onPointerDown={handleToggleMute}
-                            onClick={handleToggleMute}
-                            className="absolute top-4 right-4 z-30 p-2 bg-black/40 backdrop-blur-md rounded-full text-white/90 hover:bg-black/60 transition-colors cursor-pointer"
-                        >
-                            {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
-                        </button>
-                    </div>
+                    <video 
+                        src={ad.mediaUrl} 
+                        autoPlay 
+                        muted={isMuted}
+                        loop 
+                        playsInline
+                        className="w-full h-full object-contain opacity-80" 
+                    />
                 ) : (
                     <div 
                         className="w-full h-full bg-contain bg-center bg-no-repeat opacity-80"
@@ -59,6 +50,17 @@ export const DynamicAdBanner: React.FC<DynamicAdBannerProps> = ({ ad, variant = 
             
             {/* Dark Overlay for Text Readability */}
             <div className={`absolute inset-0 z-10 bg-gradient-to-t ${isCompact ? 'from-black/90 via-black/50 to-black/30' : 'from-black/90 via-black/40 to-black/20'}`} />
+
+            {/* Mute Toggle */}
+            {ad.mediaType === 'video' && (
+                <button
+                    onPointerDown={handleToggleMute}
+                    onClick={handleToggleMute}
+                    className="absolute top-4 right-4 z-30 p-2 bg-black/40 backdrop-blur-md rounded-full text-white/90 hover:bg-black/60 transition-colors cursor-pointer"
+                >
+                    {isMuted ? <VolumeX className="w-5 h-5" /> : <Volume2 className="w-5 h-5" />}
+                </button>
+            )}
 
             {/* Ad Content */}
             <div className={`absolute z-20 flex flex-col items-start w-full ${isCompact ? 'bottom-3 px-3' : 'bottom-16 px-6'}`}>
