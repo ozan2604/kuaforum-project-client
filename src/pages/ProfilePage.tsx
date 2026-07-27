@@ -602,39 +602,72 @@ export const ProfilePage: React.FC = () => {
                                 {/* ── REVIEWS ── */}
                                 {section.id === 'reviews' && (
                                     reviewsLoading ? <div className="flex justify-center py-8"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600" /></div>
-                                    : myReviews.length > 0 ? (
-                                        <div className="space-y-4">
-                                            {myReviews.map(review => (
-                                                <div key={review.id} className="border border-gray-100 rounded-xl p-4 bg-gray-50/50">
-                                                    <div className="flex justify-between items-start mb-2">
-                                                        <div className="cursor-pointer group" onClick={() => navigate(`/shop/${review.shopId}?tab=reviews`)}>
-                                                            <h4 className="font-bold text-sm text-gray-900 group-hover:text-primary-600 transition-colors">{review.shopName}</h4>
-                                                            <p className="text-xs text-gray-500">{review.serviceName} • {review.employeeName}</p>
-                                                            <p className="text-[10px] text-gray-400 mt-0.5">{format(new Date(review.appointmentDate), 'd MMMM yyyy', { locale: tr })}</p>
-                                                        </div>
-                                                        <div className="flex items-center gap-2">
-                                                            <button onClick={() => { setSelectedReview(review); setIsReviewModalOpen(true); }} className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-white rounded-lg transition-all shadow-sm"><Edit2 className="h-3.5 w-3.5" /></button>
-                                                            <button onClick={() => handleDeleteReview(review.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-white rounded-lg transition-all shadow-sm"><Trash2 className="h-3.5 w-3.5" /></button>
-                                                        </div>
-                                                    </div>
-                                                    <div className="flex items-center gap-1 mb-2">
-                                                        {[...Array(5)].map((_, i) => (
-                                                            <span key={i} className={`h-3 w-3 ${i < review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`}>★</span>
+                                    : (
+                                        <div className="space-y-8">
+                                            {completedApps.filter(a => !a.hasReview).length > 0 && (
+                                                <div>
+                                                    <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2 text-sm">
+                                                        <AlertCircle className="h-4 w-4 text-orange-500" />
+                                                        Değerlendirme Bekleyen Randevularınız
+                                                    </h3>
+                                                    <div className="space-y-2">
+                                                        {completedApps.filter(a => !a.hasReview).map((app: AppointmentDto) => (
+                                                            <AppCard 
+                                                                key={app.id} 
+                                                                app={app} 
+                                                                badge={getStatusBadge(app.status)} 
+                                                                onReview={() => { setSelectedAppointment(app); setIsReviewModalOpen(true); }} 
+                                                            />
                                                         ))}
                                                     </div>
-                                                    {review.comment && <p className="text-sm text-gray-700 leading-relaxed italic">"{review.comment}"</p>}
-                                                    {review.imageUrls && review.imageUrls.length > 0 && (
-                                                        <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
-                                                            {review.imageUrls.map((url, i) => (
-                                                                <img key={i} src={url} alt="review" className="h-16 w-16 object-cover rounded-lg flex-shrink-0 border border-gray-200" />
-                                                            ))}
-                                                        </div>
-                                                    )}
                                                 </div>
-                                            ))}
+                                            )}
+
+                                            <div>
+                                                <h3 className="font-bold text-gray-900 mb-3 flex items-center gap-2 text-sm">
+                                                    <MessageSquare className="h-4 w-4 text-primary-600" />
+                                                    Geçmiş Değerlendirmeleriniz
+                                                </h3>
+                                                {myReviews.length > 0 ? (
+                                                    <div className="space-y-4">
+                                                        {myReviews.map(review => (
+                                                            <div key={review.id} className="border border-gray-100 rounded-xl p-4 bg-gray-50/50">
+                                                                <div className="flex justify-between items-start mb-2">
+                                                                    <div className="cursor-pointer group" onClick={() => navigate(`/shop/${review.shopId}?tab=reviews`)}>
+                                                                        <h4 className="font-bold text-sm text-gray-900 group-hover:text-primary-600 transition-colors">{review.shopName}</h4>
+                                                                        <p className="text-xs text-gray-500">{review.serviceName} • {review.employeeName}</p>
+                                                                        <p className="text-[10px] text-gray-400 mt-0.5">{format(new Date(review.appointmentDate), 'd MMMM yyyy', { locale: tr })}</p>
+                                                                    </div>
+                                                                    <div className="flex items-center gap-2">
+                                                                        <button onClick={() => { setSelectedReview(review); setIsReviewModalOpen(true); }} className="p-1.5 text-gray-400 hover:text-primary-600 hover:bg-white rounded-lg transition-all shadow-sm"><Edit2 className="h-3.5 w-3.5" /></button>
+                                                                        <button onClick={() => handleDeleteReview(review.id)} className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-white rounded-lg transition-all shadow-sm"><Trash2 className="h-3.5 w-3.5" /></button>
+                                                                    </div>
+                                                                </div>
+                                                                <div className="flex items-center gap-1 mb-2">
+                                                                    {[...Array(5)].map((_, i) => (
+                                                                        <span key={i} className={`h-3 w-3 ${i < review.rating ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300'}`}>★</span>
+                                                                    ))}
+                                                                </div>
+                                                                {review.comment && <p className="text-sm text-gray-700 leading-relaxed italic">"{review.comment}"</p>}
+                                                                {review.imageUrls && review.imageUrls.length > 0 && (
+                                                                    <div className="flex gap-2 mt-3 overflow-x-auto pb-1">
+                                                                        {review.imageUrls.map((url, i) => (
+                                                                            <img key={i} src={url} alt="review" className="h-16 w-16 object-cover rounded-lg flex-shrink-0 border border-gray-200" />
+                                                                        ))}
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                ) : (
+                                                    <div className="text-center py-6 bg-gray-50 border border-gray-100 rounded-xl">
+                                                        <MessageSquare className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                                                        <p className="text-gray-500 text-sm">Henüz bir değerlendirme yapmadınız.</p>
+                                                    </div>
+                                                )}
+                                            </div>
                                         </div>
                                     )
-                                    : <div className="text-center py-8"><MessageSquare className="h-10 w-10 text-gray-300 mx-auto mb-2" /><p className="text-gray-500 text-sm">Henüz bir değerlendirme yapmadınız.</p></div>
                                 )}
 
 
