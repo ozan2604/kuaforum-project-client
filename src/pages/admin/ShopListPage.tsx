@@ -5,7 +5,7 @@ import type { Shop } from '../../types/shop';
 import { ShopCategoryLabels, TargetGenderLabels, type ShopCategory } from '../../types/shop';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
-import { MapPin, Phone, Mail, User, Trash2, Search, Store, ChevronLeft, ChevronRight, Tags, Users, FileX, Calendar, Loader2, Eye, Lock } from 'lucide-react';
+import { MapPin, Phone, Mail, User, Trash2, Search, Store, ChevronLeft, ChevronRight, Tags, Users, FileX, Calendar, Loader2, Eye, Lock, RefreshCw } from 'lucide-react';
 import { adminPasswordService } from '../../api/adminPassword.service';
 
 export const ShopListPage: React.FC = () => {
@@ -24,6 +24,11 @@ export const ShopListPage: React.FC = () => {
     const [passwordInput, setPasswordInput] = useState('');
     const [passwordError, setPasswordError] = useState('');
     const [isVerifying, setIsVerifying] = useState(false);
+
+    const [transferModalOpen, setTransferModalOpen] = useState(false);
+    const [shopToTransfer, setShopToTransfer] = useState<{ id: string, name: string } | null>(null);
+    const [newPhoneNumber, setNewPhoneNumber] = useState('');
+    const [transferLoading, setTransferLoading] = useState(false);
 
     useEffect(() => {
         const checkPasswordStatus = async () => {
@@ -105,6 +110,22 @@ export const ShopListPage: React.FC = () => {
             toast.error(error.response?.data?.message || 'Salon silinemedi.');
         } finally {
             setDeleteLoading(false);
+        }
+    };
+
+    const executeTransfer = async () => {
+        if (!shopToTransfer) return;
+        setTransferLoading(true);
+        try {
+            await shopService.transferShopOwnership(shopToTransfer.id, newPhoneNumber);
+            toast.success('Salon yetkisi başarıyla devredildi.');
+            setTransferModalOpen(false);
+            setShopToTransfer(null);
+            fetchShops();
+        } catch (error: any) {
+            toast.error(error.response?.data?.message || 'Yetki devri başarısız.');
+        } finally {
+            setTransferLoading(false);
         }
     };
 
@@ -231,6 +252,17 @@ export const ShopListPage: React.FC = () => {
                                                     <Eye className="w-5 h-5" />
                                                 </Link>
                                                 <button
+                                                    onClick={() => {
+                                                        setShopToTransfer({ id: shop.id, name: shop.name });
+                                                        setNewPhoneNumber('');
+                                                        setTransferModalOpen(true);
+                                                    }}
+                                                    className="text-orange-500 hover:text-orange-700 p-2 rounded-full hover:bg-orange-50 transition-colors"
+                                                    title="Yetki Devret (Sahip Değiştir)"
+                                                >
+                                                    <RefreshCw className="w-5 h-5" />
+                                                </button>
+                                                <button
                                                     onClick={() => handleDeleteClick(shop.id, shop.name)}
                                                     className="text-red-600 hover:text-red-900 p-2 rounded-full hover:bg-red-50 transition-colors"
                                                     title="Salonu Sil"
@@ -345,6 +377,46 @@ export const ShopListPage: React.FC = () => {
                             </div>
                         </div>
                     )}
+                </div>,
+                document.body
+            )}
+
+            {/* Yetki Devir Modalı */}
+            {transferModalOpen && shopToTransfer && typeof document !== 'undefined' && createPortal(
+                <div className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50">
+                    <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6">
+                        <h3 className="text-xl font-bold text-gray-900 mb-3">Salon Yetki Devri</h3>
+                        <p className="text-gray-600 mb-6 text-sm">
+                            <strong>"{shopToTransfer.name}"</strong> isimli salonun yönetim yetkisini başka bir numaraya devretmek üzeresiniz. Yeni sahibin telefon numarasını (05...) formatında giriniz.
+                        </p>
+                        <div className="space-y-4">
+                            <input
+                                type="text"
+                                value={newPhoneNumber}
+                                onChange={(e) => setNewPhoneNumber(e.target.value.replace(/[^0-9]/g, ''))}
+                                placeholder="05XXXXXXXXX"
+                                maxLength={11}
+                                className="w-full px-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-orange-500 focus:border-orange-500 transition-all font-medium"
+                            />
+                            <div className="flex justify-end gap-3 mt-6">
+                                <button
+                                    onClick={() => { setTransferModalOpen(false); setShopToTransfer(null); }}
+                                    disabled={transferLoading}
+                                    className="px-4 py-2 text-sm font-semibold text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                                >
+                                    İptal
+                                </button>
+                                <button
+                                    onClick={executeTransfer}
+                                    disabled={transferLoading || newPhoneNumber.length !== 11 || !newPhoneNumber.startsWith('05')}
+                                    className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white bg-orange-600 rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50"
+                                >
+                                    {transferLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+                                    Devret
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>,
                 document.body
             )}

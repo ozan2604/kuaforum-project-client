@@ -39,6 +39,10 @@ export const shopService = {
         await api.delete(`/shop/admin/${id}`);
     },
 
+    transferShopOwnership: async (shopId: string, newPhoneNumber: string): Promise<void> => {
+        await api.post(`/shop/admin/${shopId}/transfer-ownership`, { newPhoneNumber });
+    },
+
     getPublicShops: async (city?: string, district?: string, neighborhood?: string, pageNumber = 1, pageSize = 20, shopType?: ShopType): Promise<{ items: Shop[]; totalCount: number; totalPages: number; pageNumber: number }> => {
         const params = new URLSearchParams();
         if (city) params.append('city', city);
