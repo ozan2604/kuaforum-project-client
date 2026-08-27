@@ -32,7 +32,9 @@ permissions:
 
 env:
   NODE_VERSION: '22'
-  TEST_API: https://salonbir-api-test-egeahgheapb0cbc8.centralus-01.azurewebsites.net
+  # Ozel alan adi: Azure'in varsayilan adresi App Service erisim kisitlamasi
+  # ile Cloudflare disina kapatildi (ADR-007). Tarayici o adrese ulasamaz.
+  TEST_API: https://api-test.salonbir.com
 
   # Azure'in urettigi varsayilan adres yerine ozel alan adi kullaniliyor:
   # Cloudflare Access yalnizca bu adresi koruyor ve gercek kullanicinin
