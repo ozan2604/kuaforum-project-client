@@ -1,0 +1,123 @@
+name: Dagitim
+
+# Surum akisi (ADR-006) — backend ile ayni:
+#
+#   ozellik dali -> PR (CI gecmeli) -> main -> TEST (otomatik)
+#                                              |
+#                                          v* etiketi -> CANLI
+#
+# Onemli fark: Vite ortam degiskenlerini DERLEME aninda gomuyor. Bu yuzden
+# test ve canli ayni ciktidan dagitilamaz — her hedef kendi API adresiyle
+# ayri ayri derleniyor.
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      hedef:
+        description: 'Dagitim hedefi'
+        required: true
+        default: test
+        type: choice
+        options: [test, canli]
+
+concurrency:
+  group: dagitim-${{ startsWith(github.ref, 'refs/tags/v') && 'canli' || 'test' }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '22'
+  TEST_API: https://salonbir-api-test-egeahgheapb0cbc8.centralus-01.azurewebsites.net
+
+jobs:
+  # ── main -> TEST ───────────────────────────────────────────────────────────
+  test-ortami:
+    name: TEST ortamina dagit
+    runs-on: ubuntu-latest
+    if: >
+      github.ref == 'refs/heads/main' ||
+      (github.event_name == 'workflow_dispatch' && inputs.hedef == 'test')
+    environment:
+      name: test
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: Test API adresiyle derle
+        env:
+          VITE_API_BASE_URL: ${{ env.TEST_API }}/api
+        run: npm run build
+
+      # CSP `connect-src` yalnizca canli API'ye izin veriyor; test surumu
+      # farkli bir kokenden konustugu icin bu adim olmadan her istek
+      # tarayici tarafindan engellenirdi. Ayrica noindex ekleniyor —
+      # test ortaminin arama motorlarina dusmesi canli SEO'yu boler.
+      - name: Ortam yapilandirmasi (CSP + noindex)
+        run: node scripts/ortam-yapilandir.mjs "$TEST_API"
+
+      - name: Static Web App'e dagit
+        id: dagit
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_SWA_TOKEN_TEST }}
+          action: upload
+          app_location: dist
+          skip_app_build: true
+          skip_api_build: true
+
+      - name: Tarayici duman testi
+        run: |
+          npx playwright install --with-deps chromium
+          node scripts/tarayici-duman-testi.mjs "${{ steps.dagit.outputs.static_web_app_url }}"
+
+  # ── v* etiketi -> CANLI ────────────────────────────────────────────────────
+  canli:
+    name: CANLI ortama dagit
+    runs-on: ubuntu-latest
+    if: >
+      startsWith(github.ref, 'refs/tags/v') ||
+      (github.event_name == 'workflow_dispatch' && inputs.hedef == 'canli')
+    environment:
+      name: canli
+      url: https://www.salonbir.com
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      # API adresi .env.production'dan geliyor; burada override edilmiyor.
+      - name: Derle
+        run: npm run build
+
+      - name: Static Web App'e dagit
+        uses: Azure/static-web-apps-deploy@v1
+        with:
+          azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN_SALMON_FIELD_091551103 }}
+          action: upload
+          app_location: dist
+          skip_app_build: true
+          skip_api_build: true
+
+      # Tarayici duman testi: sayfa yukleniyor mu, CSP ihlali var mi, konsol
+      # temiz mi. Gecen haftaki video hatasi tam olarak bu bosluktan kacmisti —
+      # API 200 donuyordu, sayfa aciliyordu, ama CSP videolari engelliyordu.
+      - name: Tarayici duman testi
+        run: |
+          npx playwright install --with-deps chromium
+          node scripts/tarayici-duman-testi.mjs https://www.salonbir.com
