@@ -1,0 +1,139 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '22'
+
+jobs:
+  # ── Tip kontrolu, derleme, paket buyuklugu ─────────────────────────────────
+  quality:
+    name: Tipler · Derleme · Paket boyutu
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: Tip kontrolu
+        run: npx tsc -b --pretty false
+
+      - name: Derleme
+        run: npm run build
+
+      # Ana paket su an 1803 KB (gzip 511 KB). Butce buyumesini engellemek
+      # icin var; sinir asilirsa once kod bolme (code splitting) dusunulmeli,
+      # sinirı yukseltmek degil.
+      - name: Paket boyutu butcesi
+        run: |
+          SINIR_KB=1900
+          ana=$(ls -S dist/assets/*.js | head -1)
+          boyut=$(( $(stat -c%s "$ana") / 1024 ))
+          gzip_boyut=$(( $(gzip -c "$ana" | wc -c) / 1024 ))
+          echo "ana paket: $(basename "$ana")  ${boyut} KB (gzip ${gzip_boyut} KB)"
+          if [ "$boyut" -gt "$SINIR_KB" ]; then
+            echo "::error::Paket ${boyut} KB — butce ${SINIR_KB} KB asildi."
+            exit 1
+          fi
+
+      - name: Derleme ciktisini sakla
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist-ci
+          path: dist
+          retention-days: 7
+
+  # ── Lint: yalnizca degisen dosyalar ────────────────────────────────────────
+  #
+  # Kod tabaninda 184 mevcut ihlal var (bkz. issue). Hepsini birden kirmak
+  # gercekci degil, ama yeni kodun temiz olmasi gerekiyor. Bu is yalnizca
+  # PR'da degisen dosyalari denetler: borc engel olmaz, dosyaya her
+  # dokunulusta azalir ve geri buyuyemez.
+  lint:
+    name: Lint (degisen dosyalar)
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: Degisen dosyalari denetle
+        run: |
+          dosyalar=$(git diff --name-only --diff-filter=ACMR \
+            "origin/${{ github.base_ref }}...HEAD" -- '*.ts' '*.tsx' | tr '\n' ' ')
+          if [ -z "$dosyalar" ]; then
+            echo "Degisen TypeScript dosyasi yok."
+            exit 0
+          fi
+          echo "Denetlenen: $dosyalar"
+          npx eslint $dosyalar
+
+  # ── Bagimlilik zafiyetleri ─────────────────────────────────────────────────
+  audit:
+    name: Bagimlilik denetimi
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - run: npm ci
+
+      - name: npm audit (high ve uzeri kirar)
+        run: npm audit --audit-level=high
+
+      - name: Tam rapor (bilgi amacli)
+        if: always()
+        run: npm audit || true
+
+  # ── Sizmis sir taramasi ────────────────────────────────────────────────────
+  secrets:
+    name: Sir taramasi
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: gitleaks
+        uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # ── Statik guvenlik analizi ────────────────────────────────────────────────
+  sast:
+    name: Statik analiz (Semgrep)
+    runs-on: ubuntu-latest
+    container:
+      image: semgrep/semgrep
+    steps:
+      - uses: actions/checkout@v4
+      - name: Semgrep
+        run: semgrep scan --config p/typescript --config p/react --config p/secrets --error
