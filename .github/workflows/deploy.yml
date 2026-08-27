@@ -34,6 +34,12 @@ env:
   NODE_VERSION: '22'
   TEST_API: https://salonbir-api-test-egeahgheapb0cbc8.centralus-01.azurewebsites.net
 
+  # Azure'in urettigi varsayilan adres yerine ozel alan adi kullaniliyor:
+  # Cloudflare Access yalnizca bu adresi koruyor ve gercek kullanicinin
+  # gordugu adres bu. Varsayilan adres uzerinden test etmek, Cloudflare
+  # katmanini (Access, SSL, onbellek) tamamen atlar.
+  TEST_WEB: https://test.salonbir.com
+
 jobs:
   # ── main -> TEST ───────────────────────────────────────────────────────────
   test-ortami:
@@ -44,6 +50,7 @@ jobs:
       (github.event_name == 'workflow_dispatch' && inputs.hedef == 'test')
     environment:
       name: test
+      url: https://test.salonbir.com
     steps:
       - uses: actions/checkout@v4
 
@@ -67,7 +74,6 @@ jobs:
         run: node scripts/ortam-yapilandir.mjs "$TEST_API"
 
       - name: Static Web App'e dagit
-        id: dagit
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_SWA_TOKEN_TEST }}
@@ -76,10 +82,16 @@ jobs:
           skip_app_build: true
           skip_api_build: true
 
+      # Test ortami Cloudflare Access ile e-posta listesine kisitli. CI bir
+      # insan olmadigi icin servis token'i ile geciyor; token tanimli degilse
+      # basliklar gonderilmiyor ve davranis degismiyor.
       - name: Tarayici duman testi
+        env:
+          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
         run: |
           npx playwright install --with-deps chromium
-          node scripts/tarayici-duman-testi.mjs "${{ steps.dagit.outputs.static_web_app_url }}"
+          node scripts/tarayici-duman-testi.mjs "$TEST_WEB"
 
   # ── v* etiketi -> CANLI ────────────────────────────────────────────────────
   canli:

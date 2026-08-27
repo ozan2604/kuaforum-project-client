@@ -49,8 +49,26 @@ const konsolHatalari = [];
 const basarisizIstekler = [];
 const hataliYanitlar = [];
 
+// Cloudflare Access arkasindaki bir adres, kimlik dogrulamasi olmadan giris
+// sayfasina yonlendirir ve test anlamsiz sekilde kirilir. Servis token'i
+// tanimliysa gonderiliyor — Access bunu gorunce dogrudan gecirir.
+//
+// Token yoksa basliklar da yok: korumasiz adreslerde davranis degismiyor.
+const accessBasliklari =
+  process.env.CF_ACCESS_CLIENT_ID && process.env.CF_ACCESS_CLIENT_SECRET
+    ? {
+        'CF-Access-Client-Id': process.env.CF_ACCESS_CLIENT_ID,
+        'CF-Access-Client-Secret': process.env.CF_ACCESS_CLIENT_SECRET,
+      }
+    : {};
+
+if (Object.keys(accessBasliklari).length) {
+  console.log('Cloudflare Access servis token\'i kullaniliyor.\n');
+}
+
 const tarayici = await chromium.launch();
-const sayfa = await tarayici.newPage();
+const baglam = await tarayici.newContext({ extraHTTPHeaders: accessBasliklari });
+const sayfa = await baglam.newPage();
 
 // CSP ihlalleri konsola da dusuyor ama olay dinleyicisi daha guvenilir:
 // engellenen kaynagin adresini ve hangi direktifin engelledigini veriyor.
