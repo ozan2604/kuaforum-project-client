@@ -7,7 +7,18 @@ import { toast } from 'react-hot-toast';
 import { toPng } from 'html-to-image';
 import jsPDF from 'jspdf';
 
-const SHOP_BASE_URL = 'https://www.salonbir.com/shop';
+/**
+ * QR kodunun isaret edecegi salon adresi.
+ *
+ * Adres sabit yazilmiyor, bulunulan sitenin kendisinden aliniyor. Onceden
+ * her ortamda canliya isaret ediyordu: test ortaminda uretilen bir kod
+ * www.salonbir.com'a gidiyor ve test salonu orada bulunmadigi icin 404
+ * veriyordu. Kagida basildiktan sonra fark edilmesi muhtemel bir hataydi.
+ *
+ * Ortam degiskeni yerine origin tercih edildi — boylece yeni bir ortam
+ * eklendiginde yapilandirma guncellenmeyi unutulamaz.
+ */
+const getShopUrl = (shopId: string): string => `${window.location.origin}/shop/${shopId}`;
 
 const getAbsImageUrl = (path: string | null | undefined): string | null => {
     if (!path) return null;
@@ -57,10 +68,10 @@ export const SalonQrCodePage: React.FC = () => {
         </div>
     );
 
-    const shopUrl = `${SHOP_BASE_URL}/${shop.id}`;
+    const shopUrl = getShopUrl(shop.id);
     const coverUrl = getAbsImageUrl(shop.coverImagePath);
     const categoryNames = (shop.categories ?? [])
-        .map((c: any) => ShopCategoryLabels[c as keyof typeof ShopCategoryLabels])
+        .map((c: number) => ShopCategoryLabels[c as keyof typeof ShopCategoryLabels])
         .filter(Boolean);
     const locationText = [shop.city, shop.district].filter(Boolean).join(' / ');
 
@@ -69,7 +80,11 @@ export const SalonQrCodePage: React.FC = () => {
         const mimeType = ext === 'png' ? 'image/png' : 'application/pdf';
         const description = ext === 'png' ? 'PNG Görsel' : 'PDF Dosyası';
         if ('showSaveFilePicker' in window) {
-            const handle = await (window as any).showSaveFilePicker({
+            // Dosya kaydetme secicisi henuz standart tiplerde yok.
+            const secici = window as typeof window & {
+                showSaveFilePicker: (secenekler: unknown) => Promise<FileSystemFileHandle>;
+            };
+            const handle = await secici.showSaveFilePicker({
                 suggestedName,
                 types: [{ description, accept: { [mimeType]: [`.${ext}`] } }],
             });
@@ -135,8 +150,10 @@ export const SalonQrCodePage: React.FC = () => {
                 await saveWithPicker(blob, `${fileName}.pdf`, 'pdf');
                 toast.success('PDF kaydedildi!', { id: toastId });
             }
-        } catch (err: any) {
-            if (err?.name !== 'AbortError') {
+        } catch (err) {
+            // Kullanici kaydetme penceresini kapatirsa AbortError geliyor;
+            // bu bir hata degil, vazgecme.
+            if (!(err instanceof Error) || err.name !== 'AbortError') {
                 toast.error('İndirme sırasında hata oluştu.', { id: toastId });
             } else {
                 toast.dismiss(toastId);

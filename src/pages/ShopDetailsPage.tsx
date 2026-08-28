@@ -17,7 +17,7 @@ import { favoriteService } from '../services/favorite.service';
 import { ReviewsList } from '../components/ReviewsList';
 import { ReviewModal } from '../components/ReviewModal';
 import { appointmentService } from '../api/appointment.service';
-import { reviewService } from '../api/review.service';
+import { reviewService, type Review } from '../api/review.service';
 import type { Appointment } from '../types/appointment';
 import { CustomSelect } from '../components/CustomSelect';
 import { DEFAULT_SALON_COVER } from '../constants/images';
@@ -50,7 +50,7 @@ export const ShopDetailsPage: React.FC = () => {
     // Review logic
     const [reviewableAppointment, setReviewableAppointment] = useState<Appointment | null>(null);
     const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
-    const [editingReview, setEditingReview] = useState<any | null>(null);
+    const [editingReview, setEditingReview] = useState<Review | null>(null);
     const [reviewsRefreshTrigger, setReviewsRefreshTrigger] = useState(0);
 
     const [activeTab, setActiveTab] = useState<'services' | 'about' | 'gallery' | 'reviews' | 'hours'>('about');
@@ -166,7 +166,7 @@ export const ShopDetailsPage: React.FC = () => {
         try {
             await favoriteService.toggleFavorite(id);
             toast.success(newStatus ? 'Favorilere eklendi' : 'Favorilerden çıkarıldı');
-        } catch (error) {
+        } catch {
             setIsFavorite(!newStatus);
             toast.error('İşlem başarısız oldu');
         } finally {
@@ -212,7 +212,7 @@ export const ShopDetailsPage: React.FC = () => {
     }, [id, navigate, isAuthenticated]);
 
 
-    const handleEditReview = (review: any) => {
+    const handleEditReview = (review: Review) => {
         setEditingReview(review);
         setIsReviewModalOpen(true);
     };
@@ -259,7 +259,10 @@ export const ShopDetailsPage: React.FC = () => {
     };
 
     const handleShare = async () => {
-        const url = `https://www.salonbir.com/shop/${shop?.id}`;
+        // Adres bulunulan siteden aliniyor. Sabit yazildiginda test ortamindan
+        // paylasilan baglanti canliya gidiyor ve test salonu orada olmadigi
+        // icin 404 veriyordu.
+        const url = `${window.location.origin}/shop/${shop?.id}`;
         if (navigator.share) {
             try {
                 await navigator.share({ title: shop?.name, url });
@@ -1156,7 +1159,11 @@ export const ShopDetailsPage: React.FC = () => {
                     employeeName={editingReview ? editingReview.employeeName : reviewableAppointment?.employeeName || ''}
                     initialData={editingReview ? {
                         rating: editingReview.rating,
-                        comment: editingReview.comment,
+                        // Yorum istege bagli; modal metin alani bos dize
+                        // bekliyor. `any` kullanildigi surece bu fark
+                        // gorunmuyordu ve yorumsuz bir degerlendirme
+                        // duzenlenirken alana undefined geciyordu.
+                        comment: editingReview.comment ?? '',
                         imageUrls: editingReview.imageUrls
                     } : undefined}
                     onSubmit={handleReviewSubmit}
