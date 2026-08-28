@@ -7,7 +7,18 @@ import { toast } from 'react-hot-toast';
 import { toPng } from 'html-to-image';
 import jsPDF from 'jspdf';
 
-const SHOP_BASE_URL = 'https://www.salonbir.com/shop';
+/**
+ * QR kodunun isaret edecegi salon adresi.
+ *
+ * Adres sabit yazilmiyor, bulunulan sitenin kendisinden aliniyor. Onceden
+ * her ortamda canliya isaret ediyordu: test ortaminda uretilen bir kod
+ * www.salonbir.com'a gidiyor ve test salonu orada bulunmadigi icin 404
+ * veriyordu. Kagida basildiktan sonra fark edilmesi muhtemel bir hataydi.
+ *
+ * Ortam degiskeni yerine origin tercih edildi — boylece yeni bir ortam
+ * eklendiginde yapilandirma guncellenmeyi unutulamaz.
+ */
+const getShopUrl = (shopId: string): string => `${window.location.origin}/shop/${shopId}`;
 
 const getAbsImageUrl = (path: string | null | undefined): string | null => {
     if (!path) return null;
@@ -57,7 +68,7 @@ export const SalonQrCodePage: React.FC = () => {
         </div>
     );
 
-    const shopUrl = `${SHOP_BASE_URL}/${shop.id}`;
+    const shopUrl = getShopUrl(shop.id);
     const coverUrl = getAbsImageUrl(shop.coverImagePath);
     const categoryNames = (shop.categories ?? [])
         .map((c: any) => ShopCategoryLabels[c as keyof typeof ShopCategoryLabels])

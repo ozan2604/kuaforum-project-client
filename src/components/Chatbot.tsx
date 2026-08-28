@@ -243,7 +243,9 @@ export const Chatbot: React.FC = () => {
                         <div className="flex flex-col gap-2.5">
                             <span>Harika bir karar! Salonunuzu platformumuza eklemek oldukça basit. İlgili bilgileri girerek hızlıca salon başvurusunda bulunabilirsiniz. Başvurunuz ekibimiz tarafından incelendikten sonra kısa sürede onaylanır.</span>
                             <span>Ayrıca aklınıza takılan herhangi bir şey olursa <strong>"Bize Ulaşın"</strong> sekmesinden doğrudan bizimle iletişime geçebilirsiniz.</span>
-                            <a href="https://www.salonbir.com/salon-basvurusu" target="_blank" rel="noopener noreferrer" className="inline-block mt-1 text-center bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-xl font-medium transition-colors shadow-sm">
+                            {/* Goreli adres: sabit yazildiginda test ortamindaki
+                                kullaniciyi sessizce canliya goturuyordu. */}
+                            <a href="/salon-basvurusu" target="_blank" rel="noopener noreferrer" className="inline-block mt-1 text-center bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-xl font-medium transition-colors shadow-sm">
                                 Salon Başvurusu Yap
                             </a>
                         </div>

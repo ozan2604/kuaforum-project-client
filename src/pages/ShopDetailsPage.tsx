@@ -259,7 +259,10 @@ export const ShopDetailsPage: React.FC = () => {
     };
 
     const handleShare = async () => {
-        const url = `https://www.salonbir.com/shop/${shop?.id}`;
+        // Adres bulunulan siteden aliniyor. Sabit yazildiginda test ortamindan
+        // paylasilan baglanti canliya gidiyor ve test salonu orada olmadigi
+        // icin 404 veriyordu.
+        const url = `${window.location.origin}/shop/${shop?.id}`;
         if (navigator.share) {
             try {
                 await navigator.share({ title: shop?.name, url });
