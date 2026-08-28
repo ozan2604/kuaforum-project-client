@@ -4,7 +4,9 @@ import { useLocation } from 'react-router-dom';
 
 const playSound = (type: 'send' | 'receive') => {
     try {
-        const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
+        // Safari sesi yalnizca on ekli adla veriyor; tip tanimlarinda yok.
+        const tarayici = window as typeof window & { webkitAudioContext?: typeof window.AudioContext };
+        const AudioContext = window.AudioContext || tarayici.webkitAudioContext;
         if (!AudioContext) return;
         const ctx = new AudioContext(); // Creates a fresh context each time which unlocks automatically in user gesture
         const osc = ctx.createOscillator();

@@ -71,7 +71,7 @@ export const SalonQrCodePage: React.FC = () => {
     const shopUrl = getShopUrl(shop.id);
     const coverUrl = getAbsImageUrl(shop.coverImagePath);
     const categoryNames = (shop.categories ?? [])
-        .map((c: any) => ShopCategoryLabels[c as keyof typeof ShopCategoryLabels])
+        .map((c: number) => ShopCategoryLabels[c as keyof typeof ShopCategoryLabels])
         .filter(Boolean);
     const locationText = [shop.city, shop.district].filter(Boolean).join(' / ');
 
@@ -80,7 +80,11 @@ export const SalonQrCodePage: React.FC = () => {
         const mimeType = ext === 'png' ? 'image/png' : 'application/pdf';
         const description = ext === 'png' ? 'PNG Görsel' : 'PDF Dosyası';
         if ('showSaveFilePicker' in window) {
-            const handle = await (window as any).showSaveFilePicker({
+            // Dosya kaydetme secicisi henuz standart tiplerde yok.
+            const secici = window as typeof window & {
+                showSaveFilePicker: (secenekler: unknown) => Promise<FileSystemFileHandle>;
+            };
+            const handle = await secici.showSaveFilePicker({
                 suggestedName,
                 types: [{ description, accept: { [mimeType]: [`.${ext}`] } }],
             });
@@ -146,8 +150,10 @@ export const SalonQrCodePage: React.FC = () => {
                 await saveWithPicker(blob, `${fileName}.pdf`, 'pdf');
                 toast.success('PDF kaydedildi!', { id: toastId });
             }
-        } catch (err: any) {
-            if (err?.name !== 'AbortError') {
+        } catch (err) {
+            // Kullanici kaydetme penceresini kapatirsa AbortError geliyor;
+            // bu bir hata degil, vazgecme.
+            if (!(err instanceof Error) || err.name !== 'AbortError') {
                 toast.error('İndirme sırasında hata oluştu.', { id: toastId });
             } else {
                 toast.dismiss(toastId);
